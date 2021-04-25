@@ -1,0 +1,10 @@
+# vim
+*~
+*.swp
+*.swo
+
+# vscode
+.vscode/
+
+# idea
+.idea/
