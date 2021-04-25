@@ -8,3 +8,7 @@
 
 # idea
 .idea/
+
+# scala
+.metals/
+.bsp/
