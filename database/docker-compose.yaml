@@ -1,0 +1,24 @@
+version: "3.7"
+services:
+    database:
+        image: postgres:13.2-alpine
+        restart: always
+        ports:
+        - 5432:5432
+        networks:
+        - database
+        volumes:
+        - ./data:/var/lib/postgresql/data
+        deploy:
+            resources:
+                limits:
+                    cpus: "0.2"
+                    memory: 256M
+        environment:
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: postgres
+            POSTGRES_DB: frisbee
+networks:
+    database:
+        external:
+            name: frisbee_database

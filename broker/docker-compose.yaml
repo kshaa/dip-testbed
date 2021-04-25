@@ -1,0 +1,26 @@
+version: "3.7"
+services:
+    broker:
+        image: rabbitmq:3.8.14-management-alpine
+        restart: always
+        ports:
+        - "15672:15672"
+        - "5672:5672"
+        networks:
+        - broker
+        volumes:
+        - ./data:/var/lib/rabbitmq/
+        deploy:
+            resources:
+                limits:
+                    cpus: "0.2"
+                    memory: 256M
+        environment:
+            RABBITMQ_ERLANG_COOKIE: "4NF6SXD6r6ywSDAsecfE"
+            RABBITMQ_DEFAULT_USER: "rabbitmq"
+            RABBITMQ_DEFAULT_PASS: "rabbitmq"
+            RABBITMQ_DEFAULT_VHOST: "/"
+networks:
+    broker:
+        external:
+            name: frisbee_broker
