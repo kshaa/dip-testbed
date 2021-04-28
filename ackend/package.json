@@ -1,0 +1,12 @@
+{
+  "name": "ackend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "typescript": "^4.2.4",
+    "@types/node": "^15.0.1"
+  },
+  "scripts": {
+    "start": "npx ts-node server.ts"
+  }
+}
