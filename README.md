@@ -20,6 +20,8 @@ Attach sensor microcontrollers to a frisbee, track throw performance, off-load d
 - `database` - PostgreSQL database. Contains storage for `backend`  
 - `broker` - RabbitMQ message broker. Receives `basket` messages  
 - `backend` - Scala Play server. Listens to `broker` for `basket` messages. Stores info in `database`. Notifies info to `app`  
+- `ackend` - 25 LoC Typescript server for testing. Listens to for `basket` messages. Prints on stdout    
+- `app` - Flutter application. Provides system interactivity to user. Listens `backend` for info
 - `app` - Flutter application. Provides system interactivity to user. Listens `backend` for info
 - `basket` - Rust microcontroller firmware. Receives `frisbee` messages. Sends to `broker`  
 - `frisbee` - C++ microcontroller firmware. Interacts w/ external `sensors` lib. Intermittently sends to `basket`  
