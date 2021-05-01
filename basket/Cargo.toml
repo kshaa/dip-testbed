@@ -5,4 +5,6 @@ edition = "2018"
 
 [dependencies]
 lapin = "1.7.0"
-blurz = "0.4.0"
+btleplug = "0.7.2"
+rand = "0.8.3"
+uuid = "0.8.2"

@@ -1,5 +1,2 @@
-mod gateway {
-    trait Gateway {
-        send
-    }
-}
+pub mod tcp_gateway;
+pub mod api;
