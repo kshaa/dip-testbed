@@ -69,12 +69,12 @@ impl Gateway for TCPGateway {
             result = match maybe_stream {
                 Err(err) => Some(format!("TCP connection is not available: {}", err)),
                 Ok(stream) => {
-                    let write = match stream.write(data) {
+                    let write_all = match stream.write_all(data) {
                         Err(err) => Some(format!("Failed to write bytes to TCP stream: {}", err)),
                         Ok(_) => None,
                     };
             
-                    match write {
+                    match write_all {
                         Some(err) => Some(err),
                         None => match stream.flush() {
                             Err(err) => Some(format!("Failed to flush bytes to TCP stream: {}", err)),

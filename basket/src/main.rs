@@ -1,42 +1,92 @@
-// use std::thread;
-// use std::time::Duration;
-// use rand::{Rng, thread_rng};
-// #[cfg(target_os = "linux")]
-// use btleplug::bluez::{adapter::Adapter, manager::Manager};
-// #[cfg(target_os = "windows")]
-// use btleplug::winrtble::{adapter::Adapter, manager::Manager};
-// #[cfg(target_os = "macos")]
-// use btleplug::corebluetooth::{adapter::Adapter, manager::Manager};
-// use btleplug::api::{bleuuid::uuid_from_u16, Central, Peripheral, WriteType};
-// use uuid::Uuid;
-
-// const LIGHT_CHARACTERISTIC_UUID: Uuid = uuid_from_u16(0xFFE9);
-
-// adapter retreival works differently depending on your platform right now.
-// API needs to be aligned.
-
+// Basket gateway
 mod gateway;
 use gateway::api::Gateway;
 use gateway::tcp_gateway::TCPGateway;
 
+// Bluetooth adapter & manager
+#[cfg(target_os = "linux")]
+use btleplug::bluez::{adapter::Adapter, manager::Manager};
+#[cfg(target_os = "windows")]
+use btleplug::winrtble::{adapter::Adapter, manager::Manager};
+#[cfg(target_os = "macos")]
+use btleplug::corebluetooth::{adapter::Adapter, manager::Manager};
+
+// Miscellaneous
+use std::thread;
+use std::time::Duration;
+use rand::{Rng, thread_rng};
+
+use btleplug::api::{bleuuid::uuid_from_u16, CentralEvent, CharPropFlags, Central, Peripheral, Characteristic, WriteType};
+use std::collections::{BTreeSet};
+
+// use btleplug::api::{bleuuid::uuid_from_u16, Central, Manager as _, Peripheral as _, WriteType};
+// use btleplug::platform::{Adapter, Manager, Peripheral};
+// use rand::{thread_rng, Rng};
+// use std::error::Error;
+// use std::time::Duration;
+// use uuid::Uuid;
+
+
+const LIGHT_CHARACTERISTIC_UUID: uuid::Uuid = uuid_from_u16(0xFFE9);
+
 pub fn main() {
-    // let manager = Manager::new().unwrap();
+    // Initialize message gateway
+    let gateway = TCPGateway::init("127.0.0.1".to_owned(), 3000);
 
-    // // get the first bluetooth adapter
-    // let adapters: Vec<Adapter> = manager.adapters().unwrap();
-    // let central = adapters.into_iter().nth(0).unwrap();
+    // Get the first bluetooth adapter
+    let manager = Manager::new().expect("Could not initialize bluetooth driver");
+    let adapters: Vec<Adapter> = manager.adapters().expect("Could not list bluetooth adapters");
+    let central = adapters.into_iter().nth(0).expect("No bluetooth adapters seem to be available");
     
-    // // start scanning for devices
-    // central.start_scan().unwrap();
-    // // instead of waiting, you can use central.event_receiver() to fetch a channel and
-    // // be notified of new devices
-    // thread::sleep(Duration::from_secs(2));
+    // Scan for devices for 2 seconds & print them all
+    central.start_scan().expect("Could not start bluetooth scanner");
+    thread::sleep(Duration::from_secs(2));
+    let devices = central.peripherals();
+    for device in devices.iter() {
+        // Assert available device name
+        let device_name = match device.properties().local_name {
+            None => format!("Unnamed"), // continue,
+            Some(name) => name,
+        };
 
-    // // // Print all devices
-    // // let devices = central.peripherals();
-    // // for device in devices.iter() {
-    // //     println!("{}", device.properties().local_name.unwrap());
-    // // }
+        // Send device name to gateway
+        gateway
+            .send(format!("Device: {}\n", device_name).as_bytes())
+            .map(|err| println!("Error sending bluetooth local device to gateway: {}", err));
+
+        // Send device services to gateway
+        println!("{} has {} services", device_name, device.properties().services.len());
+        for service in device.properties().services.iter() {
+            gateway
+                .send(format!("Service: {}\n", service).as_bytes())
+                .map(|err| println!("Error sending bluetooth local device to gateway: {}", err));
+        }
+
+        // Assert available device characteristics
+        let chars: Vec<Characteristic> = match device.discover_characteristics() {
+            Err(err) => { println!("Failed to read {} characteristics: {}", device_name, err); continue },
+            Ok(chars) => { println!("{} has {} or {} characteristics", device_name, chars.len(), device.characteristics().len() ); chars},
+        };
+
+        // Send device characteristics to gateway
+        for char in chars.iter() {
+            let propchart = format!(
+                "b:{},r:{},w:{},wr:{},n:{},i:{},a:{},e:{}",
+                char.properties.contains(CharPropFlags::BROADCAST),
+                char.properties.contains(CharPropFlags::READ),
+                char.properties.contains(CharPropFlags::WRITE_WITHOUT_RESPONSE),
+                char.properties.contains(CharPropFlags::WRITE),
+                char.properties.contains(CharPropFlags::NOTIFY),
+                char.properties.contains(CharPropFlags::INDICATE),
+                char.properties.contains(CharPropFlags::AUTHENTICATED_SIGNED_WRITES),
+                char.properties.contains(CharPropFlags::EXTENDED_PROPERTIES),
+            );
+
+            gateway
+                .send(format!("Characteristic[{}]: {}\n", char.uuid, propchart).as_bytes())
+                .map(|err| println!("Error sending bluetooth local device to gateway: {}", err));
+        }
+    }
 
     // // find the device we're interested in
     // let light = central.peripherals().into_iter()
@@ -50,7 +100,7 @@ pub fn main() {
     // light.discover_characteristics().unwrap();
 
     // // find the characteristic we want
-    // let chars: Vec<Characteristic> = light.characteristics();
+    // let chars: BTreeSet<Characteristic> = light.characteristics();
     // let cmd_char = chars.iter().find(|c| c.uuid == LIGHT_CHARACTERISTIC_UUID).unwrap();
 
     // // dance party
@@ -60,10 +110,4 @@ pub fn main() {
     //     light.write(&cmd_char, &color_cmd, WriteType::WithoutResponse).unwrap();
     //     thread::sleep(Duration::from_millis(200));
     // }
-
-    let gateway = TCPGateway::init("127.0.0.1".to_owned(), 3000);
-    gateway.send("Yeet".as_bytes()).map(|err| println!("Error sending msg no. 1: {}", err));
-    gateway.send("Maybe".as_bytes()).map(|err| println!("Error sending msg no. 1: {}", err));
-
-    return ();
 }
