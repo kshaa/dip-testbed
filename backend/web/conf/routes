@@ -1,3 +1,5 @@
 # Routes
 
-GET / com.iotfrisbee.HomeController.index
+GET / com.iotfrisbee.controllers.HomeController.index
+GET /diskGolfTrackCount com.iotfrisbee.controllers.HomeController.diskGolfTrackCount
+GET /userCount com.iotfrisbee.controllers.HomeController.userCount

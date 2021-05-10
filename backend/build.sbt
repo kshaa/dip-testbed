@@ -12,7 +12,7 @@ lazy val domain = (project in file("domain"))
   .settings(metaSettings: _*)
   .settings(scalacSettings: _*)
   .settings(
-    name := "domain"
+    name := "domain",
   )
 
 lazy val protocol = (project in file("protocol"))
@@ -20,11 +20,27 @@ lazy val protocol = (project in file("protocol"))
   .settings(metaSettings: _*)
   .settings(scalacSettings: _*)
   .settings(
-    name := "protocol"
+    name := "protocol",
+  )
+
+lazy val database = (project in file("database"))
+  .dependsOn(domain)
+  .settings(scalaSettings: _*)
+  .settings(metaSettings: _*)
+  .settings(scalacSettings: _*)
+  .settings(
+    name := "database",
+    libraryDependencies ++= Seq(
+      playSlickPackage,
+      slickPackage,
+      guicePackage,
+      catsPackage,
+    ),
   )
 
 lazy val web = (project in file("web"))
   .enablePlugins(PlayScala)
+  .dependsOn(database)
   .settings(scalaSettings: _*)
   .settings(metaSettings: _*)
   .settings(scalacSettings: _*)
@@ -32,7 +48,12 @@ lazy val web = (project in file("web"))
     name := "web",
     libraryDependencies ++= Seq(
       playPackage,
+      playSlickPackage,
+      postgresqlJdbcPackage,
+      h2JdbcPackage,
+      playSlickEvolutionsPackage,
       slickPackage,
-      guice
-    )
+      guicePackage,
+      catsPackage,
+    ),
   )
