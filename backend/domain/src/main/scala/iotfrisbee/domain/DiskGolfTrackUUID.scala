@@ -1,4 +1,4 @@
-package com.iotfrisbee
+package iotfrisbee.domain
 
 import java.util.UUID
 

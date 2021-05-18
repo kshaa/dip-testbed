@@ -1,28 +1,15 @@
-package com.iotfrisbee.catalog
+package iotfrisbee.database.catalog
 
 import java.util.{TimeZone, UUID}
-import com.google.inject.Inject
-import com.iotfrisbee.{DiskGolfTrack, DiskGolfTrackUUID, UserId}
-import javax.inject.Singleton
-import play.api.db.slick.DatabaseConfigProvider
-import slick.basic.DatabaseConfig
-import slick.jdbc.JdbcProfile
+import iotfrisbee.database.driver.DatabaseDriver.JdbcDatabaseDriver
+import iotfrisbee.domain.{DiskGolfTrack, DiskGolfTrackUUID, UserId}
 import slick.lifted.ProvenShape
 
 object DiskGolfTrackCatalog {
+  class DiskGolfTrackTable(val dbDriver: JdbcDatabaseDriver) {
+    import dbDriver.profile.api._
 
-  @Singleton
-  class DiskGolfTrackTable @Inject() (
-      dbConfigProvider: DatabaseConfigProvider,
-  ) {
-    val dbConfig: DatabaseConfig[JdbcProfile] =
-      dbConfigProvider.get[JdbcProfile]
-
-    import dbConfig._
-    import profile.api._
-
-    class DiskGolfTrackTable(tag: Tag)
-        extends Table[DiskGolfTrackRow](tag, "disk_golf_track") {
+    class DiskGolfTrackTable(tag: Tag) extends Table[DiskGolfTrackRow](tag, "disk_golf_track") {
       def uuid: Rep[UUID] = column[UUID]("uuid", O.PrimaryKey)
       def ownerId: Rep[Long] = column[Long]("owner_id")
       def name: Rep[String] = column[String]("name")
@@ -37,16 +24,14 @@ object DiskGolfTrackCatalog {
         ) <> ((DiskGolfTrackRow.apply _).tupled, DiskGolfTrackRow.unapply)
     }
 
-    object DiskGolfTrackQuery
-        extends TableQuery[DiskGolfTrackTable](new DiskGolfTrackTable(_))
-
+    object DiskGolfTrackQuery extends TableQuery[DiskGolfTrackTable](new DiskGolfTrackTable(_))
   }
 
   case class DiskGolfTrackRow(
-      id: UUID,
-      ownerId: Long,
-      name: String,
-      timezone: String,
+    id: UUID,
+    ownerId: Long,
+    name: String,
+    timezone: String,
   )
 
   def fromDomain(diskGolfTrack: DiskGolfTrack): DiskGolfTrackRow =

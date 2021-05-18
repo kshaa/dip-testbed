@@ -1,4 +1,3 @@
-import sbt._
 import sbt.Keys._
 
 object Settings {
@@ -9,12 +8,13 @@ object Settings {
   lazy val metaSettings = Seq(
     organization := "lv.veinbahs.krisjanis",
   )
-  
+
   lazy val scalacSettings = Seq(
     scalacOptions := Seq(
       "-feature",
       "-deprecation",
       "-Xfatal-warnings",
-    )
+      "-Ywarn-unused",
+    ),
   )
 }

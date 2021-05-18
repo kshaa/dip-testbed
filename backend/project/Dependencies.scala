@@ -5,12 +5,17 @@ object Dependencies {
   lazy val slickPackage = "com.typesafe.slick" %% "slick" % slickVersion
   lazy val playPackage =
     "org.scalatestplus.play" %% "scalatestplus-play" % playVersion % "test"
-  lazy val playSlickPackage = "com.typesafe.play" %% "play-slick" % playVersion
+  lazy val playJdbcPackage =
+    "com.typesafe.play" %% "play-jdbc" % playJdbcVersion
+  lazy val playGuicePackage = "com.typesafe.play" %% "play-guice" % playGuiceVersion
+  lazy val playSlickPackage = "com.typesafe.play" %% "play-slick" % playSlickVersion
   lazy val playSlickEvolutionsPackage =
-    "com.typesafe.play" %% "play-slick-evolutions" % playVersion
+    "com.typesafe.play" %% "play-slick-evolutions" % playSlickEvolutionsVersion
   lazy val postgresqlJdbcPackage =
     "org.postgresql" % "postgresql" % postgresqlJdbcVersion
   lazy val h2JdbcPackage = "com.h2database" % "h2" % h2JdbcVersion
-  lazy val guicePackage = "com.typesafe.play" %% "play-guice" % guiceVersion
-  lazy val catsPackage = "org.typelevel" %% "cats-effect" % catsVersion
+  lazy val catsEffectPackage = "org.typelevel" %% "cats-effect" % catsEffectVersion
+  lazy val catsEffectTestingPackage =
+    "org.typelevel" %% "cats-effect-testing-scalatest" % catsEffectTestingVersion % "test"
+
 }

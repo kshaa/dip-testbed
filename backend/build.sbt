@@ -33,8 +33,9 @@ lazy val database = (project in file("database"))
     libraryDependencies ++= Seq(
       playSlickPackage,
       slickPackage,
-      guicePackage,
-      catsPackage,
+      playGuicePackage,
+      catsEffectPackage,
+      jdbc,
     ),
   )
 
@@ -49,11 +50,13 @@ lazy val web = (project in file("web"))
     libraryDependencies ++= Seq(
       playPackage,
       playSlickPackage,
+      playGuicePackage,
+      playJdbcPackage,
+      playSlickEvolutionsPackage,
       postgresqlJdbcPackage,
       h2JdbcPackage,
-      playSlickEvolutionsPackage,
       slickPackage,
-      guicePackage,
-      catsPackage,
+      catsEffectPackage,
+      catsEffectTestingPackage,
     ),
   )
