@@ -17,5 +17,9 @@ object Dependencies {
   lazy val catsEffectPackage = "org.typelevel" %% "cats-effect" % catsEffectVersion
   lazy val catsEffectTestingPackage =
     "org.typelevel" %% "cats-effect-testing-scalatest" % catsEffectTestingVersion % "test"
+  lazy val circeCorePackage = "io.circe" %% "circe-core" % circeCoreVersion
+  lazy val circeGenericPackage = "io.circe" %% "circe-generic" % circeGenericVersion
+  lazy val circeParserPackage = "io.circe" %% "circe-parser" % circeParserVersion
+  lazy val scalaTestPackage = "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
 
 }

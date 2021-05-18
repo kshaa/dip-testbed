@@ -6,25 +6,26 @@ import iotfrisbee.web.IotFrisbeeModule
 import org.scalatest.TestSuite
 import org.scalatest.freespec.AsyncFreeSpecLike
 import org.scalatest.matchers.should.Matchers
-import org.scalatestplus.play.components.OneAppPerSuiteWithComponents
+import org.scalatestplus.play.components.WithApplicationComponents
 import play.api.{BuiltInComponents, Configuration}
 import scala.concurrent.duration.DurationInt
 
 trait IotFrisbeeSpec
     extends TestSuite
-    with OneAppPerSuiteWithComponents
     with AsyncFreeSpecLike
     with AsyncIOSpec
-    with Matchers {
+    with Matchers
+    with WithApplicationComponents {
   implicit def defaultAwaitTimeout: Timeout = 60.seconds
-  override def components: BuiltInComponents = module
-  lazy val testSpecName: String = this.getClass.getSimpleName.toLowerCase()
-  lazy val module = new IotFrisbeeModule(
-    context.copy(initialConfiguration =
-      Configuration(
-        "iotfrisbee.test.enabled" -> true,
-        "iotfrisbee.test.name" -> testSpecName,
-      ).withFallback(context.initialConfiguration),
-    ),
-  )
+  override def components: BuiltInComponents = null
+  val testSuiteName: String = this.getClass.getSimpleName.toLowerCase()
+  def module(testName: String = testSuiteName): IotFrisbeeModule =
+    new IotFrisbeeModule(
+      context.copy(initialConfiguration =
+        Configuration(
+          "iotfrisbee.test.enabled" -> true,
+          "iotfrisbee.test.name" -> testName,
+        ).withFallback(context.initialConfiguration),
+      ),
+    )
 }

@@ -5,7 +5,7 @@ lazy val root = (project in file("."))
   .settings(scalaSettings: _*)
   .settings(metaSettings: _*)
   .settings(scalacSettings: _*)
-  .aggregate(domain, web)
+  .aggregate(domain, protocol, database, web)
 
 lazy val domain = (project in file("domain"))
   .settings(scalaSettings: _*)
@@ -16,11 +16,18 @@ lazy val domain = (project in file("domain"))
   )
 
 lazy val protocol = (project in file("protocol"))
+  .dependsOn(domain)
   .settings(scalaSettings: _*)
   .settings(metaSettings: _*)
   .settings(scalacSettings: _*)
   .settings(
     name := "protocol",
+    libraryDependencies ++= Seq(
+      circeCorePackage,
+      circeGenericPackage,
+      circeParserPackage,
+      scalaTestPackage,
+    ),
   )
 
 lazy val database = (project in file("database"))
@@ -41,7 +48,9 @@ lazy val database = (project in file("database"))
 
 lazy val web = (project in file("web"))
   .enablePlugins(PlayScala)
+  .dependsOn(domain)
   .dependsOn(database)
+  .dependsOn(protocol)
   .settings(scalaSettings: _*)
   .settings(metaSettings: _*)
   .settings(scalacSettings: _*)

@@ -6,11 +6,14 @@ import play.api.{ConfigLoader, Configuration}
 
 object TestConfig {
   implicit val testConfigLoader: ConfigLoader[DomainTestConfig] = (rootConfig: Config, path: String) => {
-    val config: Configuration = Configuration(rootConfig.getConfig(path))
-
-    DomainTestConfig.fromConfig(
-      enabled = config.getOptional[Boolean]("enabled"),
-      testName = config.getOptional[String]("name"),
-    )
+    Option
+      .when(rootConfig.hasPath(path))(Configuration(rootConfig.getConfig(path)))
+      .map(config =>
+        DomainTestConfig.fromConfig(
+          enabled = config.getOptional[Boolean]("enabled"),
+          testName = config.getOptional[String]("name"),
+        ),
+      )
+      .getOrElse(DomainTestConfig.empty)
   }
 }

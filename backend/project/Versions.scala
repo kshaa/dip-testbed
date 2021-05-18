@@ -10,4 +10,8 @@ object Versions {
   lazy val h2JdbcVersion = "1.4.199"
   lazy val catsEffectVersion = "3.1.0"
   lazy val catsEffectTestingVersion = "1.1.0"
+  lazy val circeCoreVersion = "0.12.3"
+  lazy val circeGenericVersion = "0.12.3"
+  lazy val circeParserVersion = "0.12.3"
+  lazy val scalaTestVersion = "3.2.7"
 }
