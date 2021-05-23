@@ -1,15 +1,22 @@
 package iotfrisbee.protocol.messages
 
-import io.circe.{Encoder, Json}
 import io.circe.syntax._
+import io.circe.{Decoder, Encoder}
+import iotfrisbee.protocol.Codecs.Web._
+
+sealed trait WebResult[A] {
+  val value: A
+  implicit val valueEncoder: Encoder[A]
+  implicit val valueDecoder: Decoder[A]
+}
 
 object WebResult {
-  type WebResult = Either[Json, Json]
+  case class Success[A](value: A)(implicit val valueEncoder: Encoder[A], val valueDecoder: Decoder[A])
+      extends WebResult[A]
+  case class Failure[A](value: A)(implicit val valueEncoder: Encoder[A], val valueDecoder: Decoder[A])
+      extends WebResult[A]
 
-  def fromError[A](error: String): WebResult = Left(error.asJson)
-  def fromSuccess[A: Encoder](result: A): WebResult = Right(result.asJson)
-
-  implicit class RichWebResult(webResult: WebResult) {
-    def toJsonString: String = webResult.merge.toString
+  implicit class RichWebResult[A: Encoder: Decoder](webResult: WebResult[A]) {
+    def toJsonString: String = webResult.asJson.toString
   }
 }

@@ -1,18 +1,19 @@
 package iotfrisbee.web.iocontroller
 
-import cats.data.EitherT
-import cats.effect.IO
-import play.api.mvc.Results.NotFound
-import play.api.mvc.{Codec, Result}
-import cats.implicits._
-import io.circe.Json
-import iotfrisbee.protocol.messages.WebResult._
 import scala.concurrent.Future
 import scala.language.implicitConversions
-import iotfrisbee.web.iocontroller.PipelineTypes.PipelineStage
+import cats.data.EitherT
+import cats.effect.IO
+import cats.implicits._
+import play.api.mvc.Results.NotFound
+import play.api.mvc.{Result, Codec => PlayCodec}
 import play.api.http.{ContentTypeOf, Writeable}
 import play.api.http.ContentTypes.JSON
 import play.api.mvc.Results.Status
+import io.circe.{Json, Decoder => CirceDecoder, Encoder => CirceEncoder}
+import iotfrisbee.protocol.messages.WebResult
+import iotfrisbee.protocol.messages.WebResult._
+import iotfrisbee.web.iocontroller.PipelineTypes.PipelineStage
 
 object PipelineOps {
   implicit class RichFunctorOption[A](r: IO[Option[A]]) {
@@ -38,11 +39,18 @@ object PipelineOps {
   implicit val contentTypeOfCirceJson: ContentTypeOf[Json] =
     ContentTypeOf[io.circe.Json](Some(JSON))
 
-  implicit def writeableOfCirceJson(implicit codec: Codec): Writeable[Json] = {
+  implicit def writeableOfCirceJson(implicit codec: PlayCodec): Writeable[Json] =
     Writeable(obj => codec.encode(obj.noSpaces))
+
+  implicit class RichPipelineWebResult[A: CirceEncoder: CirceDecoder](webResult: WebResult[A]) {
+    def withHttpStatus(statusCode: Int): Result = Status(statusCode)(webResult.toJsonString).as(JSON)
   }
 
-  implicit class RichWebResultWeb(webResult: WebResult) {
-    def withHttpStatus(statusCode: Int): Result = Status(statusCode)(webResult.toJsonString).as(JSON)
+  implicit class RichPipelineSuccess[A: CirceEncoder: CirceDecoder](success: Success[A]) {
+    def withHttpStatus(statusCode: Int): Result = Status(statusCode)(success.toJsonString).as(JSON)
+  }
+
+  implicit class RichPipelineFailure[A: CirceEncoder: CirceDecoder](failure: Failure[A]) {
+    def withHttpStatus(statusCode: Int): Result = Status(statusCode)(failure.toJsonString).as(JSON)
   }
 }

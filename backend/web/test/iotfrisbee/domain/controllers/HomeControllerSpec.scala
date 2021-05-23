@@ -1,11 +1,13 @@
 package iotfrisbee.domain.controllers
 
-import iotfrisbee.web.controllers.HomeController
-import iotfrisbee.web.iocontroller.PipelineOps._
 import scala.concurrent.Future
 import play.api.test.{FakeRequest, Helpers}
-import io.circe.syntax._
-import iotfrisbee.protocol.Codecs._
+import io.circe.parser._
+import iotfrisbee.web.controllers.HomeController
+import iotfrisbee.web.iocontroller.PipelineOps._
+import iotfrisbee.protocol.Codecs.Web._
+import iotfrisbee.protocol.Codecs.Home._
+import iotfrisbee.protocol.messages.WebResult.Success
 import iotfrisbee.protocol.messages.ServiceStatus
 
 class HomeControllerSpec extends IotFrisbeeSpec {
@@ -19,7 +21,10 @@ class HomeControllerSpec extends IotFrisbeeSpec {
           .apply(FakeRequest())
           .asIO
           .map(x => Helpers.contentAsString(Future.successful(x)))
-          .map(x => x.shouldEqual(ServiceStatus(1, 0).asJson.toString))
+          .map(x =>
+            decode[Success[ServiceStatus]](x)
+              .shouldEqual(Right(Success(ServiceStatus(1, 0)))),
+          )
     }
   }
 }

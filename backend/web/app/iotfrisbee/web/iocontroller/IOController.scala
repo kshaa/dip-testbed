@@ -12,7 +12,5 @@ trait IOController {
   def IOAction(
     handler: Request[AnyContent] => PipelineRes[IO],
   )(implicit iort: IORuntime): Action[AnyContent] =
-    cc.actionBuilder.async { req: Request[AnyContent] =>
-      handler(req).fold(a => a, b => b).unsafeToFuture()
-    }
+    cc.actionBuilder.async(handler(_).merge.unsafeToFuture())
 }
