@@ -5,6 +5,7 @@ object Dependencies {
   lazy val slickPackage = "com.typesafe.slick" %% "slick" % slickVersion
   lazy val playPackage =
     "org.scalatestplus.play" %% "scalatestplus-play" % playVersion % "test"
+  lazy val playCircePackage = "com.dripower" %% "play-circe" % playCirceVersion
   lazy val playJdbcPackage =
     "com.typesafe.play" %% "play-jdbc" % playJdbcVersion
   lazy val playGuicePackage = "com.typesafe.play" %% "play-guice" % playGuiceVersion
@@ -19,6 +20,7 @@ object Dependencies {
     "org.typelevel" %% "cats-effect-testing-scalatest" % catsEffectTestingVersion % "test"
   lazy val circeCorePackage = "io.circe" %% "circe-core" % circeCoreVersion
   lazy val circeGenericPackage = "io.circe" %% "circe-generic" % circeGenericVersion
+  lazy val circeGenericExtrasPackage = "io.circe" %% "circe-generic-extras" % circeGenericExtrasVersion
   lazy val circeParserPackage = "io.circe" %% "circe-parser" % circeParserVersion
   lazy val scalaTestPackage = "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
 

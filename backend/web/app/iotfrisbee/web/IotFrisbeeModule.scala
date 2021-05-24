@@ -1,15 +1,8 @@
 package iotfrisbee.web
 
+import scala.concurrent.Future
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
-import iotfrisbee.database.catalog.DiskGolfTrackCatalog.DiskGolfTrackTable
-import iotfrisbee.database.catalog.UserCatalog.UserTable
-import iotfrisbee.database.driver.DatabaseDriver.{JdbcDatabaseDriver, fromJdbcConfig, fromPlayDatabase}
-import iotfrisbee.database.services.{DiskGolfTrackService, UserService}
-import iotfrisbee.domain.IotFrisbeeConfig
-import iotfrisbee.web.IotFrisbeeModule.prepareDatabaseForTest
-import iotfrisbee.web.controllers.HomeController
-import iotfrisbee.web.configloaders.IotFrisbeeConfig._
 import play.api.ApplicationLoader.Context
 import play.api._
 import play.api.db.evolutions.ThisClassLoaderEvolutionsReader.evolutions
@@ -20,7 +13,14 @@ import play.api.db.slick.{DbName, SlickComponents}
 import play.api.routing.Router
 import play.filters.HttpFiltersComponents
 import slick.jdbc.{H2Profile, JdbcProfile}
-import scala.concurrent.Future
+import iotfrisbee.database.catalog.DiskGolfTrackCatalog.DiskGolfTrackTable
+import iotfrisbee.database.catalog.UserCatalog.UserTable
+import iotfrisbee.database.driver.DatabaseDriver.{JdbcDatabaseDriver, fromJdbcConfig, fromPlayDatabase}
+import iotfrisbee.database.services.{DiskGolfTrackService, UserService}
+import iotfrisbee.domain.IotFrisbeeConfig
+import iotfrisbee.web.IotFrisbeeModule.prepareDatabaseForTest
+import iotfrisbee.web.controllers.{HomeController, UserController}
+import iotfrisbee.web.config.IotFrisbeeConfig._
 
 class IotFrisbeeModule(context: Context)(implicit iort: IORuntime)
     extends BuiltInComponentsFromContext(context)
@@ -28,7 +28,6 @@ class IotFrisbeeModule(context: Context)(implicit iort: IORuntime)
     with EvolutionsComponents
     with SlickComponents
     with SlickEvolutionsComponents {
-
   lazy val appConfig: IotFrisbeeConfig = context.initialConfiguration.get[IotFrisbeeConfig]("iotfrisbee")
 
   lazy val defaultDatabaseDriver: JdbcDatabaseDriver = appConfig.testConfig.testName
@@ -45,8 +44,11 @@ class IotFrisbeeModule(context: Context)(implicit iort: IORuntime)
   lazy val homeController =
     new HomeController(controllerComponents, userService, diskGolfTrackService)
 
+  lazy val userController =
+    new UserController(controllerComponents, userService)
+
   lazy val router: Router =
-    new IotFrisbeeRouter(homeController)
+    new IotFrisbeeRouter(homeController, userController)
 }
 
 object IotFrisbeeModule {

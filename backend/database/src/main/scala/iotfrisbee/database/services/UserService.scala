@@ -17,22 +17,26 @@ class UserService[F[_]: Async](
   import dbDriver.profile.api._
   import userTable._
 
-  def getUserById(id: UserId): F[DatabaseResult[Option[User]]] =
-    UserQuery
-      .filter(_.id === id.value)
-      .result
-      .headOption
-      .map(_.map(userToDomain))
-      .tryRunDBIO(dbDriver)
-
   def countUsers(): F[DatabaseResult[Int]] =
     UserQuery.length.result.tryRunDBIO(dbDriver)
 
   def createUser(username: String): F[DatabaseResult[User]] = {
-    val row = UserRow(0, username)
-
+    val row = UserRow(username = username)
     (UserQuery += row)
       .tryRunDBIO(dbDriver)
-      .map(_.map(rowId => userToDomain(row.copy(id = rowId))))
+      .map(_.map(_ => userToDomain(row)))
   }
+
+  def getUsers: F[DatabaseResult[Seq[User]]] =
+    UserQuery.result
+      .map(_.map(userToDomain))
+      .tryRunDBIO(dbDriver)
+
+  def getUser(id: UserId): F[DatabaseResult[Option[User]]] =
+    UserQuery
+      .filter(_.uuid === id.value)
+      .result
+      .headOption
+      .map(_.map(userToDomain))
+      .tryRunDBIO(dbDriver)
 }

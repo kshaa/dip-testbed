@@ -1,4 +1,4 @@
-package iotfrisbee.web.configloaders
+package iotfrisbee.web.config
 
 import iotfrisbee.domain.{TestConfig => DomainTestConfig}
 import com.typesafe.config.Config

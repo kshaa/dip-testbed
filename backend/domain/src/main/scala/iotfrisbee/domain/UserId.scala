@@ -1,3 +1,5 @@
 package iotfrisbee.domain
 
-case class UserId(value: Long) extends AnyVal
+import java.util.UUID
+
+case class UserId(value: UUID) extends AnyVal

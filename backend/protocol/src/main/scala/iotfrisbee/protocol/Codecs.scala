@@ -1,21 +1,23 @@
 package iotfrisbee.protocol
 
 import io.circe.generic.semiauto.deriveCodec
+import io.circe.generic.extras.semiauto.deriveUnwrappedCodec
 import io.circe.{Codec, Decoder, Encoder}
 import io.circe.syntax._
 import cats.syntax.functor._
 import iotfrisbee.domain.{User, UserId}
-import iotfrisbee.protocol.messages.WebResult.{Failure, Success}
-import iotfrisbee.protocol.messages.{Hello, ServiceStatus}
-import iotfrisbee.protocol.messages.WebResult
+import iotfrisbee.protocol.messages.http.WebResult.{Failure, Success}
+import iotfrisbee.protocol.messages.http.WebResult
+import iotfrisbee.protocol.messages.home.{Hello, ServiceStatus}
+import iotfrisbee.protocol.messages.users.CreateUser
 
 object Codecs {
   object Domain {
-    implicit val userIdCodec: Codec[UserId] = deriveCodec[UserId]
+    implicit val userIdCodec: Codec[UserId] = deriveUnwrappedCodec[UserId]
     implicit val userCodec: Codec[User] = deriveCodec[User]
   }
 
-  object Web {
+  object Http {
     implicit def webResultSuccessCodec[A: Encoder: Decoder]: Codec[Success[A]] =
       Codec.forProduct1[Success[A], A]("success")(Success(_))(_.value)
     implicit def webResultFailureCodec[A: Encoder: Decoder]: Codec[Failure[A]] =
@@ -38,7 +40,11 @@ object Codecs {
   }
 
   object Home {
-    implicit val serviceStatusCodec: Codec[ServiceStatus] = deriveCodec[ServiceStatus]
     implicit val helloCodec: Codec[Hello] = Codec.forProduct1[Hello, String]("hello")(Hello)(_.recipient)
+    implicit val serviceStatusCodec: Codec[ServiceStatus] = deriveCodec[ServiceStatus]
+  }
+
+  object User {
+    implicit val createUserCodec: Codec[CreateUser] = deriveCodec[CreateUser]
   }
 }

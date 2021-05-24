@@ -1,4 +1,4 @@
-package iotfrisbee.web.iocontroller
+package iotfrisbee.web.iocontrols
 
 import cats.data.EitherT
 import play.api.mvc.Result

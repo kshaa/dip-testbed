@@ -25,6 +25,7 @@ lazy val protocol = (project in file("protocol"))
     libraryDependencies ++= Seq(
       circeCorePackage,
       circeGenericPackage,
+      circeGenericExtrasPackage,
       circeParserPackage,
       scalaTestPackage,
     ),
@@ -58,6 +59,7 @@ lazy val web = (project in file("web"))
     name := "web",
     libraryDependencies ++= Seq(
       playPackage,
+      playCircePackage,
       playSlickPackage,
       playGuicePackage,
       playJdbcPackage,

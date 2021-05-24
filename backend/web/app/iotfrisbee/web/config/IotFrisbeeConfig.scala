@@ -1,7 +1,7 @@
-package iotfrisbee.web.configloaders
+package iotfrisbee.web.config
 
 import iotfrisbee.domain.{IotFrisbeeConfig => DomainIotFrisbeeConfig, TestConfig => DomainTestConfig}
-import iotfrisbee.web.configloaders.TestConfig._
+import iotfrisbee.web.config.TestConfig._
 import com.typesafe.config.Config
 import play.api.{ConfigLoader, Configuration}
 

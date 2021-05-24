@@ -4,10 +4,10 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.freespec.AnyFreeSpec
 import io.circe.parser._
 import io.circe.syntax._
-import iotfrisbee.protocol.messages.WebResult.{Failure, Success}
-import iotfrisbee.protocol.Codecs.Web._
+import iotfrisbee.protocol.messages.http.WebResult.{Failure, Success}
+import iotfrisbee.protocol.Codecs.Http._
 import iotfrisbee.protocol.Codecs.Home._
-import iotfrisbee.protocol.messages.Hello
+import iotfrisbee.protocol.messages.home.Hello
 
 class CodecsSpec extends AnyFreeSpec with Matchers {
   "hello message should have recipient with hello" in {

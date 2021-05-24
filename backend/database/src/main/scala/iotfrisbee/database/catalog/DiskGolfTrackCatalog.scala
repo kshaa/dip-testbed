@@ -11,7 +11,7 @@ object DiskGolfTrackCatalog {
 
     class DiskGolfTrackTable(tag: Tag) extends Table[DiskGolfTrackRow](tag, "disk_golf_track") {
       def uuid: Rep[UUID] = column[UUID]("uuid", O.PrimaryKey)
-      def ownerId: Rep[Long] = column[Long]("owner_id")
+      def ownerId: Rep[UUID] = column[UUID]("owner_id")
       def name: Rep[String] = column[String]("name")
       def timezone: Rep[String] = column[String]("timezone")
 
@@ -29,7 +29,7 @@ object DiskGolfTrackCatalog {
 
   case class DiskGolfTrackRow(
     id: UUID,
-    ownerId: Long,
+    ownerId: UUID,
     name: String,
     timezone: String,
   )

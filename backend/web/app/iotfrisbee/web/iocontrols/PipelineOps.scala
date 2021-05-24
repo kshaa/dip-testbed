@@ -1,4 +1,4 @@
-package iotfrisbee.web.iocontroller
+package iotfrisbee.web.iocontrols
 
 import scala.concurrent.Future
 import scala.language.implicitConversions
@@ -11,9 +11,9 @@ import play.api.http.{ContentTypeOf, Writeable}
 import play.api.http.ContentTypes.JSON
 import play.api.mvc.Results.Status
 import io.circe.{Json, Decoder => CirceDecoder, Encoder => CirceEncoder}
-import iotfrisbee.protocol.messages.WebResult
-import iotfrisbee.protocol.messages.WebResult._
-import iotfrisbee.web.iocontroller.PipelineTypes.PipelineStage
+import iotfrisbee.protocol.messages.http.WebResult._
+import iotfrisbee.protocol.messages.http.WebResult
+import iotfrisbee.web.iocontrols.PipelineTypes.PipelineStage
 
 object PipelineOps {
   implicit class RichFunctorOption[A](r: IO[Option[A]]) {

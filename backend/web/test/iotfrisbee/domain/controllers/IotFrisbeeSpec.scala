@@ -19,12 +19,12 @@ trait IotFrisbeeSpec
   implicit def defaultAwaitTimeout: Timeout = 60.seconds
   override def components: BuiltInComponents = null
   val testSuiteName: String = this.getClass.getSimpleName.toLowerCase()
-  def module(testName: String = testSuiteName): IotFrisbeeModule =
+  def module(testName: String = "default"): IotFrisbeeModule =
     new IotFrisbeeModule(
       context.copy(initialConfiguration =
         Configuration(
           "iotfrisbee.test.enabled" -> true,
-          "iotfrisbee.test.name" -> testName,
+          "iotfrisbee.test.name" -> f"${testSuiteName}-${testName}",
         ).withFallback(context.initialConfiguration),
       ),
     )
