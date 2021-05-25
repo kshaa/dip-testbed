@@ -1,5 +1,6 @@
 package iotfrisbee.database.services
 
+import scala.concurrent.ExecutionContext
 import cats.effect.Async
 import cats.implicits._
 import iotfrisbee.domain.{User, UserId}
@@ -7,8 +8,6 @@ import iotfrisbee.database.catalog.UserCatalog.{UserRow, UserTable, toDomain => 
 import iotfrisbee.database.driver.DatabaseDriver.JdbcDatabaseDriver
 import iotfrisbee.database.driver.DatabaseDriverOps._
 import iotfrisbee.database.driver.DatabaseOutcome.DatabaseResult
-
-import scala.concurrent.ExecutionContext
 
 class UserService[F[_]: Async](
   val dbDriver: JdbcDatabaseDriver,
