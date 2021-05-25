@@ -19,7 +19,7 @@ import iotfrisbee.database.driver.DatabaseDriver.{JdbcDatabaseDriver, fromJdbcCo
 import iotfrisbee.database.services.{DiskGolfTrackService, UserService}
 import iotfrisbee.domain.IotFrisbeeConfig
 import iotfrisbee.web.IotFrisbeeModule.prepareDatabaseForTest
-import iotfrisbee.web.controllers.{HomeController, UserController}
+import iotfrisbee.web.controllers.{DiskGolfTrackController, HomeController, UserController}
 import iotfrisbee.web.config.IotFrisbeeConfig._
 
 class IotFrisbeeModule(context: Context)(implicit iort: IORuntime)
@@ -47,8 +47,14 @@ class IotFrisbeeModule(context: Context)(implicit iort: IORuntime)
   lazy val userController =
     new UserController(controllerComponents, userService)
 
+  lazy val diskGolfTrackController =
+    new DiskGolfTrackController(controllerComponents, diskGolfTrackService)
+
+  lazy val basePrefix = "/api"
+  lazy val v1Prefix = "/v1"
   lazy val router: Router =
-    new IotFrisbeeRouter(homeController, userController)
+    new IotFrisbeeRouter(homeController, userController, diskGolfTrackController)
+      .withPrefix(f"${basePrefix}${v1Prefix}")
 }
 
 object IotFrisbeeModule {

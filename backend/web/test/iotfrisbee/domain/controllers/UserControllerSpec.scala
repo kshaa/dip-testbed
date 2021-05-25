@@ -18,10 +18,10 @@ import iotfrisbee.protocol.Codecs.Domain._
 import iotfrisbee.protocol.Codecs.Http._
 import iotfrisbee.protocol.Codecs.User._
 import iotfrisbee.protocol.messages.http.WebResult.Success
-import iotfrisbee.protocol.messages.users.CreateUser
+import iotfrisbee.protocol.messages.user.CreateUser
 import iotfrisbee.web.IotFrisbeeModule
 import iotfrisbee.web.controllers.UserController
-import iotfrisbee.web.iocontrols.PipelineOps._
+import iotfrisbee.web.ioControls.PipelineOps._
 
 class UserControllerSpec extends IotFrisbeeSpec with GivenWhenThen {
   lazy val module: IotFrisbeeModule = module()
@@ -69,7 +69,7 @@ object UserControllerSpec {
     userController: UserController,
   )(implicit timeout: Timeout, materializer: Materializer): IO[Either[Error, Success[List[User]]]] =
     userController.getUsers
-      .apply(FakeRequest())
+      .apply(FakeRequest().withHeaders(Headers(CONTENT_TYPE -> "application/json")))
       .asIO
       .map(x => Helpers.contentAsString(Future.successful(x)))
       .map(x => decode[Success[List[User]]](x))
@@ -79,7 +79,7 @@ object UserControllerSpec {
     userId: UserId,
   )(implicit timeout: Timeout, materializer: Materializer): IO[Either[Error, Success[User]]] =
     userController
-      .getUser(userId.value)
+      .getUser(userId)
       .apply(FakeRequest())
       .asIO
       .map(x => Helpers.contentAsString(Future.successful(x)))

@@ -1,20 +1,18 @@
 package iotfrisbee.domain.controllers
 
-import scala.concurrent.Future
 import akka.stream.Materializer
 import akka.util.Timeout
 import cats.effect.IO
 import io.circe._
-import play.api.test.{FakeRequest, Helpers}
-import io.circe.parser._
 import iotfrisbee.domain.controllers.HomeControllerSpec._
+import iotfrisbee.domain.controllers.IotFrisbeeSpec.exchangeJSON
 import iotfrisbee.protocol.Codecs.Http._
 import iotfrisbee.protocol.Codecs.Home._
 import iotfrisbee.web.controllers.HomeController
-import iotfrisbee.web.iocontrols.PipelineOps._
 import iotfrisbee.protocol.messages.home.ServiceStatus
 import iotfrisbee.protocol.messages.http.WebResult.Success
 import iotfrisbee.web.IotFrisbeeModule
+import play.api.mvc.AnyContent
 
 class HomeControllerSpec extends IotFrisbeeSpec {
   lazy val module: IotFrisbeeModule = module()
@@ -31,11 +29,6 @@ class HomeControllerSpec extends IotFrisbeeSpec {
 object HomeControllerSpec {
   def getStatus(
     homeController: HomeController,
-  )(implicit timeout: Timeout): IO[Either[Error, Success[ServiceStatus]]] =
-    homeController
-      .status()
-      .apply(FakeRequest())
-      .asIO
-      .map(x => Helpers.contentAsString(Future.successful(x)))
-      .map(x => decode[Success[ServiceStatus]](x))
+  )(implicit timeout: Timeout, materializer: Materializer): IO[Either[Error, Success[ServiceStatus]]] =
+    exchangeJSON[AnyContent, Success[ServiceStatus]](homeController.status)
 }

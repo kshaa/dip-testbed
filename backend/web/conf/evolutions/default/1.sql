@@ -16,7 +16,7 @@ create table "hardware" (
 -- disk golf
 create table "disk_golf_track" (
   "uuid" uuid not null primary key,
-  "owner_id" bigint not null,
+  "owner_id" uuid not null,
   "name" varchar(255) not null,
   "timezone" varchar(255) not null
 );

@@ -8,8 +8,8 @@ import cats.effect.unsafe.IORuntime
 import cats.effect.IO
 import play.api.mvc._
 import iotfrisbee.database.services.{DiskGolfTrackService, UserService}
-import iotfrisbee.web.iocontrols.PipelineOps._
-import iotfrisbee.web.iocontrols._
+import iotfrisbee.web.ioControls.PipelineOps._
+import iotfrisbee.web.ioControls._
 import iotfrisbee.protocol.Codecs.Home._
 import iotfrisbee.protocol.messages.http.WebResult.{Failure, Success}
 import iotfrisbee.protocol.messages.home.{Hello, ServiceStatus}

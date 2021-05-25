@@ -1,8 +1,8 @@
 package iotfrisbee.database.catalog
 
-import java.util.{TimeZone, UUID}
+import java.util.UUID
 import iotfrisbee.database.driver.DatabaseDriver.JdbcDatabaseDriver
-import iotfrisbee.domain.{DiskGolfTrack, DiskGolfTrackUUID, UserId}
+import iotfrisbee.domain.{DiskGolfTrack, DiskGolfTrackId, DomainTimeZoneId, UserId}
 import slick.lifted.ProvenShape
 
 object DiskGolfTrackCatalog {
@@ -28,7 +28,7 @@ object DiskGolfTrackCatalog {
   }
 
   case class DiskGolfTrackRow(
-    id: UUID,
+    id: UUID = UUID.randomUUID(),
     ownerId: UUID,
     name: String,
     timezone: String,
@@ -36,17 +36,17 @@ object DiskGolfTrackCatalog {
 
   def fromDomain(diskGolfTrack: DiskGolfTrack): DiskGolfTrackRow =
     DiskGolfTrackRow(
-      diskGolfTrack.uuid.value,
+      diskGolfTrack.id.value,
       diskGolfTrack.ownerId.value,
       diskGolfTrack.name,
-      diskGolfTrack.timezone.toString,
+      diskGolfTrack.timezoneId.value,
     )
 
   def toDomain(diskGolfTrack: DiskGolfTrackRow): DiskGolfTrack =
     DiskGolfTrack(
-      DiskGolfTrackUUID(diskGolfTrack.id),
+      DiskGolfTrackId(diskGolfTrack.id),
       UserId(diskGolfTrack.ownerId),
       diskGolfTrack.name,
-      TimeZone.getTimeZone(diskGolfTrack.timezone),
+      DomainTimeZoneId.fromString(diskGolfTrack.timezone).toOption.get,
     )
 }

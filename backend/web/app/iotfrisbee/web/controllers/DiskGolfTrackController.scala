@@ -3,22 +3,22 @@ package iotfrisbee.web.controllers
 import scala.annotation.unused
 import scala.concurrent.ExecutionContext
 import akka.stream.Materializer
+import play.api.mvc._
 import cats.data.EitherT
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
-import play.api.mvc._
-import iotfrisbee.database.services.UserService
-import iotfrisbee.domain.UserId
+import iotfrisbee.database.services.DiskGolfTrackService
+import iotfrisbee.domain.DiskGolfTrackId
 import iotfrisbee.protocol.Codecs.Domain._
-import iotfrisbee.protocol.Codecs.User._
+import iotfrisbee.protocol.Codecs.DiskGolfTrack._
+import iotfrisbee.protocol.messages.diskGolfTrack.CreateDiskGolfTrack
 import iotfrisbee.protocol.messages.http.WebResult.{Failure, Success}
-import iotfrisbee.protocol.messages.user.CreateUser
 import iotfrisbee.web.ioControls.PipelineOps._
 import iotfrisbee.web.ioControls._
 
-class UserController(
+class DiskGolfTrackController(
   val cc: ControllerComponents,
-  val userService: UserService[IO],
+  val diskGolfTrackService: DiskGolfTrackService[IO],
 )(implicit
   @unused ec: ExecutionContext,
   @unused iort: IORuntime,
@@ -26,28 +26,29 @@ class UserController(
 ) extends AbstractController(cc)
     with IOController {
 
-  def createUser: Action[CreateUser] = {
-    IOActionJSON[CreateUser] { request =>
-      EitherT(userService.createUser(request.body.username))
-        .bimap(
-          error => Failure(error.message).withHttpStatus(INTERNAL_SERVER_ERROR),
-          user => Success(user).withHttpStatus(OK),
-        )
+  def createDiskGolfTrack: Action[CreateDiskGolfTrack] = {
+    IOActionJSON[CreateDiskGolfTrack] { request =>
+      EitherT(
+        diskGolfTrackService.createDiskGolfTrack(request.body.ownerId, request.body.name, request.body.timezoneId),
+      ).bimap(
+        error => Failure(error.message).withHttpStatus(INTERNAL_SERVER_ERROR),
+        diskGoldTrack => Success(diskGoldTrack).withHttpStatus(OK),
+      )
     }
   }
 
-  def getUsers: Action[AnyContent] =
+  def getDiskGolfTracks: Action[AnyContent] =
     IOActionAny { _ =>
-      EitherT(userService.getUsers)
+      EitherT(diskGolfTrackService.getDiskGolfTracks)
         .bimap(
           error => Failure(error.message).withHttpStatus(INTERNAL_SERVER_ERROR),
           users => Success(users).withHttpStatus(OK),
         )
     }
 
-  def getUser(userId: UserId): Action[AnyContent] =
+  def getDiskGolfTrack(diskGolfTrackId: DiskGolfTrackId): Action[AnyContent] =
     IOActionAny { _ =>
-      EitherT(userService.getUser(userId))
+      EitherT(diskGolfTrackService.getDiskGolfTrack(diskGolfTrackId))
         .bimap(
           error => Failure(error.message).withHttpStatus(INTERNAL_SERVER_ERROR),
           user => Success(user).withHttpStatus(OK),

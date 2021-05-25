@@ -4,7 +4,9 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.freespec.AnyFreeSpec
 import io.circe.parser._
 import io.circe.syntax._
+import iotfrisbee.domain.DomainTimeZoneId
 import iotfrisbee.protocol.messages.http.WebResult.{Failure, Success}
+import iotfrisbee.protocol.Codecs.Domain._
 import iotfrisbee.protocol.Codecs.Http._
 import iotfrisbee.protocol.Codecs.Home._
 import iotfrisbee.protocol.messages.home.Hello
@@ -28,6 +30,14 @@ class CodecsSpec extends AnyFreeSpec with Matchers {
     val serialized: String = "{ \"failure\": \"message\" }"
     val unserialized = Failure("message")
     decode[Failure[String]](serialized).shouldEqual(Right(unserialized))
+    unserialized.asJson === serialized
+  }
+
+  "domain time zone id should encode and decode" in {
+    val timeZoneId = "Europe/Riga"
+    val serialized: String = timeZoneId.asJson.toString()
+    val unserialized = DomainTimeZoneId.fromString(timeZoneId).toOption.get
+    decode[DomainTimeZoneId](serialized).shouldEqual(Right(unserialized))
     unserialized.asJson === serialized
   }
 }

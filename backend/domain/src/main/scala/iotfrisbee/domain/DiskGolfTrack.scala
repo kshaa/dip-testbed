@@ -1,10 +1,8 @@
 package iotfrisbee.domain
 
-import java.util.TimeZone
-
 case class DiskGolfTrack(
-  uuid: DiskGolfTrackUUID,
+  id: DiskGolfTrackId,
   ownerId: UserId,
   name: String,
-  timezone: TimeZone,
+  timezoneId: DomainTimeZoneId,
 )

@@ -2,22 +2,32 @@ package iotfrisbee.protocol
 
 import io.circe.generic.semiauto.deriveCodec
 import io.circe.generic.extras.semiauto.deriveUnwrappedCodec
-import io.circe.{Codec, Decoder, Encoder}
+import io.circe.{Codec, Decoder, DecodingFailure, Encoder}
 import io.circe.syntax._
-import cats.syntax.functor._
-import iotfrisbee.domain.{User, UserId}
+import iotfrisbee.domain.{DiskGolfTrack, DiskGolfTrackId, DomainTimeZoneId, User, UserId}
+import iotfrisbee.protocol.messages.diskGolfTrack.CreateDiskGolfTrack
 import iotfrisbee.protocol.messages.http.WebResult.{Failure, Success}
 import iotfrisbee.protocol.messages.http.WebResult
 import iotfrisbee.protocol.messages.home.{Hello, ServiceStatus}
-import iotfrisbee.protocol.messages.users.CreateUser
+import iotfrisbee.protocol.messages.user.CreateUser
 
 object Codecs {
   object Domain {
+    import cats.implicits._
+
+    implicit val domainTimeZoneIdCodec: Codec[DomainTimeZoneId] = Codec.from(
+      _.as[String].flatMap(DomainTimeZoneId.fromString(_).leftMap(x => DecodingFailure(x.getMessage, List.empty))),
+      _.value.asJson,
+    )
     implicit val userIdCodec: Codec[UserId] = deriveUnwrappedCodec[UserId]
     implicit val userCodec: Codec[User] = deriveCodec[User]
+    implicit val diskGolfTrackIdCodec: Codec[DiskGolfTrackId] = deriveUnwrappedCodec[DiskGolfTrackId]
+    implicit val diskGolfTrackCodec: Codec[DiskGolfTrack] = deriveCodec[DiskGolfTrack]
   }
 
   object Http {
+    import cats.syntax.functor._
+
     implicit def webResultSuccessCodec[A: Encoder: Decoder]: Codec[Success[A]] =
       Codec.forProduct1[Success[A], A]("success")(Success(_))(_.value)
     implicit def webResultFailureCodec[A: Encoder: Decoder]: Codec[Failure[A]] =
@@ -46,5 +56,10 @@ object Codecs {
 
   object User {
     implicit val createUserCodec: Codec[CreateUser] = deriveCodec[CreateUser]
+  }
+
+  object DiskGolfTrack {
+    import iotfrisbee.protocol.Codecs.Domain._
+    implicit val createDiskGolfTrackCodec: Codec[CreateDiskGolfTrack] = deriveCodec[CreateDiskGolfTrack]
   }
 }
