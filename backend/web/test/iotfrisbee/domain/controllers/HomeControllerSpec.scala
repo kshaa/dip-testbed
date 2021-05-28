@@ -6,11 +6,10 @@ import cats.effect.IO
 import io.circe._
 import iotfrisbee.domain.controllers.HomeControllerSpec._
 import iotfrisbee.domain.controllers.IotFrisbeeSpec.exchangeJSON
-import iotfrisbee.protocol.Codecs.Http._
-import iotfrisbee.protocol.Codecs.Home._
+import iotfrisbee.protocol._
+import iotfrisbee.protocol.Codecs._
+import iotfrisbee.protocol.WebResult._
 import iotfrisbee.web.controllers.HomeController
-import iotfrisbee.protocol.messages.home.ServiceStatus
-import iotfrisbee.protocol.messages.http.WebResult.Success
 import iotfrisbee.web.IotFrisbeeModule
 import play.api.mvc.AnyContent
 

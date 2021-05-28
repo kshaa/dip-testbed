@@ -10,10 +10,9 @@ import cats.effect.unsafe.IORuntime
 import cats.implicits._
 import iotfrisbee.database.services.DiskGolfTrackService
 import iotfrisbee.domain.DiskGolfTrackId
-import iotfrisbee.protocol.Codecs.Domain._
-import iotfrisbee.protocol.Codecs.DiskGolfTrack._
-import iotfrisbee.protocol.messages.diskGolfTrack.CreateDiskGolfTrack
-import iotfrisbee.protocol.messages.http.WebResult.{Failure, Success}
+import iotfrisbee.protocol._
+import iotfrisbee.protocol.Codecs._
+import iotfrisbee.protocol.WebResult._
 import iotfrisbee.web.ioControls.PipelineOps._
 import iotfrisbee.web.ioControls._
 

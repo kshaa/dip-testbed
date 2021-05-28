@@ -16,11 +16,11 @@ create table "hardware" (
   "battery_percent" decimal null
 );
 
-create table "hardware_debug_message" (
+create table "hardware_message" (
   "uuid" uuid not null primary key,
   "hardware_uuid" uuid not null,
   "type" varchar(255) not null,
-  "message" text null
+  "message" text not null
 );
 
 -- disk golf
@@ -66,8 +66,8 @@ alter table "hardware"
   foreign key ("owner_uuid") references "user"("uuid")
   on delete cascade;
 
-alter table "hardware_debug_message"
-  add constraint "fk_hardware_debug_message_hardware_uuid"
+alter table "hardware_message"
+  add constraint "fk_hardware_message_hardware_uuid"
   foreign key ("hardware_uuid") references "hardware"("uuid")
   on delete cascade;
 
@@ -122,7 +122,8 @@ alter table "disk_golf_game_stage"
 -- # constraints
 
 -- hardware
-alter table "hardware_debug_message" drop constraint "fk_hardware_debug_message_hardware_uuid";
+alter table "hardware" drop constraint "fk_hardware_owner_uuid";
+alter table "hardware_message" drop constraint "fk_hardware_message_hardware_uuid";
 
 -- disk golf
 alter table "disk_golf_track" drop constraint "fk_disk_golf_track_owner_uuid";
@@ -142,7 +143,7 @@ drop table if exists "user";
 
 -- hardware
 drop table if exists "hardware";
-drop table if exists "hardware_debug_message";
+drop table if exists "hardware_message";
 
 -- disk golf
 drop table if exists "disk_golf_track";

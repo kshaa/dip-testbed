@@ -14,11 +14,9 @@ import play.api.test.Helpers.CONTENT_TYPE
 import play.api.test.{FakeRequest, Helpers}
 import iotfrisbee.domain.{User, UserId}
 import iotfrisbee.domain.controllers.UserControllerSpec._
-import iotfrisbee.protocol.Codecs.Domain._
-import iotfrisbee.protocol.Codecs.Http._
-import iotfrisbee.protocol.Codecs.User._
-import iotfrisbee.protocol.messages.http.WebResult.Success
-import iotfrisbee.protocol.messages.user.CreateUser
+import iotfrisbee.protocol._
+import iotfrisbee.protocol.Codecs._
+import iotfrisbee.protocol.WebResult._
 import iotfrisbee.web.IotFrisbeeModule
 import iotfrisbee.web.controllers.UserController
 import iotfrisbee.web.ioControls.PipelineOps._
@@ -40,8 +38,7 @@ class UserControllerSpec extends IotFrisbeeSpec with GivenWhenThen {
 
         _ = Then("A user w/ a duplicate username should be forbidden")
         userDuplicateCreation <- createUser(userController, CreateUser("john"))
-        userDuplicate = userCreation.map(_.value).toOption
-        userDuplicateCreationCheck = userCreation.map(_.value.username).shouldEqual(Right("john"))
+        userDuplicateCreationCheck = userDuplicateCreation.isLeft.shouldBe(true)
 
         _ = And("A user should be retrievable by a generated id")
         userGet <- user.traverse(u => getUser(userController, u.id).map(_.toOption)).map(_.flatten)
@@ -68,7 +65,7 @@ object UserControllerSpec {
       .run(ByteString(createUser.asJson.toString()))
       .asIO
       .map(x => Helpers.contentAsString(Future.successful(x)))
-      .map(x => decode[Success[Option[User]]](x))
+      .map(x => decode[Success[User]](x))
 
   def getUsers(
     userController: UserController,

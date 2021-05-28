@@ -1,9 +1,9 @@
 package iotfrisbee.database.catalog
 
 import java.util.UUID
+import slick.lifted.ProvenShape
 import iotfrisbee.database.driver.DatabaseDriver.JdbcDatabaseDriver
 import iotfrisbee.domain.{DiskGolfTrack, DiskGolfTrackId, DomainTimeZoneId, UserId}
-import slick.lifted.ProvenShape
 
 object DiskGolfTrackCatalog {
   class DiskGolfTrackTable(val dbDriver: JdbcDatabaseDriver) {
@@ -11,14 +11,14 @@ object DiskGolfTrackCatalog {
 
     class DiskGolfTrackTable(tag: Tag) extends Table[DiskGolfTrackRow](tag, "disk_golf_track") {
       def uuid: Rep[UUID] = column[UUID]("uuid", O.PrimaryKey)
-      def ownerUUID: Rep[UUID] = column[UUID]("owner_uuid")
+      def ownerUuid: Rep[UUID] = column[UUID]("owner_uuid")
       def name: Rep[String] = column[String]("name")
       def timezone: Rep[String] = column[String]("timezone")
 
       def * : ProvenShape[DiskGolfTrackRow] =
         (
           uuid,
-          ownerUUID,
+          ownerUuid,
           name,
           timezone,
         ) <> ((DiskGolfTrackRow.apply _).tupled, DiskGolfTrackRow.unapply)

@@ -1,8 +1,8 @@
-package iotfrisbee.protocol.messages.http
+package iotfrisbee.protocol
 
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder}
-import iotfrisbee.protocol.Codecs.Http._
+import iotfrisbee.protocol.Codecs._
 
 sealed trait WebResult[A] {
   val value: A

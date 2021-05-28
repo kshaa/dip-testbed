@@ -1,7 +1,6 @@
 package iotfrisbee.database.catalog
 
 import java.util.UUID
-
 import slick.lifted.ProvenShape
 import iotfrisbee.database.driver.DatabaseDriver.JdbcDatabaseDriver
 import iotfrisbee.domain.{Hardware, HardwareId, UserId}
@@ -13,7 +12,7 @@ object HardwareCatalog {
     class HardwareTable(tag: Tag) extends Table[HardwareRow](tag, "hardware") {
       def uuid: Rep[UUID] = column[UUID]("uuid", O.PrimaryKey)
       def name: Rep[String] = column[String]("name")
-      def ownerUUID: Rep[UUID] = column[UUID]("owner_uuid")
+      def ownerUuid: Rep[UUID] = column[UUID]("owner_uuid")
       def batteryPercent: Rep[Double] = column[Double]("battery_percent")
 
       def * : ProvenShape[HardwareRow] =
@@ -21,7 +20,7 @@ object HardwareCatalog {
           uuid,
           name,
           batteryPercent,
-          ownerUUID,
+          ownerUuid,
         ) <> ((HardwareRow.apply _).tupled, HardwareRow.unapply)
     }
 

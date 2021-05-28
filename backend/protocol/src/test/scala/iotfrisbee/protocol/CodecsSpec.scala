@@ -5,11 +5,8 @@ import org.scalatest.freespec.AnyFreeSpec
 import io.circe.parser._
 import io.circe.syntax._
 import iotfrisbee.domain.DomainTimeZoneId
-import iotfrisbee.protocol.messages.http.WebResult.{Failure, Success}
-import iotfrisbee.protocol.Codecs.Domain._
-import iotfrisbee.protocol.Codecs.Http._
-import iotfrisbee.protocol.Codecs.Home._
-import iotfrisbee.protocol.messages.home.Hello
+import iotfrisbee.protocol.WebResult._
+import iotfrisbee.protocol.Codecs._
 
 class CodecsSpec extends AnyFreeSpec with Matchers {
   "hello message should have recipient with hello" in {

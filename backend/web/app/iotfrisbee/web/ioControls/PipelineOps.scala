@@ -11,8 +11,8 @@ import play.api.http.{ContentTypeOf, Writeable}
 import play.api.http.ContentTypes.JSON
 import play.api.mvc.Results.Status
 import io.circe.{Json, Decoder => CirceDecoder, Encoder => CirceEncoder}
-import iotfrisbee.protocol.messages.http.WebResult._
-import iotfrisbee.protocol.messages.http.WebResult
+import iotfrisbee.protocol.WebResult
+import iotfrisbee.protocol.WebResult._
 import iotfrisbee.web.ioControls.PipelineTypes.PipelineStage
 
 object PipelineOps {

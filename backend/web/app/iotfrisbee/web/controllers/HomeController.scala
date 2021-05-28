@@ -10,9 +10,9 @@ import play.api.mvc._
 import iotfrisbee.database.services.{DiskGolfTrackService, UserService}
 import iotfrisbee.web.ioControls.PipelineOps._
 import iotfrisbee.web.ioControls._
-import iotfrisbee.protocol.Codecs.Home._
-import iotfrisbee.protocol.messages.http.WebResult.{Failure, Success}
-import iotfrisbee.protocol.messages.home.{Hello, ServiceStatus}
+import iotfrisbee.protocol.{Hello, ServiceStatus}
+import iotfrisbee.protocol.Codecs._
+import iotfrisbee.protocol.WebResult._
 
 class HomeController(
   val cc: ControllerComponents,

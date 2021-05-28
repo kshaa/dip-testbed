@@ -1,10 +1,9 @@
 package iotfrisbee.database.catalog
 
 import java.util.UUID
-
+import slick.lifted.ProvenShape
 import iotfrisbee.database.driver.DatabaseDriver.JdbcDatabaseDriver
 import iotfrisbee.domain.{User, UserId}
-import slick.lifted.ProvenShape
 
 object UserCatalog {
   class UserTable(val dbDriver: JdbcDatabaseDriver) {

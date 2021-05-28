@@ -1,10 +1,10 @@
 package iotfrisbee.web
 
-import iotfrisbee.domain.{DiskGolfTrackId, HardwareId, UserId}
 import play.api.routing.Router.Routes
 import play.api.routing.SimpleRouter
 import play.api.routing.sird._
-import iotfrisbee.web.controllers.{DiskGolfTrackController, HardwareController, HomeController, UserController}
+import iotfrisbee.domain._
+import iotfrisbee.web.controllers._
 import iotfrisbee.web.sird.UUIDBinding.uuid
 
 class IotFrisbeeRouter(
@@ -12,6 +12,7 @@ class IotFrisbeeRouter(
   userController: UserController,
   diskGolfTrackController: DiskGolfTrackController,
   hardwareController: HardwareController,
+  hardwareMessageController: HardwareMessageController,
 ) extends SimpleRouter {
   def routes: Routes = {
     case GET(p"/")       => homeController.index
@@ -31,5 +32,11 @@ class IotFrisbeeRouter(
     case POST(p"/hardwares")                    => hardwareController.createHardware
     case GET(p"/hardwares")                     => hardwareController.getHardwares
     case GET(p"/hardwares/${uuid(hardwareId)}") => hardwareController.getHardware(HardwareId(hardwareId))
+
+    // Hardware message
+    case POST(p"/hardware-messages") => hardwareMessageController.createHardwareMessage
+    case GET(p"/hardware-messages")  => hardwareMessageController.getHardwareMessages
+    case GET(p"/hardware-messages/${uuid(hardwareMessageId)}") =>
+      hardwareMessageController.getHardwareMessage(HardwareMessageId(hardwareMessageId))
   }
 }

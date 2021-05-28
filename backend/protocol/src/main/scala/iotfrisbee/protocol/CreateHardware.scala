@@ -1,4 +1,4 @@
-package iotfrisbee.protocol.messages.hardware
+package iotfrisbee.protocol
 
 import iotfrisbee.domain.UserId
 

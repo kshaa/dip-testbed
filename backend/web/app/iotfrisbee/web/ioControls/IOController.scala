@@ -11,7 +11,7 @@ import play.api.libs.circe.Circe
 import play.api.mvc.{Action, AnyContent, BodyParser, Request}
 import play.api.mvc._
 import io.circe.Codec
-import iotfrisbee.protocol.messages.http.WebResult.Failure
+import iotfrisbee.protocol.WebResult._
 import iotfrisbee.web.ioControls.PipelineOps._
 
 trait IOController extends Circe {

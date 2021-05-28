@@ -10,10 +10,9 @@ import cats.implicits._
 import play.api.mvc._
 import iotfrisbee.database.services.UserService
 import iotfrisbee.domain.UserId
-import iotfrisbee.protocol.Codecs.Domain._
-import iotfrisbee.protocol.Codecs.User._
-import iotfrisbee.protocol.messages.http.WebResult.{Failure, Success}
-import iotfrisbee.protocol.messages.user.CreateUser
+import iotfrisbee.protocol._
+import iotfrisbee.protocol.Codecs._
+import iotfrisbee.protocol.WebResult._
 import iotfrisbee.web.ioControls.PipelineOps._
 import iotfrisbee.web.ioControls._
 

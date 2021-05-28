@@ -8,20 +8,13 @@ import cats.effect.IO
 import cats.implicits._
 import io.circe._
 import io.circe.syntax.EncoderOps
-import iotfrisbee.domain.controllers.DiskGolfTrackSpecControllerSpec.{
-  createDiskGolfTrack,
-  getDiskGolfTrack,
-  getDiskGolfTracks,
-}
+import iotfrisbee.domain.controllers.DiskGolfTrackSpec._
 import iotfrisbee.domain.{DiskGolfTrack, DiskGolfTrackId, DomainTimeZoneId}
 import iotfrisbee.domain.controllers.IotFrisbeeSpec.exchangeJSON
 import iotfrisbee.domain.controllers.UserControllerSpec._
-import iotfrisbee.protocol.Codecs.Http._
-import iotfrisbee.protocol.Codecs.Domain._
-import iotfrisbee.protocol.Codecs.DiskGolfTrack._
-import iotfrisbee.protocol.messages.diskGolfTrack.CreateDiskGolfTrack
-import iotfrisbee.protocol.messages.http.WebResult.Success
-import iotfrisbee.protocol.messages.user.CreateUser
+import iotfrisbee.protocol._
+import iotfrisbee.protocol.Codecs._
+import iotfrisbee.protocol.WebResult._
 import iotfrisbee.web.IotFrisbeeModule
 import iotfrisbee.web.controllers.{DiskGolfTrackController, UserController}
 
@@ -68,7 +61,7 @@ class DiskGolfTrackSpec extends IotFrisbeeSpec with GivenWhenThen {
   }
 }
 
-object DiskGolfTrackSpecControllerSpec {
+object DiskGolfTrackSpec {
   def createDiskGolfTrack(
     diskGolfTrackController: DiskGolfTrackController,
     createDiskGolfTrack: CreateDiskGolfTrack,

@@ -5,8 +5,8 @@ import cats.data.EitherT
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
 import cats.implicits._
-import iotfrisbee.database.services.HardwareService
-import iotfrisbee.domain.HardwareId
+import iotfrisbee.database.services.HardwareMessageService
+import iotfrisbee.domain.HardwareMessageId
 import iotfrisbee.protocol._
 import iotfrisbee.protocol.Codecs._
 import iotfrisbee.protocol.WebResult._
@@ -17,9 +17,9 @@ import play.api.mvc._
 import scala.annotation.unused
 import scala.concurrent.ExecutionContext
 
-class HardwareController(
+class HardwareMessageController(
   val cc: ControllerComponents,
-  val hardwareService: HardwareService[IO],
+  val hardwareMessageService: HardwareMessageService[IO],
 )(implicit
   @unused ec: ExecutionContext,
   @unused iort: IORuntime,
@@ -27,10 +27,11 @@ class HardwareController(
 ) extends AbstractController(cc)
     with IOController {
 
-  def createHardware: Action[CreateHardware] = {
-    IOActionJSON[CreateHardware] { request =>
+  def createHardwareMessage: Action[CreateHardwareMessage] = {
+    IOActionJSON[CreateHardwareMessage] { request =>
       EitherT(
-        hardwareService.createHardware(request.body.name, request.body.ownerId),
+        hardwareMessageService
+          .createHardwareMessage(request.body.messageType, request.body.message, request.body.hardwareId),
       ).bimap(
         error => Failure(error.message).withHttpStatus(INTERNAL_SERVER_ERROR),
         hardware => Success(hardware).withHttpStatus(OK),
@@ -38,26 +39,26 @@ class HardwareController(
     }
   }
 
-  def getHardwares: Action[AnyContent] =
+  def getHardwareMessages: Action[AnyContent] =
     IOActionAny { _ =>
-      EitherT(hardwareService.getHardwares)
+      EitherT(hardwareMessageService.getHardwareMessages)
         .bimap(
           error => Failure(error.message).withHttpStatus(INTERNAL_SERVER_ERROR),
-          hardwares => Success(hardwares).withHttpStatus(OK),
+          hardwareMessages => Success(hardwareMessages).withHttpStatus(OK),
         )
     }
 
-  def getHardware(hardwareId: HardwareId): Action[AnyContent] =
+  def getHardwareMessage(hardwareMessageId: HardwareMessageId): Action[AnyContent] =
     IOActionAny { _ =>
-      EitherT(hardwareService.getHardware(hardwareId))
+      EitherT(hardwareMessageService.getHardwareMessage(hardwareMessageId))
         .leftMap(error => Failure(error.message).withHttpStatus(INTERNAL_SERVER_ERROR))
         .flatMap(get =>
           EitherT.fromEither(
             get
-              .toRight("Hardware with that id doesn't exist")
+              .toRight("Hardware message with that id doesn't exist")
               .bimap(
                 errorMessage => Failure(errorMessage).withHttpStatus(BAD_REQUEST),
-                hardware => Success(hardware).withHttpStatus(OK),
+                hardwareMessage => Success(hardwareMessage).withHttpStatus(OK),
               ),
           ),
         )

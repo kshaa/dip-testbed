@@ -15,12 +15,19 @@ import play.filters.HttpFiltersComponents
 import slick.jdbc.{H2Profile, JdbcProfile}
 import iotfrisbee.database.catalog.DiskGolfTrackCatalog.DiskGolfTrackTable
 import iotfrisbee.database.catalog.HardwareCatalog.HardwareTable
+import iotfrisbee.database.catalog.HardwareMessageCatalog.HardwareMessageTable
 import iotfrisbee.database.catalog.UserCatalog.UserTable
 import iotfrisbee.database.driver.DatabaseDriver.{JdbcDatabaseDriver, fromJdbcConfig, fromPlayDatabase}
-import iotfrisbee.database.services.{DiskGolfTrackService, HardwareService, UserService}
+import iotfrisbee.database.services.{DiskGolfTrackService, HardwareMessageService, HardwareService, UserService}
 import iotfrisbee.domain.IotFrisbeeConfig
 import iotfrisbee.web.IotFrisbeeModule.prepareDatabaseForTest
-import iotfrisbee.web.controllers.{DiskGolfTrackController, HardwareController, HomeController, UserController}
+import iotfrisbee.web.controllers.{
+  DiskGolfTrackController,
+  HardwareController,
+  HardwareMessageController,
+  HomeController,
+  UserController,
+}
 import iotfrisbee.web.config.IotFrisbeeConfig._
 
 class IotFrisbeeModule(context: Context)(implicit iort: IORuntime)
@@ -38,21 +45,29 @@ class IotFrisbeeModule(context: Context)(implicit iort: IORuntime)
   lazy val userTable = new UserTable(defaultDatabaseDriver)
   lazy val diskGolfTrackTable = new DiskGolfTrackTable(defaultDatabaseDriver)
   lazy val hardwareTable = new HardwareTable(defaultDatabaseDriver)
+  lazy val hardwareMessageTable = new HardwareMessageTable(defaultDatabaseDriver)
 
   lazy val userService = new UserService[IO](userTable)
   lazy val diskGolfTrackService = new DiskGolfTrackService[IO](diskGolfTrackTable)
   lazy val hardwareService = new HardwareService[IO](hardwareTable)
+  lazy val hardwareMessageService = new HardwareMessageService[IO](hardwareMessageTable)
 
   lazy val homeController = new HomeController(controllerComponents, userService, diskGolfTrackService)
   lazy val userController = new UserController(controllerComponents, userService)
   lazy val diskGolfTrackController = new DiskGolfTrackController(controllerComponents, diskGolfTrackService)
   lazy val hardwareController = new HardwareController(controllerComponents, hardwareService)
+  lazy val hardwareMessageController = new HardwareMessageController(controllerComponents, hardwareMessageService)
 
   lazy val basePrefix = "/api"
   lazy val v1Prefix = "/v1"
   lazy val router: Router =
-    new IotFrisbeeRouter(homeController, userController, diskGolfTrackController, hardwareController)
-      .withPrefix(f"${basePrefix}${v1Prefix}")
+    new IotFrisbeeRouter(
+      homeController,
+      userController,
+      diskGolfTrackController,
+      hardwareController,
+      hardwareMessageController,
+    ).withPrefix(f"${basePrefix}${v1Prefix}")
 }
 
 object IotFrisbeeModule {

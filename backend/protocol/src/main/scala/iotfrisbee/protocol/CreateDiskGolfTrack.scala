@@ -1,4 +1,4 @@
-package iotfrisbee.protocol.messages.diskGolfTrack
+package iotfrisbee.protocol
 
 import iotfrisbee.domain.{DomainTimeZoneId, UserId}
 
