@@ -6,15 +6,13 @@ import cats.effect.Async
 import cats.implicits._
 import iotfrisbee.domain.{User, UserId}
 import iotfrisbee.database.catalog.UserCatalog.{UserRow, UserTable, toDomain => userToDomain}
-import iotfrisbee.database.driver.DatabaseDriver.JdbcDatabaseDriver
 import iotfrisbee.database.driver.DatabaseDriverOps._
 import iotfrisbee.database.driver.DatabaseOutcome.DatabaseResult
 
 class UserService[F[_]: Async](
-  val dbDriver: JdbcDatabaseDriver,
   val userTable: UserTable,
 )(implicit executionContext: ExecutionContext) {
-  import dbDriver.profile.api._
+  import userTable.dbDriver.profile.api._
   import userTable._
 
   def countUsers(): F[DatabaseResult[Int]] =

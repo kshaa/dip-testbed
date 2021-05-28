@@ -8,16 +8,14 @@ import iotfrisbee.database.catalog.DiskGolfTrackCatalog.{
   DiskGolfTrackTable,
   toDomain => diskGolfTrackToDomain,
 }
-import iotfrisbee.database.driver.DatabaseDriver.JdbcDatabaseDriver
 import iotfrisbee.domain.{DiskGolfTrack, DiskGolfTrackId, DomainTimeZoneId, UserId}
 import iotfrisbee.database.driver.DatabaseDriverOps._
 import iotfrisbee.database.driver.DatabaseOutcome.DatabaseResult
 
 class DiskGolfTrackService[F[_]: Async](
-  val dbDriver: JdbcDatabaseDriver,
   val diskGolfTrackTable: DiskGolfTrackTable,
 )(implicit executionContext: ExecutionContext) {
-  import dbDriver.profile.api._
+  import diskGolfTrackTable.dbDriver.profile.api._
   import diskGolfTrackTable._
 
   def countDiskGolfTracks(): F[DatabaseResult[Int]] =

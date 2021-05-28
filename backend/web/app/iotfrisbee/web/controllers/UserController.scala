@@ -56,9 +56,16 @@ class UserController(
   def getUser(userId: UserId): Action[AnyContent] =
     IOActionAny { _ =>
       EitherT(userService.getUser(userId))
-        .bimap(
-          error => Failure(error.message).withHttpStatus(INTERNAL_SERVER_ERROR),
-          user => Success(user).withHttpStatus(OK),
+        .leftMap(error => Failure(error.message).withHttpStatus(INTERNAL_SERVER_ERROR))
+        .flatMap(get =>
+          EitherT.fromEither(
+            get
+              .toRight("User with that id doesn't exist")
+              .bimap(
+                errorMessage => Failure(errorMessage).withHttpStatus(BAD_REQUEST),
+                user => Success(user).withHttpStatus(OK),
+              ),
+          ),
         )
     }
 }

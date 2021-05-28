@@ -4,8 +4,9 @@ import io.circe.generic.semiauto.deriveCodec
 import io.circe.generic.extras.semiauto.deriveUnwrappedCodec
 import io.circe.{Codec, Decoder, DecodingFailure, Encoder}
 import io.circe.syntax._
-import iotfrisbee.domain.{DiskGolfTrack, DiskGolfTrackId, DomainTimeZoneId, User, UserId}
+import iotfrisbee.domain.{DiskGolfTrack, DiskGolfTrackId, DomainTimeZoneId, Hardware, HardwareId, User, UserId}
 import iotfrisbee.protocol.messages.diskGolfTrack.CreateDiskGolfTrack
+import iotfrisbee.protocol.messages.hardware.CreateHardware
 import iotfrisbee.protocol.messages.http.WebResult.{Failure, Success}
 import iotfrisbee.protocol.messages.http.WebResult
 import iotfrisbee.protocol.messages.home.{Hello, ServiceStatus}
@@ -23,6 +24,8 @@ object Codecs {
     implicit val userCodec: Codec[User] = deriveCodec[User]
     implicit val diskGolfTrackIdCodec: Codec[DiskGolfTrackId] = deriveUnwrappedCodec[DiskGolfTrackId]
     implicit val diskGolfTrackCodec: Codec[DiskGolfTrack] = deriveCodec[DiskGolfTrack]
+    implicit val hardwareIdCodec: Codec[HardwareId] = deriveUnwrappedCodec[HardwareId]
+    implicit val hardwareCodec: Codec[Hardware] = deriveCodec[Hardware]
   }
 
   object Http {
@@ -61,5 +64,10 @@ object Codecs {
   object DiskGolfTrack {
     import iotfrisbee.protocol.Codecs.Domain._
     implicit val createDiskGolfTrackCodec: Codec[CreateDiskGolfTrack] = deriveCodec[CreateDiskGolfTrack]
+  }
+
+  object Hardware {
+    import iotfrisbee.protocol.Codecs.Domain._
+    implicit val createHardwareCodec: Codec[CreateHardware] = deriveCodec[CreateHardware]
   }
 }

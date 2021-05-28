@@ -11,7 +11,8 @@ create table "user" (
 -- hardware
 create table "hardware" (
   "uuid" uuid not null primary key,
-  "type" varchar(255) not null,
+  "name" varchar(255) not null,
+  "owner_uuid" uuid not null,
   "battery_percent" decimal null
 );
 
@@ -60,6 +61,11 @@ create table "disk_golf_game_stage" (
 -- # constraints
 
 -- hardware
+alter table "hardware"
+  add constraint "fk_hardware_owner_uuid"
+  foreign key ("owner_uuid") references "user"("uuid")
+  on delete cascade;
+
 alter table "hardware_debug_message"
   add constraint "fk_hardware_debug_message_hardware_uuid"
   foreign key ("hardware_uuid") references "hardware"("uuid")
