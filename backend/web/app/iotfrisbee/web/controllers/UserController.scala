@@ -6,6 +6,7 @@ import akka.stream.Materializer
 import cats.data.EitherT
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
+import cats.implicits._
 import play.api.mvc._
 import iotfrisbee.database.services.UserService
 import iotfrisbee.domain.UserId
@@ -29,9 +30,16 @@ class UserController(
   def createUser: Action[CreateUser] = {
     IOActionJSON[CreateUser] { request =>
       EitherT(userService.createUser(request.body.username))
-        .bimap(
-          error => Failure(error.message).withHttpStatus(INTERNAL_SERVER_ERROR),
-          user => Success(user).withHttpStatus(OK),
+        .leftMap(error => Failure(error.message).withHttpStatus(INTERNAL_SERVER_ERROR))
+        .flatMap(creation =>
+          EitherT.fromEither(
+            creation
+              .toRight("Username already taken")
+              .bimap(
+                errorMessage => Failure(errorMessage).withHttpStatus(BAD_REQUEST),
+                user => Success(user).withHttpStatus(OK),
+              ),
+          ),
         )
     }
   }

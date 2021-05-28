@@ -38,6 +38,11 @@ class UserControllerSpec extends IotFrisbeeSpec with GivenWhenThen {
         user = userCreation.map(_.value).toOption
         userCreationCheck = userCreation.map(_.value.username).shouldEqual(Right("john"))
 
+        _ = Then("A user w/ a duplicate username should be forbidden")
+        userDuplicateCreation <- createUser(userController, CreateUser("john"))
+        userDuplicate = userCreation.map(_.value).toOption
+        userDuplicateCreationCheck = userCreation.map(_.value.username).shouldEqual(Right("john"))
+
         _ = And("A user should be retrievable by a generated id")
         userGet <- user.traverse(u => getUser(userController, u.id).map(_.toOption)).map(_.flatten)
         userGetCheck = userGet.map(_.value.username).shouldEqual(Some("john"))
@@ -46,7 +51,7 @@ class UserControllerSpec extends IotFrisbeeSpec with GivenWhenThen {
         userListing <- getUsers(userController)
         userListingCheck = userListing.map(_.value.map(_.username)).shouldEqual(Right("john" :: Nil))
 
-        assertions = userCreationCheck :: userGetCheck :: userListingCheck :: Nil
+        assertions = userCreationCheck :: userDuplicateCreationCheck :: userGetCheck :: userListingCheck :: Nil
         assertion = assertions.forall(_ === Succeeded).shouldBe(true)
       } yield assertion
     }
@@ -63,7 +68,7 @@ object UserControllerSpec {
       .run(ByteString(createUser.asJson.toString()))
       .asIO
       .map(x => Helpers.contentAsString(Future.successful(x)))
-      .map(x => decode[Success[User]](x))
+      .map(x => decode[Success[Option[User]]](x))
 
   def getUsers(
     userController: UserController,

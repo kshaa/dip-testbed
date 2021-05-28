@@ -28,7 +28,7 @@ class DiskGolfTrackService[F[_]: Async](
     name: String,
     timezoneId: DomainTimeZoneId,
   ): F[DatabaseResult[DiskGolfTrack]] = {
-    val row = DiskGolfTrackRow(ownerId = ownerId.value, name = name, timezone = timezoneId.value)
+    val row = DiskGolfTrackRow(ownerUUID = ownerId.value, name = name, timezone = timezoneId.value)
     (DiskGolfTrackQuery += row)
       .tryRunDBIO(dbDriver)
       .map(_.map(_ => diskGolfTrackToDomain(row)))

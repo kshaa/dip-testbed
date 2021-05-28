@@ -1,6 +1,7 @@
 package iotfrisbee.database.services
 
 import scala.concurrent.ExecutionContext
+import slick.dbio.DBIOAction.sequenceOption
 import cats.effect.Async
 import cats.implicits._
 import iotfrisbee.domain.{User, UserId}
@@ -19,11 +20,16 @@ class UserService[F[_]: Async](
   def countUsers(): F[DatabaseResult[Int]] =
     UserQuery.length.result.tryRunDBIO(dbDriver)
 
-  def createUser(username: String): F[DatabaseResult[User]] = {
-    val row = UserRow(username = username)
-    (UserQuery += row)
+  def createUser(username: String): F[DatabaseResult[Option[User]]] = {
+    val row: UserRow = UserRow(username = username)
+    val userCreation: DBIOAction[Option[Int], NoStream, Effect.Read with Effect.Write] = for {
+      userUniqueCheck <- UserQuery.filter(_.username === username).result.headOption
+      userCreation <- sequenceOption(Option.when(userUniqueCheck.isEmpty)(UserQuery += row))
+    } yield userCreation
+
+    userCreation
       .tryRunDBIO(dbDriver)
-      .map(_.map(_ => userToDomain(row)))
+      .map(dbioAction => dbioAction.map(userId => userId.map(_ => userToDomain(row))))
   }
 
   def getUsers: F[DatabaseResult[Seq[User]]] =

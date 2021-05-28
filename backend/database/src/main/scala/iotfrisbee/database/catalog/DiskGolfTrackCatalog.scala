@@ -11,14 +11,14 @@ object DiskGolfTrackCatalog {
 
     class DiskGolfTrackTable(tag: Tag) extends Table[DiskGolfTrackRow](tag, "disk_golf_track") {
       def uuid: Rep[UUID] = column[UUID]("uuid", O.PrimaryKey)
-      def ownerId: Rep[UUID] = column[UUID]("owner_id")
+      def ownerUUID: Rep[UUID] = column[UUID]("owner_uuid")
       def name: Rep[String] = column[String]("name")
       def timezone: Rep[String] = column[String]("timezone")
 
       def * : ProvenShape[DiskGolfTrackRow] =
         (
           uuid,
-          ownerId,
+          ownerUUID,
           name,
           timezone,
         ) <> ((DiskGolfTrackRow.apply _).tupled, DiskGolfTrackRow.unapply)
@@ -29,7 +29,7 @@ object DiskGolfTrackCatalog {
 
   case class DiskGolfTrackRow(
     id: UUID = UUID.randomUUID(),
-    ownerId: UUID,
+    ownerUUID: UUID,
     name: String,
     timezone: String,
   )
@@ -45,7 +45,7 @@ object DiskGolfTrackCatalog {
   def toDomain(diskGolfTrack: DiskGolfTrackRow): DiskGolfTrack =
     DiskGolfTrack(
       DiskGolfTrackId(diskGolfTrack.id),
-      UserId(diskGolfTrack.ownerId),
+      UserId(diskGolfTrack.ownerUUID),
       diskGolfTrack.name,
       DomainTimeZoneId.fromString(diskGolfTrack.timezone).toOption.get,
     )
