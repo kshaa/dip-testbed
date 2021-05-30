@@ -1,6 +1,7 @@
 package iotfrisbee.database.catalog
 
 import java.util.UUID
+import io.circe.parser._
 import slick.lifted.ProvenShape
 import iotfrisbee.database.driver.DatabaseDriver.JdbcDatabaseDriver
 import iotfrisbee.domain.{HardwareId, HardwareMessage, HardwareMessageId}
@@ -42,7 +43,7 @@ object HardwareMessageCatalog {
       hardwareMessage.id.value,
       hardwareMessage.hardwareId.value,
       hardwareMessage.messageType,
-      hardwareMessage.message,
+      hardwareMessage.message.noSpaces,
     )
 
   def toDomain(hardwareMessage: HardwareMessageRow): HardwareMessage =
@@ -50,6 +51,6 @@ object HardwareMessageCatalog {
       HardwareMessageId(hardwareMessage.id),
       HardwareId(hardwareMessage.hardwareId),
       hardwareMessage.messageType,
-      hardwareMessage.message,
+      parse(hardwareMessage.message).toOption.get,
     )
 }

@@ -3,6 +3,7 @@ package iotfrisbee.database.services
 import scala.concurrent.ExecutionContext
 import cats.effect.Async
 import cats.implicits._
+import io.circe.Json
 import iotfrisbee.database.catalog.HardwareMessageCatalog.{
   HardwareMessageRow,
   HardwareMessageTable,
@@ -15,18 +16,18 @@ import iotfrisbee.domain.{HardwareId, HardwareMessage, HardwareMessageId}
 class HardwareMessageService[F[_]: Async](
   val hardwareMessageTable: HardwareMessageTable,
 )(implicit executionContext: ExecutionContext) {
-  import hardwareMessageTable._
   import hardwareMessageTable.dbDriver.profile.api._
+  import hardwareMessageTable._
 
   def countHardwareMessage(): F[DatabaseResult[Int]] =
     HardwareMessageQuery.length.result.tryRunDBIO(dbDriver)
 
   def createHardwareMessage(
     messageType: String,
-    message: String,
+    message: Json,
     hardwareId: HardwareId,
   ): F[DatabaseResult[HardwareMessage]] = {
-    val row = HardwareMessageRow(messageType = messageType, message = message, hardwareId = hardwareId.value)
+    val row = HardwareMessageRow(messageType = messageType, message = message.noSpaces, hardwareId = hardwareId.value)
     (HardwareMessageQuery += row)
       .tryRunDBIO(dbDriver)
       .map(_.map(_ => hardwareMessageToDomain(row)))
@@ -40,8 +41,10 @@ class HardwareMessageService[F[_]: Async](
       .map(_.map(hardwareMessageToDomain))
       .tryRunDBIO(dbDriver)
 
-  def getHardwareMessages: F[DatabaseResult[Seq[HardwareMessage]]] =
-    HardwareMessageQuery.result
+  def getHardwareMessages(hardwareId: Option[HardwareId]): F[DatabaseResult[Seq[HardwareMessage]]] =
+    HardwareMessageQuery
+      .filterOpt(hardwareId)(_.hardwareUuid === _.value)
+      .result
       .map(_.map(hardwareMessageToDomain))
       .tryRunDBIO(dbDriver)
 

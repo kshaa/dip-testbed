@@ -9,8 +9,9 @@ object IotFrisbeeConfig {
   implicit val iotFrisbeeConfigLoader: ConfigLoader[DomainIotFrisbeeConfig] = (rootConfig: Config, path: String) => {
     val config: Configuration = Configuration(rootConfig.getConfig(path))
 
-    DomainIotFrisbeeConfig(
+    DomainIotFrisbeeConfig.fromConfig(
       testConfig = config.get[DomainTestConfig]("test"),
+      clusterized = config.getOptional[Boolean]("clusterized"),
     )
   }
 }

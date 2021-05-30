@@ -1,5 +1,8 @@
 package iotfrisbee.web
 
+import akka.actor.{ActorRef, ActorSystem}
+import akka.cluster.pubsub.DistributedPubSub
+
 import scala.concurrent.Future
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
@@ -18,25 +21,29 @@ import iotfrisbee.database.catalog.HardwareCatalog.HardwareTable
 import iotfrisbee.database.catalog.HardwareMessageCatalog.HardwareMessageTable
 import iotfrisbee.database.catalog.UserCatalog.UserTable
 import iotfrisbee.database.driver.DatabaseDriver.{JdbcDatabaseDriver, fromJdbcConfig, fromPlayDatabase}
-import iotfrisbee.database.services.{DiskGolfTrackService, HardwareMessageService, HardwareService, UserService}
+import iotfrisbee.database.services._
 import iotfrisbee.domain.IotFrisbeeConfig
 import iotfrisbee.web.IotFrisbeeModule.prepareDatabaseForTest
-import iotfrisbee.web.controllers.{
-  DiskGolfTrackController,
-  HardwareController,
-  HardwareMessageController,
-  HomeController,
-  UserController,
-}
+import iotfrisbee.web.actors.CentralizedPubSubActor
+import iotfrisbee.web.controllers._
 import iotfrisbee.web.config.IotFrisbeeConfig._
+import play.api.cluster.sharding.typed.ClusterShardingComponents
 
 class IotFrisbeeModule(context: Context)(implicit iort: IORuntime)
     extends BuiltInComponentsFromContext(context)
     with HttpFiltersComponents
     with EvolutionsComponents
     with SlickComponents
-    with SlickEvolutionsComponents {
+    with SlickEvolutionsComponents
+    with ClusterShardingComponents {
   lazy val appConfig: IotFrisbeeConfig = context.initialConfiguration.get[IotFrisbeeConfig]("iotfrisbee")
+
+  lazy implicit val implicitActorSystem: ActorSystem = actorSystem
+  lazy val pubSubMediator: ActorRef = if (appConfig.clusterized) {
+    DistributedPubSub(actorSystem).mediator
+  } else {
+    actorSystem.actorOf(CentralizedPubSubActor.props)
+  }
 
   lazy val defaultDatabaseDriver: JdbcDatabaseDriver = appConfig.testConfig.testName
     .map(testName => fromPlayDatabase(prepareDatabaseForTest(context, testName), H2Profile))
@@ -56,7 +63,8 @@ class IotFrisbeeModule(context: Context)(implicit iort: IORuntime)
   lazy val userController = new UserController(controllerComponents, userService)
   lazy val diskGolfTrackController = new DiskGolfTrackController(controllerComponents, diskGolfTrackService)
   lazy val hardwareController = new HardwareController(controllerComponents, hardwareService)
-  lazy val hardwareMessageController = new HardwareMessageController(controllerComponents, hardwareMessageService)
+  lazy val hardwareMessageController =
+    new HardwareMessageController(controllerComponents, pubSubMediator, hardwareMessageService)
 
   lazy val basePrefix = "/api"
   lazy val v1Prefix = "/v1"

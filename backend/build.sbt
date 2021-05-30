@@ -13,6 +13,10 @@ lazy val domain = (project in file("domain"))
   .settings(scalacSettings: _*)
   .settings(
     name := "domain",
+    libraryDependencies ++= Seq(
+      circeCorePackage,
+      circeParserPackage,
+    ),
   )
 
 lazy val protocol = (project in file("protocol"))
@@ -39,6 +43,7 @@ lazy val database = (project in file("database"))
   .settings(
     name := "database",
     libraryDependencies ++= Seq(
+      circeCorePackage,
       playSlickPackage,
       slickPackage,
       playGuicePackage,
@@ -53,12 +58,16 @@ lazy val web = (project in file("web"))
   .dependsOn(database)
   .dependsOn(protocol)
   .settings(scalaSettings: _*)
+  .settings(playDevSettings: _*)
   .settings(metaSettings: _*)
   .settings(scalacSettings: _*)
   .settings(
     name := "web",
     libraryDependencies ++= Seq(
+      akkaClusterToolsPackage,
+      akkaTestkitPackage,
       playPackage,
+      playAkkaClusterShardingPackage,
       playCircePackage,
       playSlickPackage,
       playGuicePackage,

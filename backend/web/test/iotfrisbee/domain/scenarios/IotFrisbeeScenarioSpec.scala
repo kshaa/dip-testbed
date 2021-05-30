@@ -1,8 +1,11 @@
 package iotfrisbee.domain.scenarios
 
+import akka.actor.{ActorSystem, PoisonPill}
 import org.scalatest.{GivenWhenThen, Succeeded}
 import akka.stream.Materializer
+import akka.testkit.TestProbe
 import cats.effect.IO
+import io.circe.syntax._
 import iotfrisbee.domain.DomainTimeZoneId
 import iotfrisbee.domain.controllers.DiskGolfTrackSpec._
 import iotfrisbee.domain.controllers.HardwareMessageSpec.createHardwareMessage
@@ -14,10 +17,12 @@ import iotfrisbee.protocol._
 import iotfrisbee.protocol.Codecs._
 import iotfrisbee.protocol.WebResult._
 import iotfrisbee.web.IotFrisbeeModule
+import iotfrisbee.web.actors.HardwareMessageSubscriptionActor.subscribed
 import iotfrisbee.web.controllers._
 
 class IotFrisbeeScenarioSpec extends IotFrisbeeSpec with GivenWhenThen {
   lazy val module: IotFrisbeeModule = module()
+  implicit lazy val actorSystem: ActorSystem = module.actorSystem
   implicit lazy val materializer: Materializer = module.materializer
   lazy val homeController: HomeController = module.homeController
   lazy val userController: UserController = module.userController
@@ -44,13 +49,24 @@ class IotFrisbeeScenarioSpec extends IotFrisbeeSpec with GivenWhenThen {
         hardwareCreationCheck = hardwareCreation.map(_.value.name).shouldEqual(Right("adafruit"))
         hardware = hardwareCreation.map(_.value).toOption.get
 
+        _ = And("A listener subscribes to hardware messages")
+        messageSubscriber = TestProbe()
+        messageSubscription =
+          actorSystem.actorOf(hardwareMessageController.hardwareMessageSubscription(messageSubscriber.ref, hardware.id))
+        messageSubscriptionInitCheck = messageSubscriber.expectMsg(subscribed).shouldEqual(subscribed)
+
         _ = And("Hardware message w/ a generated id should be creatable")
         hardwareMessageCreation <- createHardwareMessage(
           hardwareMessageController,
-          CreateHardwareMessage("debug-sensor", "\"moist\"", hardware.id),
+          CreateHardwareMessage("debug-sensor", "moist".asJson, hardware.id),
         )
-        hardwareMessageCreationCheck = hardwareMessageCreation.map(_.value.message).shouldEqual(Right("\"moist\""))
+        hardwareMessageCreationCheck = hardwareMessageCreation.map(_.value.message).shouldEqual(Right("moist".asJson))
         hardwareMessage = hardwareMessageCreation.map(_.value).toOption.get
+
+        _ = Then("Hardware message subscriber should receive notification")
+        messageSubscriptionReceiveCheck =
+          messageSubscriber.expectMsg(hardwareMessage.asJson.toString).shouldEqual(hardwareMessage.asJson.toString)
+        _ = messageSubscription ! PoisonPill
 
         _ = And("A disk golf track w/ a generated id should be creatable")
         rigaTimeZoneId = DomainTimeZoneId.fromString("Europe/Riga").toOption.get
@@ -72,7 +88,9 @@ class IotFrisbeeScenarioSpec extends IotFrisbeeSpec with GivenWhenThen {
           initialStatusCheck ::
             userCreationCheck ::
             hardwareCreationCheck ::
+            messageSubscriptionInitCheck ::
             hardwareMessageCreationCheck ::
+            messageSubscriptionReceiveCheck ::
             diskGolfTrackCheck ::
             finalStatusCheck ::
             Nil

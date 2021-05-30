@@ -1,47 +1,71 @@
 package iotfrisbee.web.controllers
 
+import scala.annotation.unused
+import scala.concurrent.ExecutionContext
+import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.cluster.pubsub.DistributedPubSubMediator.Publish
 import akka.stream.Materializer
+import play.api.libs.streams.ActorFlow
+import play.api.mvc._
 import cats.data.EitherT
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
 import cats.implicits._
+import io.circe.syntax._
 import iotfrisbee.database.services.HardwareMessageService
-import iotfrisbee.domain.HardwareMessageId
+import iotfrisbee.domain.{HardwareId, HardwareMessage, HardwareMessageId}
 import iotfrisbee.protocol._
 import iotfrisbee.protocol.Codecs._
 import iotfrisbee.protocol.WebResult._
+import iotfrisbee.web.actors.HardwareMessageSubscriptionActor
+import iotfrisbee.web.actors.HardwareMessageSubscriptionActor.hardwareMessageTopic
 import iotfrisbee.web.ioControls.PipelineOps._
+import iotfrisbee.web.ioControls.PipelineTypes.PipelineStage
 import iotfrisbee.web.ioControls._
-import play.api.mvc._
-
-import scala.annotation.unused
-import scala.concurrent.ExecutionContext
 
 class HardwareMessageController(
   val cc: ControllerComponents,
+  val pubSubMediator: ActorRef,
   val hardwareMessageService: HardwareMessageService[IO],
 )(implicit
   @unused ec: ExecutionContext,
   @unused iort: IORuntime,
+  @unused actorSystem: ActorSystem,
   @unused materializer: Materializer,
 ) extends AbstractController(cc)
     with IOController {
 
-  def createHardwareMessage: Action[CreateHardwareMessage] = {
-    IOActionJSON[CreateHardwareMessage] { request =>
-      EitherT(
-        hardwareMessageService
-          .createHardwareMessage(request.body.messageType, request.body.message, request.body.hardwareId),
-      ).bimap(
-        error => Failure(error.message).withHttpStatus(INTERNAL_SERVER_ERROR),
-        hardware => Success(hardware).withHttpStatus(OK),
-      )
-    }
-  }
+  def hardwareMessageSubscription(subscriber: ActorRef, hardwareId: HardwareId): Props =
+    HardwareMessageSubscriptionActor.props(pubSubMediator, subscriber, hardwareId)
 
-  def getHardwareMessages: Action[AnyContent] =
+  def subscribeHardwareMessages(hardwareId: HardwareId): WebSocket =
+    WebSocket.accept[String, String](_ => ActorFlow.actorRef(hardwareMessageSubscription(_, hardwareId)))
+
+  def createHardwareMessage(
+    creation: CreateHardwareMessage,
+  ): PipelineStage[IO, ResultWithStatus[String], ResultWithStatus[HardwareMessage]] =
+    for {
+      // Create hardware message
+      hardwareMessage <- EitherT(
+        hardwareMessageService.createHardwareMessage(creation.messageType, creation.message, creation.hardwareId),
+      ).leftMap(error => ResultWithStatus(error.message, INTERNAL_SERVER_ERROR))
+
+      // Send out notification about the hardware message
+      _ <- EitherT[IO, ResultWithStatus[String], Unit](
+        IO(
+          Right(
+            pubSubMediator ! Publish(hardwareMessageTopic(creation.hardwareId), hardwareMessage.asJson.toString),
+          ),
+        ),
+      )
+    } yield ResultWithStatus(hardwareMessage, OK)
+
+  def createHardwareMessage: Action[CreateHardwareMessage] =
+    IOActionJSON[CreateHardwareMessage](r => createWebResult(createHardwareMessage(r.body)))
+
+  def getHardwareMessages(hardwareId: Option[HardwareId]): Action[AnyContent] =
     IOActionAny { _ =>
-      EitherT(hardwareMessageService.getHardwareMessages)
+      EitherT(hardwareMessageService.getHardwareMessages(hardwareId))
         .bimap(
           error => Failure(error.message).withHttpStatus(INTERNAL_SERVER_ERROR),
           hardwareMessages => Success(hardwareMessages).withHttpStatus(OK),

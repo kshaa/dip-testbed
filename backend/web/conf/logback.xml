@@ -27,6 +27,9 @@
   <logger name="play" level="INFO" />
   <logger name="application" level="DEBUG" />
 
+  <!-- Akka actor logs-->
+  <logger name="akka.actor" level="DEBUG" />
+
   <!-- Show SQL -->
   <logger name="com.zaxxer.hikari" level="OFF">
     <appender-ref ref="STDOUT" />

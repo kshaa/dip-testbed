@@ -1,7 +1,10 @@
 object Versions {
   lazy val scalaVersion = "2.13.5"
   lazy val slickVersion = "3.3.3"
+  lazy val akkaClusterToolsVersion = "2.6.14"
+  lazy val akkaTestkitVersion = "2.6.14"
   lazy val playVersion = "5.1.0"
+  lazy val playAkkaClusterShardingVersion = "2.8.8"
   lazy val playCirceVersion = "2812.0"
   lazy val playJdbcVersion = "2.8.8"
   lazy val playGuiceVersion = "2.8.8"

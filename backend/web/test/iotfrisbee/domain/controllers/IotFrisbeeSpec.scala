@@ -32,7 +32,15 @@ trait IotFrisbeeSpec
     new IotFrisbeeModule(
       context.copy(initialConfiguration =
         Configuration(
+          // Use centralized pubsub
+          "iotfrisbee.clusterized" -> false,
+          // Don't create akka cluster w/ tcp sockets
+          "akka.actor.provider" -> "local",
+          // Disable distributed pubsub which requires cluster
+          "akka.extensions" -> List.empty,
+          // Test enabling will result in use of H2 in-memory db
           "iotfrisbee.test.enabled" -> true,
+          // Test name will decide H2 db name
           "iotfrisbee.test.name" -> f"${testSuiteName}-${testName}",
         ).withFallback(context.initialConfiguration),
       ),
