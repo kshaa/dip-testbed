@@ -4,15 +4,13 @@ import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
 import scala.util.Try
 import akka.stream.Materializer
-import cats.Functor
-import cats.data.EitherT
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
 import cats.implicits._
 import play.api.libs.circe.Circe
 import play.api.mvc.{Action, AnyContent, BodyParser, Request}
 import play.api.mvc._
-import io.circe.{Codec, Decoder, Encoder}
+import io.circe.Codec
 import iotfrisbee.protocol.WebResult._
 import iotfrisbee.web.ioControls.PipelineOps._
 
@@ -60,11 +58,4 @@ trait IOController extends Circe {
   )(implicit iort: IORuntime, materializer: Materializer): Action[A] =
     IOActionParsed(circe.json[A])(handler)
 
-  case class ResultWithStatus[A](result: A, statusCode: Int)
-  def createWebResult[F[_]: Functor, A: Encoder: Decoder, B: Encoder: Decoder](
-    result: EitherT[F, ResultWithStatus[A], ResultWithStatus[B]],
-  ): EitherT[F, Result, Result] =
-    result
-      .leftMap { case ResultWithStatus(result, statusCode) => Failure(result).withHttpStatus(statusCode) }
-      .map { case ResultWithStatus(result, statusCode) => Success(result).withHttpStatus(statusCode) }
 }

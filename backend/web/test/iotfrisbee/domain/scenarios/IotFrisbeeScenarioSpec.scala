@@ -6,7 +6,7 @@ import akka.stream.Materializer
 import akka.testkit.TestProbe
 import cats.effect.IO
 import io.circe.syntax._
-import iotfrisbee.domain.DomainTimeZoneId
+import iotfrisbee.domain.{DomainTimeZoneId, Hardware}
 import iotfrisbee.domain.controllers.DiskGolfTrackSpec._
 import iotfrisbee.domain.controllers.HardwareMessageSpec.createHardwareMessage
 import iotfrisbee.domain.controllers.HardwareSpec.createHardware
@@ -45,7 +45,7 @@ class IotFrisbeeScenarioSpec extends IotFrisbeeSpec with GivenWhenThen {
         user = userCreation.map(_.value).toOption.get
 
         _ = And("Users' hardware w/ a generated id should be creatable")
-        hardwareCreation <- createHardware(hardwareController, CreateHardware("adafruit", user.id))
+        hardwareCreation <- createHardware[Success[Hardware]](hardwareController, CreateHardware("adafruit", user.id))
         hardwareCreationCheck = hardwareCreation.map(_.value.name).shouldEqual(Right("adafruit"))
         hardware = hardwareCreation.map(_.value).toOption.get
 

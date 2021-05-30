@@ -13,7 +13,7 @@ import io.circe.syntax.EncoderOps
 import iotfrisbee.domain.controllers.HardwareMessageSpec._
 import iotfrisbee.domain.controllers.UserControllerSpec._
 import iotfrisbee.domain.controllers.HardwareSpec._
-import iotfrisbee.domain.{HardwareId, HardwareMessage, HardwareMessageId}
+import iotfrisbee.domain.{Hardware, HardwareId, HardwareMessage, HardwareMessageId}
 import iotfrisbee.domain.controllers.IotFrisbeeSpec.exchangeJSON
 import iotfrisbee.protocol._
 import iotfrisbee.protocol.Codecs._
@@ -40,7 +40,7 @@ class HardwareMessageSpec extends IotFrisbeeSpec with GivenWhenThen {
         user = userCreation.map(_.value).toOption.get
 
         _ = And("Their hardware w/ a generated id is created")
-        hardwareCreation <- createHardware(hardwareController, CreateHardware("adafruit", user.id))
+        hardwareCreation <- createHardware[Success[Hardware]](hardwareController, CreateHardware("adafruit", user.id))
         hardware = hardwareCreation.map(_.value).toOption.get
 
         _ = And("A listener subscribes to hardware messages")

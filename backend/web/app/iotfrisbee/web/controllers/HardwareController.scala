@@ -1,5 +1,7 @@
 package iotfrisbee.web.controllers
 
+import scala.annotation.unused
+import scala.concurrent.ExecutionContext
 import akka.stream.Materializer
 import cats.data.EitherT
 import cats.effect.IO
@@ -14,9 +16,6 @@ import iotfrisbee.web.ioControls.PipelineOps._
 import iotfrisbee.web.ioControls._
 import play.api.mvc._
 
-import scala.annotation.unused
-import scala.concurrent.ExecutionContext
-
 class HardwareController(
   val cc: ControllerComponents,
   val hardwareService: HardwareService[IO],
@@ -27,16 +26,21 @@ class HardwareController(
 ) extends AbstractController(cc)
     with IOController {
 
-  def createHardware: Action[CreateHardware] = {
+  def createHardware: Action[CreateHardware] =
     IOActionJSON[CreateHardware] { request =>
-      EitherT(
-        hardwareService.createHardware(request.body.name, request.body.ownerId),
-      ).bimap(
-        error => Failure(error.message).withHttpStatus(INTERNAL_SERVER_ERROR),
-        hardware => Success(hardware).withHttpStatus(OK),
-      )
+      EitherT(hardwareService.createHardware(request.body.name, request.body.ownerId))
+        .leftMap(error => Failure(error.message).withHttpStatus(INTERNAL_SERVER_ERROR))
+        .flatMap(create =>
+          EitherT.fromEither(
+            create
+              .toRight("Owner with that id doesn't exist")
+              .bimap(
+                errorMessage => Failure(errorMessage).withHttpStatus(BAD_REQUEST),
+                hardware => Success(hardware).withHttpStatus(OK),
+              ),
+          ),
+        )
     }
-  }
 
   def getHardwares: Action[AnyContent] =
     IOActionAny { _ =>

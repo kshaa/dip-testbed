@@ -13,14 +13,13 @@ import cats.effect.unsafe.IORuntime
 import cats.implicits._
 import io.circe.syntax._
 import iotfrisbee.database.services.HardwareMessageService
-import iotfrisbee.domain.{HardwareId, HardwareMessage, HardwareMessageId}
+import iotfrisbee.domain.{HardwareId, HardwareMessageId}
 import iotfrisbee.protocol._
 import iotfrisbee.protocol.Codecs._
 import iotfrisbee.protocol.WebResult._
 import iotfrisbee.web.actors.HardwareMessageSubscriptionActor
 import iotfrisbee.web.actors.HardwareMessageSubscriptionActor.hardwareMessageTopic
 import iotfrisbee.web.ioControls.PipelineOps._
-import iotfrisbee.web.ioControls.PipelineTypes.PipelineStage
 import iotfrisbee.web.ioControls._
 
 class HardwareMessageController(
@@ -41,27 +40,23 @@ class HardwareMessageController(
   def subscribeHardwareMessages(hardwareId: HardwareId): WebSocket =
     WebSocket.accept[String, String](_ => ActorFlow.actorRef(hardwareMessageSubscription(_, hardwareId)))
 
-  def createHardwareMessage(
-    creation: CreateHardwareMessage,
-  ): PipelineStage[IO, ResultWithStatus[String], ResultWithStatus[HardwareMessage]] =
-    for {
-      // Create hardware message
-      hardwareMessage <- EitherT(
-        hardwareMessageService.createHardwareMessage(creation.messageType, creation.message, creation.hardwareId),
-      ).leftMap(error => ResultWithStatus(error.message, INTERNAL_SERVER_ERROR))
-
-      // Send out notification about the hardware message
-      _ <- EitherT[IO, ResultWithStatus[String], Unit](
-        IO(
-          Right(
-            pubSubMediator ! Publish(hardwareMessageTopic(creation.hardwareId), hardwareMessage.asJson.toString),
-          ),
-        ),
-      )
-    } yield ResultWithStatus(hardwareMessage, OK)
-
   def createHardwareMessage: Action[CreateHardwareMessage] =
-    IOActionJSON[CreateHardwareMessage](r => createWebResult(createHardwareMessage(r.body)))
+    IOActionJSON[CreateHardwareMessage](r =>
+      for {
+        // Create hardware message
+        hardwareMessage <- EitherT(
+          hardwareMessageService.createHardwareMessage(r.body.messageType, r.body.message, r.body.hardwareId),
+        ).leftMap(error => Failure(error.message).withHttpStatus(INTERNAL_SERVER_ERROR))
+
+        // Send out notification about the hardware message
+        topic = hardwareMessageTopic(r.body.hardwareId)
+        message = hardwareMessage.asJson.toString
+        _ <- EitherT[IO, Result, Unit](IO(Right(pubSubMediator ! Publish(topic, message))))
+
+        // Return created hardware message result
+        result = Success(hardwareMessage).withHttpStatus(OK)
+      } yield result,
+    )
 
   def getHardwareMessages(hardwareId: Option[HardwareId]): Action[AnyContent] =
     IOActionAny { _ =>
