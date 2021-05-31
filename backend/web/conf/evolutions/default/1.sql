@@ -40,6 +40,7 @@ create table "disk_golf_basket" (
 
 create table "disk_golf_disk" (
   "uuid" uuid not null primary key,
+  "name" varchar(255) not null,
   "track_uuid" uuid not null,
   "hardware_uuid" uuid null
 );
