@@ -43,10 +43,14 @@ class HardwareMessageController(
   def createHardwareMessage: Action[CreateHardwareMessage] =
     IOActionJSON[CreateHardwareMessage](r =>
       for {
-        // Create hardware message
-        hardwareMessage <- EitherT(
+        // Attempt to create hardware message
+        hardwareMessageCreation <- EitherT(
           hardwareMessageService.createHardwareMessage(r.body.messageType, r.body.message, r.body.hardwareId),
         ).leftMap(error => Failure(error.message).withHttpStatus(INTERNAL_SERVER_ERROR))
+
+        // Report non-existent hardware
+        missingHardware = Failure("Hardware message with that id doesn't exist").withHttpStatus(BAD_REQUEST)
+        hardwareMessage <- EitherT.fromEither[IO](hardwareMessageCreation.toRight(missingHardware))
 
         // Send out notification about the hardware message
         topic = hardwareMessageTopic(r.body.hardwareId)

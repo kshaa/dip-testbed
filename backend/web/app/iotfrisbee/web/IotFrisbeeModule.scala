@@ -55,9 +55,9 @@ class IotFrisbeeModule(context: Context)(implicit iort: IORuntime)
   lazy val hardwareMessageTable = new HardwareMessageTable(defaultDatabaseDriver)
 
   lazy val userService = new UserService[IO](userTable)
-  lazy val diskGolfTrackService = new DiskGolfTrackService[IO](diskGolfTrackTable)
+  lazy val diskGolfTrackService = new DiskGolfTrackService[IO](diskGolfTrackTable, userTable)
   lazy val hardwareService = new HardwareService[IO](hardwareTable, userTable)
-  lazy val hardwareMessageService = new HardwareMessageService[IO](hardwareMessageTable)
+  lazy val hardwareMessageService = new HardwareMessageService[IO](hardwareMessageTable, hardwareTable)
 
   lazy val homeController = new HomeController(controllerComponents, userService, diskGolfTrackService)
   lazy val userController = new UserController(controllerComponents, userService)

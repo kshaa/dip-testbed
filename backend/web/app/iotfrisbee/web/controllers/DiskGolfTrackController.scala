@@ -30,10 +30,17 @@ class DiskGolfTrackController(
     IOActionJSON[CreateDiskGolfTrack] { request =>
       EitherT(
         diskGolfTrackService.createDiskGolfTrack(request.body.ownerId, request.body.name, request.body.timezoneId),
-      ).bimap(
-        error => Failure(error.message).withHttpStatus(INTERNAL_SERVER_ERROR),
-        diskGolfTrack => Success(diskGolfTrack).withHttpStatus(OK),
-      )
+      ).leftMap(error => Failure(error.message).withHttpStatus(INTERNAL_SERVER_ERROR))
+        .flatMap(creation =>
+          EitherT.fromEither(
+            creation
+              .toRight("Hardware with that id doesn't exist")
+              .bimap(
+                errorMessage => Failure(errorMessage).withHttpStatus(BAD_REQUEST),
+                diskGolfTrack => Success(diskGolfTrack).withHttpStatus(OK),
+              ),
+          ),
+        )
     }
   }
 
