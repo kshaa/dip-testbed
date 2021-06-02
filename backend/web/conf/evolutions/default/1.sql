@@ -35,6 +35,7 @@ create table "disk_golf_basket" (
   "uuid" uuid not null primary key,
   "track_uuid" uuid not null,
   "order_number" int not null,
+  "name" varchar(255) not null,
   "hardware_uuid" uuid null
 );
 

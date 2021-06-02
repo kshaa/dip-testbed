@@ -13,12 +13,14 @@ object DiskGolfDiskCatalog {
 
     class DiskGolfDiskTable(tag: Tag) extends Table[DiskGolfDiskRow](tag, "disk_golf_disk") {
       def uuid: Rep[UUID] = column[UUID]("uuid", O.PrimaryKey)
+      def name: Rep[String] = column[String]("name")
       def trackUUID: Rep[UUID] = column[UUID]("track_uuid")
       def hardwareUUID: Rep[Option[UUID]] = column[Option[UUID]]("hardware_uuid")
 
       def * : ProvenShape[DiskGolfDiskRow] =
         (
           uuid,
+          name,
           trackUUID,
           hardwareUUID,
         ) <> ((DiskGolfDiskRow.apply _).tupled, DiskGolfDiskRow.unapply)
@@ -29,6 +31,7 @@ object DiskGolfDiskCatalog {
 
   case class DiskGolfDiskRow(
     id: UUID = UUID.randomUUID(),
+    name: String,
     trackUUID: UUID,
     hardwareUUID: Option[UUID],
   )
@@ -36,6 +39,7 @@ object DiskGolfDiskCatalog {
   def fromDomain(diskGolfDisk: DiskGolfDisk): DiskGolfDiskRow =
     DiskGolfDiskRow(
       diskGolfDisk.id.value,
+      diskGolfDisk.name,
       diskGolfDisk.trackId.value,
       diskGolfDisk.hardwareId.map(_.value),
     )
@@ -43,6 +47,7 @@ object DiskGolfDiskCatalog {
   def toDomain(diskGolfDisk: DiskGolfDiskRow): DiskGolfDisk =
     DiskGolfDisk(
       DiskGolfDiskId(diskGolfDisk.id),
+      diskGolfDisk.name,
       DiskGolfTrackId(diskGolfDisk.trackUUID),
       diskGolfDisk.hardwareUUID.map(HardwareId),
     )

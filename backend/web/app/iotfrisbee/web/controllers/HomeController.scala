@@ -7,7 +7,7 @@ import cats.data.EitherT
 import cats.effect.unsafe.IORuntime
 import cats.effect.IO
 import play.api.mvc._
-import iotfrisbee.database.services.{DiskGolfTrackService, UserService}
+import iotfrisbee.database.services._
 import iotfrisbee.web.ioControls.PipelineOps._
 import iotfrisbee.web.ioControls._
 import iotfrisbee.protocol.{Hello, ServiceStatus}
@@ -18,6 +18,10 @@ class HomeController(
   val cc: ControllerComponents,
   val userService: UserService[IO],
   val diskGolfTrackService: DiskGolfTrackService[IO],
+  val hardwareService: HardwareService[IO],
+  val hardwareMessageService: HardwareMessageService[IO],
+  val diskGolfDiskService: DiskGolfDiskService[IO],
+  val diskGolfBasketService: DiskGolfBasketService[IO],
 )(implicit
   @unused ec: ExecutionContext,
   @unused iort: IORuntime,
@@ -30,9 +34,20 @@ class HomeController(
   def status: Action[AnyContent] =
     IOActionAny { _ =>
       (for {
-        userCountText <- EitherT(userService.countUsers())
-        diskGolfTrackText <- EitherT(diskGolfTrackService.countDiskGolfTracks())
-        status = ServiceStatus(userCountText, diskGolfTrackText)
+        userCount <- EitherT(userService.countUsers())
+        diskGolfTrackCount <- EitherT(diskGolfTrackService.countDiskGolfTracks())
+        hardwareCount <- EitherT(hardwareService.countHardware())
+        hardwareMessageCount <- EitherT(hardwareMessageService.countHardwareMessage())
+        diskGolfDiskCount <- EitherT(diskGolfDiskService.countDiskGolfDisks())
+        diskGolfBasketCount <- EitherT(diskGolfBasketService.countDiskGolfBaskets())
+        status = ServiceStatus(
+          userCount,
+          diskGolfTrackCount,
+          hardwareCount,
+          hardwareMessageCount,
+          diskGolfDiskCount,
+          diskGolfBasketCount,
+        )
       } yield status)
         .bimap(
           error => Failure[String](error.message).withHttpStatus(INTERNAL_SERVER_ERROR),

@@ -82,7 +82,7 @@ class IotFrisbeeScenarioSpec extends IotFrisbeeSpec with GivenWhenThen {
 
         _ = And("Finally the status should represent the changes")
         finalStatus <- getStatus(homeController)
-        finalStatusCheck = finalStatus.shouldEqual(Right(Success(ServiceStatus(1, 1))))
+        finalStatusCheck = finalStatus.shouldEqual(Right(Success(ServiceStatus(1, 1, 1, 1, 0))))
 
         assertions =
           initialStatusCheck ::
