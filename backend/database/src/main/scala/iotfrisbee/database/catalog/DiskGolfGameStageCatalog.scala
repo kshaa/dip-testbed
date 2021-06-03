@@ -16,7 +16,7 @@ object DiskGolfGameStageCatalog {
       def uuid: Rep[UUID] = column[UUID]("uuid", O.PrimaryKey)
       def gameUUID: Rep[UUID] = column[UUID]("game_uuid")
       def finishBasketUUID: Rep[UUID] = column[UUID]("finish_basket_uuid")
-      def timestamp: Rep[ZonedDateTime] = column[ZonedDateTime]("timestamp")
+      def finishBasketTimestamp: Rep[ZonedDateTime] = column[ZonedDateTime]("finish_basket_timestamp")
       def throwCount: Rep[Int] = column[Int]("throw_count")
 
       def * : ProvenShape[DiskGolfGameStageRow] =
@@ -24,7 +24,7 @@ object DiskGolfGameStageCatalog {
           uuid,
           gameUUID,
           finishBasketUUID,
-          timestamp,
+          finishBasketTimestamp,
           throwCount,
         ) <> ((DiskGolfGameStageRow.apply _).tupled, DiskGolfGameStageRow.unapply)
     }
@@ -36,7 +36,7 @@ object DiskGolfGameStageCatalog {
     id: UUID = UUID.randomUUID(),
     gameUUID: UUID,
     finishBasketUUID: UUID,
-    timestamp: ZonedDateTime,
+    finishBasketTimestamp: ZonedDateTime,
     throwCount: Int,
   )
 
@@ -45,7 +45,7 @@ object DiskGolfGameStageCatalog {
       diskGolfGameStage.id.value,
       diskGolfGameStage.gameId.value,
       diskGolfGameStage.finishBasketId.value,
-      diskGolfGameStage.timestamp,
+      diskGolfGameStage.finishBasketTimestamp,
       diskGolfGameStage.throwCount,
     )
 
@@ -54,7 +54,7 @@ object DiskGolfGameStageCatalog {
       DiskGolfGameStageId(diskGolfGameStage.id),
       DiskGolfGameId(diskGolfGameStage.id),
       DiskGolfBasketId(diskGolfGameStage.finishBasketUUID),
-      diskGolfGameStage.timestamp,
+      diskGolfGameStage.finishBasketTimestamp,
       diskGolfGameStage.throwCount,
     )
 }

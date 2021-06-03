@@ -8,12 +8,14 @@ import cats.implicits._
 import iotfrisbee.database.driver.DatabaseOutcome.{DatabaseError, DatabaseResult}
 import slick.relational.RelationalBackend
 import play.api.db.{Database => PlayDatabase}
+import slick.dbio.{DBIOAction, Effect, NoStream}
 import slick.jdbc.JdbcBackend.{Database => SlickDatabase}
+
+import scala.concurrent.ExecutionContext
 
 trait DatabaseDriver[B <: RelationalBackend#DatabaseDef, P <: SqlProfile] {
   val database: B
   val profile: P
-  import profile.api._
 
   def runDBIO[F[_]: Async, R](dbioAction: DBIOAction[R, NoStream, Nothing]): F[R] =
     Async[F].fromFuture(Async[F].pure(database.run(dbioAction)))
@@ -47,4 +49,10 @@ object DatabaseDriver {
       val database: JdbcBackend#DatabaseDef =
         SlickDatabase.forURL(h2Url, driver = h2Driver)
     }
+
+  def existsOrError[A, B](action: DBIOAction[Option[A], NoStream, Effect.Read], error: B)(implicit
+    ec: ExecutionContext,
+  ): DBIOAction[Option[B], NoStream, Effect.Read] =
+    action.map(_.fold[Option[B]](Some(error))(_ => None))
+
 }

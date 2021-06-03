@@ -15,6 +15,7 @@ class IotFrisbeeRouter(
   hardwareMessageController: HardwareMessageController,
   diskGolfDiskController: DiskGolfDiskController,
   diskGolfBasketController: DiskGolfBasketController,
+  diskGolfGameController: DiskGolfGameController,
 ) extends SimpleRouter {
   def routes: Routes = {
     case GET(p"/")       => homeController.index
@@ -55,5 +56,14 @@ class IotFrisbeeRouter(
     case GET(p"/disk-golf-baskets")  => diskGolfBasketController.getDiskGolfBaskets
     case GET(p"/disk-golf-baskets/${uuid(basketId)}") =>
       diskGolfBasketController.getDiskGolfBasket(DiskGolfBasketId(basketId))
+
+    // Disk golf games
+    case POST(p"/disk-golf-games")                => diskGolfGameController.createDiskGolfGame
+    case GET(p"/disk-golf-games")                 => diskGolfGameController.getDiskGolfGames
+    case GET(p"/disk-golf-games/${uuid(gameId)}") => diskGolfGameController.getDiskGolfGame(DiskGolfGameId(gameId))
+    case POST(p"/disk-golf-games/${uuid(gameId)}/start") =>
+      diskGolfGameController.startDiskGolfGame(DiskGolfGameId(gameId))
+    case POST(p"/disk-golf-games/${uuid(gameId)}/finish") =>
+      diskGolfGameController.finishDiskGolfGame(DiskGolfGameId(gameId))
   }
 }

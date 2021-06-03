@@ -12,6 +12,7 @@ import iotfrisbee.database.catalog.DiskGolfBasketCatalog.{
 }
 import iotfrisbee.database.catalog.DiskGolfTrackCatalog.DiskGolfTrackTable
 import iotfrisbee.database.catalog.HardwareCatalog.HardwareTable
+import iotfrisbee.database.driver.DatabaseDriver.existsOrError
 import iotfrisbee.database.driver.DatabaseDriverOps._
 import iotfrisbee.database.driver.DatabaseOutcome.DatabaseResult
 import iotfrisbee.database.services.DiskGolfBasketService._
@@ -69,14 +70,10 @@ class DiskGolfBasketService[F[_]: Async](
     val diskGolfBasketCreatedOrderNumber
       : DBIOAction[Either[List[DiskGolfBasketCreationError], Int], NoStream, Effect.Read with Effect.Write] =
       for {
-        existenceTrackError <-
-          trackCheck.map(_.fold[Option[DiskGolfBasketCreationError]](Some(NonExistentTrack))(_ => None))
-
-        existenceHardwareError <-
-          hardwareCheck
-            .map(_.fold[Option[DiskGolfBasketCreationError]](Some(NonExistentHardware))(_ => None))
-            .map(_.flatMap(error => Option.when(hardwareId.nonEmpty)(error)))
-
+        existenceTrackError <- existsOrError(trackCheck, NonExistentTrack)
+        existenceHardwareError <- existsOrError(hardwareCheck, NonExistentHardware).map(
+          _.flatMap(error => Option.when(hardwareId.nonEmpty)(error)),
+        )
         existenceErrors = (existenceTrackError :: existenceHardwareError :: Nil).flatten
 
         lastOrderNumber <- lastOrderNumberCheck

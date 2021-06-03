@@ -23,6 +23,8 @@ import iotfrisbee.database.catalog.HardwareCatalog.HardwareTable
 import iotfrisbee.database.catalog.HardwareMessageCatalog.HardwareMessageTable
 import iotfrisbee.database.catalog.UserCatalog.UserTable
 import iotfrisbee.database.catalog.DiskGolfDiskCatalog.DiskGolfDiskTable
+import iotfrisbee.database.catalog.DiskGolfGameCatalog.DiskGolfGameTable
+import iotfrisbee.database.catalog.DiskGolfGameStageCatalog.DiskGolfGameStageTable
 import iotfrisbee.database.driver.DatabaseDriver.{JdbcDatabaseDriver, fromJdbcConfig, fromPlayDatabase}
 import iotfrisbee.database.services._
 import iotfrisbee.domain.IotFrisbeeConfig
@@ -57,6 +59,8 @@ class IotFrisbeeModule(context: Context)(implicit iort: IORuntime)
   lazy val hardwareMessageTable = new HardwareMessageTable(defaultDatabaseDriver)
   lazy val diskGolfDiskTable = new DiskGolfDiskTable(defaultDatabaseDriver)
   lazy val diskGolfBasketTable = new DiskGolfBasketTable(defaultDatabaseDriver)
+  lazy val diskGolfGameTable = new DiskGolfGameTable(defaultDatabaseDriver)
+  lazy val diskGolfGameStageTable = new DiskGolfGameStageTable(defaultDatabaseDriver)
 
   lazy val userService = new UserService[IO](userTable)
   lazy val diskGolfTrackService = new DiskGolfTrackService[IO](diskGolfTrackTable, userTable)
@@ -64,6 +68,15 @@ class IotFrisbeeModule(context: Context)(implicit iort: IORuntime)
   lazy val hardwareMessageService = new HardwareMessageService[IO](hardwareMessageTable, hardwareTable)
   lazy val diskGolfDiskService = new DiskGolfDiskService[IO](diskGolfDiskTable, diskGolfTrackTable, hardwareTable)
   lazy val diskGolfBasketService = new DiskGolfBasketService[IO](diskGolfBasketTable, diskGolfTrackTable, hardwareTable)
+  lazy val diskGolfGameService = new DiskGolfGameService[IO](
+    userTable,
+    diskGolfTrackTable,
+    diskGolfDiskTable,
+    diskGolfBasketTable,
+    diskGolfGameTable,
+    diskGolfGameStageTable,
+    hardwareTable,
+  )
 
   lazy val homeController = new HomeController(
     controllerComponents,
@@ -81,6 +94,7 @@ class IotFrisbeeModule(context: Context)(implicit iort: IORuntime)
     new HardwareMessageController(controllerComponents, pubSubMediator, hardwareMessageService)
   lazy val diskGolfDiskController = new DiskGolfDiskController(controllerComponents, diskGolfDiskService)
   lazy val diskGolfBasketController = new DiskGolfBasketController(controllerComponents, diskGolfBasketService)
+  lazy val diskGolfGameController = new DiskGolfGameController(controllerComponents, diskGolfGameService)
 
   lazy val basePrefix = "/api"
   lazy val v1Prefix = "/v1"
@@ -93,6 +107,7 @@ class IotFrisbeeModule(context: Context)(implicit iort: IORuntime)
       hardwareMessageController,
       diskGolfDiskController,
       diskGolfBasketController,
+      diskGolfGameController,
     ).withPrefix(f"${basePrefix}${v1Prefix}")
 }
 

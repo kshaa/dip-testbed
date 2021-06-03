@@ -25,6 +25,8 @@ object Codecs {
   implicit val diskGolfDiskCodec: Codec[DiskGolfDisk] = deriveCodec[DiskGolfDisk]
   implicit val diskGolfBasketIdCodec: Codec[DiskGolfBasketId] = deriveUnwrappedCodec[DiskGolfBasketId]
   implicit val diskGolfBasketCodec: Codec[DiskGolfBasket] = deriveCodec[DiskGolfBasket]
+  implicit val diskGolfGameIdCodec: Codec[DiskGolfGameId] = deriveUnwrappedCodec[DiskGolfGameId]
+  implicit val diskGolfGameCodec: Codec[DiskGolfGame] = deriveCodec[DiskGolfGame]
 
   implicit def webResultSuccessCodec[A: Encoder: Decoder]: Codec[Success[A]] =
     Codec.forProduct1[Success[A], A]("success")(Success(_))(_.value)
@@ -51,4 +53,5 @@ object Codecs {
   implicit val createHardwareMessageCodec: Codec[CreateHardwareMessage] = deriveCodec[CreateHardwareMessage]
   implicit val createDiskGolfDiskCodec: Codec[CreateDiskGolfDisk] = deriveCodec[CreateDiskGolfDisk]
   implicit val createDiskGolfBasketCodec: Codec[CreateDiskGolfBasket] = deriveCodec[CreateDiskGolfBasket]
+  implicit val createDiskGolfGameCodec: Codec[CreateDiskGolfGame] = deriveCodec[CreateDiskGolfGame]
 }

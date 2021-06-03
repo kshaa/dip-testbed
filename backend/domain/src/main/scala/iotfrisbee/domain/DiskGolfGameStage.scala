@@ -6,6 +6,6 @@ case class DiskGolfGameStage(
   id: DiskGolfGameStageId,
   gameId: DiskGolfGameId,
   finishBasketId: DiskGolfBasketId,
-  timestamp: ZonedDateTime,
+  finishBasketTimestamp: ZonedDateTime,
   throwCount: Int,
 )

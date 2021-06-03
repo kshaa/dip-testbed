@@ -12,6 +12,7 @@ import iotfrisbee.database.catalog.DiskGolfDiskCatalog.{
 }
 import iotfrisbee.database.catalog.DiskGolfTrackCatalog.DiskGolfTrackTable
 import iotfrisbee.database.catalog.HardwareCatalog.HardwareTable
+import iotfrisbee.database.driver.DatabaseDriver.existsOrError
 import iotfrisbee.database.driver.DatabaseDriverOps._
 import iotfrisbee.database.driver.DatabaseOutcome.DatabaseResult
 import iotfrisbee.database.services.DiskGolfDiskService._
@@ -56,17 +57,10 @@ class DiskGolfDiskService[F[_]: Async](
     val diskGolfDiskCreation
       : DBIOAction[Either[List[DiskGolfDiskCreationError], Int], NoStream, Effect.Read with Effect.Write] =
       for {
-        existenceTrackError <- trackCheck.map(x => {
-          println(x); x.fold[Option[DiskGolfDiskCreationError]](Some(NonExistentTrack))(_ => None)
-        })
-
+        existenceTrackError <- existsOrError(trackCheck, NonExistentTrack)
         existenceHardwareError <-
-          hardwareCheck
-            .map(_.fold[Option[DiskGolfDiskCreationError]](Some(NonExistentHardware))(_ => None))
-            .map(_.flatMap(error => Option.when(hardwareId.nonEmpty)(error)))
-
+          existsOrError(hardwareCheck, NonExistentHardware).map(_.flatMap(Option.when(hardwareId.nonEmpty)(_)))
         existenceErrors = (existenceTrackError :: existenceHardwareError :: Nil).flatten
-
         diskGolfTrackCreation <-
           sequenceOption(Option.when(existenceErrors.isEmpty)(DiskGolfDiskQuery += row)).map(_.toRight(existenceErrors))
       } yield diskGolfTrackCreation

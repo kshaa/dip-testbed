@@ -48,15 +48,18 @@ create table "disk_golf_disk" (
 
 create table "disk_golf_game" (
   "uuid" uuid not null primary key,
+  "name" varchar(255) not null,
   "disk_uuid" uuid not null,
-  "player_uuid" uuid not null
+  "player_uuid" uuid not null,
+  "start_timestamp" varchar(255) null,
+  "finished" boolean not null default false
 );
 
 create table "disk_golf_game_stage" (
   "uuid" uuid not null primary key,
   "game_uuid" uuid not null,
   "finish_basket_uuid" uuid not null,
-  "timestamp" timestamp with time zone not null,
+  "finish_basket_timestamp" varchar(255) not null,
   "throw_count" int not null
 );
 
