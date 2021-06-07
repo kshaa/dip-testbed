@@ -7,8 +7,8 @@ Attach sensor microcontrollers to a frisbee, track throw performance, off-load d
 - We attach a bulkier, wire powered (or re-chargable), internet-connected mote (sensor node) to a disk golf `basket`  
 - We throw the disk golf forward multiple times and it records sensor metrics  
 - The disk golf at some point gets thrown into a disk golf `basket` at which point the `frisbee` or disk mote off-loads all metrics to the `basket`  
-- The `basket` then sends all the received `frisbee` metrics to a cloud-hosted `broker`
-- A `backend` server reactively gets notified by `broker` of the new `basket`/`frisbee` metrics and stores the information in `database`  
+- The `basket` then sends all the received `frisbee` metrics to `backend`
+- A `backend` server reacts to `basket`/`frisbee` metrics and stores the information in `database`  
 - If some `app` was currently connected to the `backend` (most likely w/ WebSockets), it gets notified of the changes  
 - The `app` can of course check historical data through `backend`, which will be fetched from `database`  
 
