@@ -27,6 +27,23 @@
   <logger name="play" level="INFO" />
   <logger name="application" level="DEBUG" />
 
+  <!-- Akka actor logs-->
+  <logger name="akka.actor" level="DEBUG" />
+
+  <!-- Show SQL -->
+  <logger name="com.zaxxer.hikari" level="OFF">
+    <appender-ref ref="STDOUT" />
+  </logger>
+  <logger name="org.jdbcdslog.ConnectionLogger" level="INFO"  />
+  <logger name="org.jdbcdslog.StatementLogger"  level="INFO" />
+  <logger name="org.jdbcdslog.ResultSetLogger"  level="INFO"  />
+
+  <!-- Slick -->
+  <logger name="slick.jdbc.JdbcBackend.statement" level="INFO" />
+
+  <!-- Evolutions -->
+  <logger name="play.api.db.evolutions" level="INFO" />
+
   <!-- Off these ones as they are annoying, and anyway we manage configuration ourselves -->
   <logger name="com.avaje.ebean.config.PropertyMapLoader" level="OFF" />
   <logger name="com.avaje.ebeaninternal.server.core.XmlConfigLoader" level="OFF" />
