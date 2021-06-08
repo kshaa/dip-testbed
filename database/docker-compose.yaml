@@ -6,8 +6,6 @@ services:
         restart: always
         ports:
         - 5432:5432
-        networks:
-        - database
         volumes:
         - ./data:/var/lib/postgresql/data
         deploy:
@@ -19,7 +17,3 @@ services:
             POSTGRES_USER: postgres
             POSTGRES_PASSWORD: postgres
             POSTGRES_DB: frisbee
-networks:
-    database:
-        external:
-            name: frisbee_database
