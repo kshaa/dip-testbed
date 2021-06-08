@@ -1,0 +1,17 @@
+{
+    "name": "frisbee_sensors",
+    "version": "1.0.0",
+    "frameworks": [ "arduino" ],
+    "dependencies": [
+        {
+            "owner": "adafruit",
+            "name": "Adafruit LIS3MDL",
+            "version": "1.0.7"
+        },
+        {
+            "owner": "adafruit",
+            "name": "Adafruit LSM6DS",
+            "version": "4.2.0"
+        }
+    ]
+}
