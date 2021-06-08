@@ -1,40 +1,48 @@
 #include <Arduino.h>
 #include <Adafruit_LSM6DSOX.h>
 #include <Adafruit_LIS3MDL.h>
-#include "frisbee_config.h"
-#include "lsm6ds_sensor.h"
-#include "lis3mdl_sensor.h"
+#include <bluefruit.h>
+#include "frisbee_config.hpp"
+#include "frisbee_engine.hpp"
+#include "lsm6ds_sensor.hpp"
+#include "lis3mdl_sensor.hpp"
 
+// Sensor services
 Adafruit_LSM6DSOX lsm6ds;
-Adafruit_LIS3MDL lis3mdl;
+Adafruit_LIS3MDL  lis3mdl;
+
+// Bluetooth services
+BLEDis  blDevice;
+BLEBas  blBattery;
+BLEUart blUART;
+
+void blConnectCallback(uint16_t conn_hdl) {
+  Serial.println("Device '" + String(conn_hdl) + "' connected to frisbee, advertising stopped");
+}
+
+void blDisconnectCallback(uint16_t conn_hdl, uint8_t reason) {
+  Serial.println("Device '" + String(conn_hdl) + "' disconnected from frisbee, advertising restarted");
+}
 
 void setup(void) {
   // Initialize and wait for serial port
   Serial.begin(ADA_NRF52_BAUD_RATE);
-  while (!Serial) delay(SERIAL_TIMEOUT_MS);
-  Serial.println("Initializing iot-frisbee with Adafruit nRF52, LSM6DS, LIS3MDL!");
+  while (!Serial) delay(SERVICE_INIT_TIMEOUT_MS);
+  Serial.println("Initializing iot-frisbee with Adafruit nRF52832, LSM6DS, LIS3MDL!");
 
   // Initiate communication w/ LSM6DS sensor over I2C
-  Serial.print("Initializing I2C connection with LSM6DS chip");
-  bool lsm6ds_success = lsm6ds.begin_I2C();
-  while (!lsm6ds_success) {
-    Serial.print(".");
-    delay(LSM6DS_TIMEOUT_MS);
-    lsm6ds_success = lsm6ds.begin_I2C();
-  }
-  Serial.println();
-  Serial.println("Communications with LSM6DS chip established");
+  runUntilSuccessSerial(
+    [](void) { return lsm6ds.begin_I2C(); },
+    "LSM6DS chip I2C connection",
+    SERVICE_INIT_TIMEOUT_MS
+  );
 
   // Initiate communication w/ LIS3MDL sensor over I2C
-  Serial.print("Initializing I2C connection with LIS3MDL chip");
-  bool lis3mdl_success = lis3mdl.begin_I2C();
-  while (!lis3mdl_success) {
-    Serial.print(".");
-    delay(LIS3MDL_TIMEOUT_MS);
-    lis3mdl_success = lis3mdl.begin_I2C();
-  }
-  Serial.println();
-  Serial.println("Communications with LIS3MDL chip established");
+  runUntilSuccessSerial(
+    [](void) { return lis3mdl.begin_I2C(); },
+    "LIS3MDL chip I2C connection",
+    SERVICE_INIT_TIMEOUT_MS
+  );
 
   // Configure LSM6DS accelerometer
   lsm6ds.setAccelRange(LSM6DS_ACCEL_RANGE);
@@ -79,13 +87,58 @@ void setup(void) {
     LIS3MDL_ENABLE_POLARITY,
     LIS3MDL_ENABLE_LATCH,
     LIS3MDL_ENABLE_INTERRUPTS);
+
+  // Configure Bluetooth connectivity & event handlers
+  Bluefruit.autoConnLed(BL_AUTO_CONN_LED);
+  Bluefruit.setName(BL_DEVICE_NAME);
+  Bluefruit.Periph.setConnectCallback(blConnectCallback);
+  Bluefruit.Periph.setDisconnectCallback(blDisconnectCallback);
+  runUntilSuccessSerial(
+    [](void) { return Bluefruit.begin(); },
+    "Bluefruit chip",
+    SERVICE_INIT_TIMEOUT_MS
+  );
+
+  // Configure Bluetooth device information
+  blDevice.setManufacturer(BL_DEVICE_MANUFACTURER);
+  blDevice.setModel(BL_DEVICE_MODEL);
+  runUntilSuccessSerial(
+    [](void) { return blDevice.begin() == ERROR_NONE; },
+    "Bluetooth device information service",
+    SERVICE_INIT_TIMEOUT_MS
+  );
+
+  // Configure Bluetooth UART service
+  Bluefruit.Advertising.addService(blUART);
+  runUntilSuccessSerial(
+    [](void) { return blUART.begin() == ERROR_NONE; },
+    "Bluetooth UART service",
+    SERVICE_INIT_TIMEOUT_MS
+  );
+
+  // Configure Bluetooth battery service
+  runUntilSuccessSerial(
+    [](void) { return blBattery.begin() == ERROR_NONE; },
+    "Bluetooth battery level service",
+    SERVICE_INIT_TIMEOUT_MS
+  );
+
+  // Configure device advertisement
+  Bluefruit.Advertising.addFlags(BL_ADVERTISEMENT_FLAGS);
+  Bluefruit.Advertising.addTxPower();
+  Bluefruit.ScanResponse.addName();
+  runUntilSuccessSerial(
+    [](void) { return Bluefruit.Advertising.start(); },
+    "Bluetooth advertisement service",
+    SERVICE_INIT_TIMEOUT_MS
+  );
 }
 
 void loop() {
   // Read sensor values
   sensors_event_t accel, gyro, mag, temp;
-  bool lsm6ds_success = lsm6ds.getEvent(&accel, &gyro, &temp);
-  bool lis3mdl_success = lis3mdl.getEvent(&mag);
+  lsm6ds.getEvent(&accel, &gyro, &temp);
+  lis3mdl.getEvent(&mag);
 
   // Print acceleration in `m/s^2`
   Serial.print("\t\tAccel X: ");

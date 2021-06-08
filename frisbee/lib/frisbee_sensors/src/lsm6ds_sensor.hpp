@@ -1,7 +1,7 @@
-#ifndef LSM6DS_SENSOR_H
-#define LSM6DS_SENSOR_H
+#ifndef LSM6DS_SENSOR_HPP
+#define LSM6DS_SENSOR_HPP
 
-#include "Adafruit_LSM6DSOX.h"
+#include <Adafruit_LSM6DSOX.h>
 
 char * lsm6dsAccelRangeText(lsm6ds_accel_range_t rangeValue);
 char * lsm6dsGyroRangeText(lsm6ds_gyro_range_t gyroRangeValue);

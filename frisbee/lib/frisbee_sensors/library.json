@@ -1,5 +1,6 @@
 {
     "name": "frisbee_sensors",
+    "description": "Sensor related logic for iot-frisbee",
     "version": "1.0.0",
     "frameworks": [ "arduino" ],
     "dependencies": [

@@ -1,5 +1,5 @@
-#include "Adafruit_LSM6DSOX.h"
-#include "lsm6ds_sensor.h"
+#include <Adafruit_LSM6DSOX.h>
+#include "lsm6ds_sensor.hpp"
 
 char * lsm6dsAccelRangeText(lsm6ds_accel_range_t rangeValue) {
   switch (rangeValue) {

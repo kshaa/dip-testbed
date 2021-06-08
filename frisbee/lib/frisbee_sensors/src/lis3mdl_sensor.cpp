@@ -1,7 +1,7 @@
-#include "Adafruit_LIS3MDL.h"
-#include "lis3mdl_sensor.h"
+#include <Adafruit_LIS3MDL.h>
+#include "lis3mdl_sensor.hpp"
 
-char * lis3mdlMagnetRangeText(lis3mdl_range_t rangeValue) {
+const char * lis3mdlMagnetRangeText(lis3mdl_range_t rangeValue) {
   switch (rangeValue) {
     case LIS3MDL_RANGE_4_GAUSS: return "+-4 gauss"; break;
     case LIS3MDL_RANGE_8_GAUSS: return "+-8 gauss"; break;
@@ -11,7 +11,7 @@ char * lis3mdlMagnetRangeText(lis3mdl_range_t rangeValue) {
   }
 }
 
-char * lis3mdlMagnetPerformanceModeText(lis3mdl_performancemode_t performanceMode) {
+const char * lis3mdlMagnetPerformanceModeText(lis3mdl_performancemode_t performanceMode) {
   switch (performanceMode) {
     case LIS3MDL_LOWPOWERMODE: return "Low"; break;
     case LIS3MDL_MEDIUMMODE: return "Medium"; break;
@@ -21,7 +21,7 @@ char * lis3mdlMagnetPerformanceModeText(lis3mdl_performancemode_t performanceMod
   }
 }
 
-char * lis3mdlMagnetOperationModeText(lis3mdl_operationmode_t operationMode) {
+const char * lis3mdlMagnetOperationModeText(lis3mdl_operationmode_t operationMode) {
   switch (operationMode) {
     case LIS3MDL_CONTINUOUSMODE: return "Continuous"; break;
     case LIS3MDL_SINGLEMODE: return "Single mode"; break;
@@ -30,7 +30,7 @@ char * lis3mdlMagnetOperationModeText(lis3mdl_operationmode_t operationMode) {
   }
 }
 
-char * lis3mdlDataRateText(lis3mdl_dataRate_t dataRateValue) {
+const char * lis3mdlDataRateText(lis3mdl_dataRate_t dataRateValue) {
   switch (dataRateValue) {
     case LIS3MDL_DATARATE_0_625_HZ: return "0.625 Hz"; break;
     case LIS3MDL_DATARATE_1_25_HZ: return "1.25 Hz"; break;
