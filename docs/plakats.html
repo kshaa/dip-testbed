@@ -1,0 +1,398 @@
+<!DOCTYPE html><html><head>
+      <title>plakats</title>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      
+      <link rel="stylesheet" href="file:////home/kshaa/.vscode/extensions/shd101wyy.markdown-preview-enhanced-0.5.21/node_modules/@shd101wyy/mume/dependencies/katex/katex.min.css">
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      <style>
+      /**
+ * prism.js Github theme based on GitHub's theme.
+ * @author Sam Clarke
+ */
+code[class*="language-"],
+pre[class*="language-"] {
+  color: #333;
+  background: none;
+  font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  text-align: left;
+  white-space: pre;
+  word-spacing: normal;
+  word-break: normal;
+  word-wrap: normal;
+  line-height: 1.4;
+
+  -moz-tab-size: 8;
+  -o-tab-size: 8;
+  tab-size: 8;
+
+  -webkit-hyphens: none;
+  -moz-hyphens: none;
+  -ms-hyphens: none;
+  hyphens: none;
+}
+
+/* Code blocks */
+pre[class*="language-"] {
+  padding: .8em;
+  overflow: auto;
+  /* border: 1px solid #ddd; */
+  border-radius: 3px;
+  /* background: #fff; */
+  background: #f5f5f5;
+}
+
+/* Inline code */
+:not(pre) > code[class*="language-"] {
+  padding: .1em;
+  border-radius: .3em;
+  white-space: normal;
+  background: #f5f5f5;
+}
+
+.token.comment,
+.token.blockquote {
+  color: #969896;
+}
+
+.token.cdata {
+  color: #183691;
+}
+
+.token.doctype,
+.token.punctuation,
+.token.variable,
+.token.macro.property {
+  color: #333;
+}
+
+.token.operator,
+.token.important,
+.token.keyword,
+.token.rule,
+.token.builtin {
+  color: #a71d5d;
+}
+
+.token.string,
+.token.url,
+.token.regex,
+.token.attr-value {
+  color: #183691;
+}
+
+.token.property,
+.token.number,
+.token.boolean,
+.token.entity,
+.token.atrule,
+.token.constant,
+.token.symbol,
+.token.command,
+.token.code {
+  color: #0086b3;
+}
+
+.token.tag,
+.token.selector,
+.token.prolog {
+  color: #63a35c;
+}
+
+.token.function,
+.token.namespace,
+.token.pseudo-element,
+.token.class,
+.token.class-name,
+.token.pseudo-class,
+.token.id,
+.token.url-reference .token.variable,
+.token.attr-name {
+  color: #795da3;
+}
+
+.token.entity {
+  cursor: help;
+}
+
+.token.title,
+.token.title .token.punctuation {
+  font-weight: bold;
+  color: #1d3e81;
+}
+
+.token.list {
+  color: #ed6a43;
+}
+
+.token.inserted {
+  background-color: #eaffea;
+  color: #55a532;
+}
+
+.token.deleted {
+  background-color: #ffecec;
+  color: #bd2c00;
+}
+
+.token.bold {
+  font-weight: bold;
+}
+
+.token.italic {
+  font-style: italic;
+}
+
+
+/* JSON */
+.language-json .token.property {
+  color: #183691;
+}
+
+.language-markup .token.tag .token.punctuation {
+  color: #333;
+}
+
+/* CSS */
+code.language-css,
+.language-css .token.function {
+  color: #0086b3;
+}
+
+/* YAML */
+.language-yaml .token.atrule {
+  color: #63a35c;
+}
+
+code.language-yaml {
+  color: #183691;
+}
+
+/* Ruby */
+.language-ruby .token.function {
+  color: #333;
+}
+
+/* Markdown */
+.language-markdown .token.url {
+  color: #795da3;
+}
+
+/* Makefile */
+.language-makefile .token.symbol {
+  color: #795da3;
+}
+
+.language-makefile .token.variable {
+  color: #183691;
+}
+
+.language-makefile .token.builtin {
+  color: #0086b3;
+}
+
+/* Bash */
+.language-bash .token.keyword {
+  color: #0086b3;
+}
+
+/* highlight */
+pre[data-line] {
+  position: relative;
+  padding: 1em 0 1em 3em;
+}
+pre[data-line] .line-highlight-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background-color: transparent;
+  display: block;
+  width: 100%;
+}
+
+pre[data-line] .line-highlight {
+  position: absolute;
+  left: 0;
+  right: 0;
+  padding: inherit 0;
+  margin-top: 1em;
+  background: hsla(24, 20%, 50%,.08);
+  background: linear-gradient(to right, hsla(24, 20%, 50%,.1) 70%, hsla(24, 20%, 50%,0));
+  pointer-events: none;
+  line-height: inherit;
+  white-space: pre;
+}
+
+pre[data-line] .line-highlight:before, 
+pre[data-line] .line-highlight[data-end]:after {
+  content: attr(data-start);
+  position: absolute;
+  top: .4em;
+  left: .6em;
+  min-width: 1em;
+  padding: 0 .5em;
+  background-color: hsla(24, 20%, 50%,.4);
+  color: hsl(24, 20%, 95%);
+  font: bold 65%/1.5 sans-serif;
+  text-align: center;
+  vertical-align: .3em;
+  border-radius: 999px;
+  text-shadow: none;
+  box-shadow: 0 1px white;
+}
+
+pre[data-line] .line-highlight[data-end]:after {
+  content: attr(data-end);
+  top: auto;
+  bottom: .4em;
+}html body{font-family:"Helvetica Neue",Helvetica,"Segoe UI",Arial,freesans,sans-serif;font-size:16px;line-height:1.6;color:#333;background-color:#fff;overflow:initial;box-sizing:border-box;word-wrap:break-word}html body>:first-child{margin-top:0}html body h1,html body h2,html body h3,html body h4,html body h5,html body h6{line-height:1.2;margin-top:1em;margin-bottom:16px;color:#000}html body h1{font-size:2.25em;font-weight:300;padding-bottom:.3em}html body h2{font-size:1.75em;font-weight:400;padding-bottom:.3em}html body h3{font-size:1.5em;font-weight:500}html body h4{font-size:1.25em;font-weight:600}html body h5{font-size:1.1em;font-weight:600}html body h6{font-size:1em;font-weight:600}html body h1,html body h2,html body h3,html body h4,html body h5{font-weight:600}html body h5{font-size:1em}html body h6{color:#5c5c5c}html body strong{color:#000}html body del{color:#5c5c5c}html body a:not([href]){color:inherit;text-decoration:none}html body a{color:#08c;text-decoration:none}html body a:hover{color:#00a3f5;text-decoration:none}html body img{max-width:100%}html body>p{margin-top:0;margin-bottom:16px;word-wrap:break-word}html body>ul,html body>ol{margin-bottom:16px}html body ul,html body ol{padding-left:2em}html body ul.no-list,html body ol.no-list{padding:0;list-style-type:none}html body ul ul,html body ul ol,html body ol ol,html body ol ul{margin-top:0;margin-bottom:0}html body li{margin-bottom:0}html body li.task-list-item{list-style:none}html body li>p{margin-top:0;margin-bottom:0}html body .task-list-item-checkbox{margin:0 .2em .25em -1.8em;vertical-align:middle}html body .task-list-item-checkbox:hover{cursor:pointer}html body blockquote{margin:16px 0;font-size:inherit;padding:0 15px;color:#5c5c5c;background-color:#f0f0f0;border-left:4px solid #d6d6d6}html body blockquote>:first-child{margin-top:0}html body blockquote>:last-child{margin-bottom:0}html body hr{height:4px;margin:32px 0;background-color:#d6d6d6;border:0 none}html body table{margin:10px 0 15px 0;border-collapse:collapse;border-spacing:0;display:block;width:100%;overflow:auto;word-break:normal;word-break:keep-all}html body table th{font-weight:bold;color:#000}html body table td,html body table th{border:1px solid #d6d6d6;padding:6px 13px}html body dl{padding:0}html body dl dt{padding:0;margin-top:16px;font-size:1em;font-style:italic;font-weight:bold}html body dl dd{padding:0 16px;margin-bottom:16px}html body code{font-family:Menlo,Monaco,Consolas,'Courier New',monospace;font-size:.85em !important;color:#000;background-color:#f0f0f0;border-radius:3px;padding:.2em 0}html body code::before,html body code::after{letter-spacing:-0.2em;content:"\00a0"}html body pre>code{padding:0;margin:0;font-size:.85em !important;word-break:normal;white-space:pre;background:transparent;border:0}html body .highlight{margin-bottom:16px}html body .highlight pre,html body pre{padding:1em;overflow:auto;font-size:.85em !important;line-height:1.45;border:#d6d6d6;border-radius:3px}html body .highlight pre{margin-bottom:0;word-break:normal}html body pre code,html body pre tt{display:inline;max-width:initial;padding:0;margin:0;overflow:initial;line-height:inherit;word-wrap:normal;background-color:transparent;border:0}html body pre code:before,html body pre tt:before,html body pre code:after,html body pre tt:after{content:normal}html body p,html body blockquote,html body ul,html body ol,html body dl,html body pre{margin-top:0;margin-bottom:16px}html body kbd{color:#000;border:1px solid #d6d6d6;border-bottom:2px solid #c7c7c7;padding:2px 4px;background-color:#f0f0f0;border-radius:3px}@media print{html body{background-color:#fff}html body h1,html body h2,html body h3,html body h4,html body h5,html body h6{color:#000;page-break-after:avoid}html body blockquote{color:#5c5c5c}html body pre{page-break-inside:avoid}html body table{display:table}html body img{display:block;max-width:100%;max-height:100%}html body pre,html body code{word-wrap:break-word;white-space:pre}}.markdown-preview{width:100%;height:100%;box-sizing:border-box}.markdown-preview .pagebreak,.markdown-preview .newpage{page-break-before:always}.markdown-preview pre.line-numbers{position:relative;padding-left:3.8em;counter-reset:linenumber}.markdown-preview pre.line-numbers>code{position:relative}.markdown-preview pre.line-numbers .line-numbers-rows{position:absolute;pointer-events:none;top:1em;font-size:100%;left:0;width:3em;letter-spacing:-1px;border-right:1px solid #999;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}.markdown-preview pre.line-numbers .line-numbers-rows>span{pointer-events:none;display:block;counter-increment:linenumber}.markdown-preview pre.line-numbers .line-numbers-rows>span:before{content:counter(linenumber);color:#999;display:block;padding-right:.8em;text-align:right}.markdown-preview .mathjax-exps .MathJax_Display{text-align:center !important}.markdown-preview:not([for="preview"]) .code-chunk .btn-group{display:none}.markdown-preview:not([for="preview"]) .code-chunk .status{display:none}.markdown-preview:not([for="preview"]) .code-chunk .output-div{margin-bottom:16px}.scrollbar-style::-webkit-scrollbar{width:8px}.scrollbar-style::-webkit-scrollbar-track{border-radius:10px;background-color:transparent}.scrollbar-style::-webkit-scrollbar-thumb{border-radius:5px;background-color:rgba(150,150,150,0.66);border:4px solid rgba(150,150,150,0.66);background-clip:content-box}html body[for="html-export"]:not([data-presentation-mode]){position:relative;width:100%;height:100%;top:0;left:0;margin:0;padding:0;overflow:auto}html body[for="html-export"]:not([data-presentation-mode]) .markdown-preview{position:relative;top:0}@media screen and (min-width:914px){html body[for="html-export"]:not([data-presentation-mode]) .markdown-preview{padding:2em calc(50% - 457px + 2em)}}@media screen and (max-width:914px){html body[for="html-export"]:not([data-presentation-mode]) .markdown-preview{padding:2em}}@media screen and (max-width:450px){html body[for="html-export"]:not([data-presentation-mode]) .markdown-preview{font-size:14px !important;padding:1em}}@media print{html body[for="html-export"]:not([data-presentation-mode]) #sidebar-toc-btn{display:none}}html body[for="html-export"]:not([data-presentation-mode]) #sidebar-toc-btn{position:fixed;bottom:8px;left:8px;font-size:28px;cursor:pointer;color:inherit;z-index:99;width:32px;text-align:center;opacity:.4}html body[for="html-export"]:not([data-presentation-mode])[html-show-sidebar-toc] #sidebar-toc-btn{opacity:1}html body[for="html-export"]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc{position:fixed;top:0;left:0;width:300px;height:100%;padding:32px 0 48px 0;font-size:14px;box-shadow:0 0 4px rgba(150,150,150,0.33);box-sizing:border-box;overflow:auto;background-color:inherit}html body[for="html-export"]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar{width:8px}html body[for="html-export"]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar-track{border-radius:10px;background-color:transparent}html body[for="html-export"]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar-thumb{border-radius:5px;background-color:rgba(150,150,150,0.66);border:4px solid rgba(150,150,150,0.66);background-clip:content-box}html body[for="html-export"]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc a{text-decoration:none}html body[for="html-export"]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc ul{padding:0 1.6em;margin-top:.8em}html body[for="html-export"]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc li{margin-bottom:.8em}html body[for="html-export"]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc ul{list-style-type:none}html body[for="html-export"]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{left:300px;width:calc(100% -  300px);padding:2em calc(50% - 457px -  150px);margin:0;box-sizing:border-box}@media screen and (max-width:1274px){html body[for="html-export"]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{padding:2em}}@media screen and (max-width:450px){html body[for="html-export"]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{width:100%}}html body[for="html-export"]:not([data-presentation-mode]):not([html-show-sidebar-toc]) .markdown-preview{left:50%;transform:translateX(-50%)}html body[for="html-export"]:not([data-presentation-mode]):not([html-show-sidebar-toc]) .md-sidebar-toc{display:none}
+/* Please visit the URL below for more information: */
+/*   https://shd101wyy.github.io/markdown-preview-enhanced/#/customize-css */
+
+      </style>
+    </head>
+    <body for="html-export">
+      <div class="mume markdown-preview  ">
+      <h1 class="mume-header" id="iot-disku-golfs">IoT disku golfs</h1>
+
+<p><img src="https://upload.wikimedia.org/wikipedia/en/2/2a/Disc_golf_throw.jpg" alt="Disku golfs"></p>
+<h2 class="mume-header" id="disku-golfa-grozs">Disku golfa grozs</h2>
+
+<p><img src="./grozs.jpg" alt="Disku golfa grozs"></p>
+<h2 class="mume-header" id="disku-golfa-disks">Disku golfa disks</h2>
+
+<p><img src="./disks.jpeg" alt="Disku golfa disks"><br>
+<img src="./disks-aparatura.jpeg" alt="Disku golfa diska aparat&#x16B;ra"></p>
+<h2 class="mume-header" id="trase">Trase</h2>
+
+<p><img src="./trase.png" alt="Trase"></p>
+<h2 class="mume-header" id="trases-s%C4%81kums">Trases s&#x101;kums</h2>
+
+<p><img src="./trases-sakums-cropped.png" alt="Trases s&#x101;kums"></p>
+<h2 class="mume-header" id="rel%C4%81ciju-sh%C4%93ma">Rel&#x101;ciju sh&#x113;ma</h2>
+
+<p><img src="./relaciju-shema.png" alt="Rel&#x101;ciju sh&#x113;ma"></p>
+<h2 class="mume-header" id="trases-izveido%C5%A1ana">Trases izveido&#x161;ana</h2>
+
+<p><img src="./trases-izveidosana.png" alt="Trases izveido&#x161;ana"></p>
+<h2 class="mume-header" id="trases-izsp%C4%93l%C4%93%C5%A1ana">Trases izsp&#x113;l&#x113;&#x161;ana</h2>
+
+<p><img src="./trases-izspelesana-1.png" alt="Trases izsp&#x113;l&#x113;&#x161;ana, skats nr. 1"><br>
+<img src="./trases-izspelesana-2.png" alt="Trases izsp&#x113;l&#x113;&#x161;ana, skats nr. 2"></p>
+<h2 class="mume-header" id="aparat%C5%ABra-invent%C4%81rs">Aparat&#x16B;ra, invent&#x101;rs</h2>
+
+<p>Kas ir fiziski nepiecie&#x161;ams, lai izstr&#x101;d&#x101;tu &#x161;&#x101;du projektu</p>
+<h3 class="mume-header" id="invent%C4%81rs">Invent&#x101;rs</h3>
+
+<ul>
+<li>Disku golfa trase</li>
+<li>Disku golfa trases posmu s&#x101;kuma kartes</li>
+<li>Disku golfa trases posmu grozi</li>
+<li>Disku golfa trases kase jeb b&#x101;ze ar interneta piesl&#x113;gumu</li>
+<li>Disku golfa diski</li>
+</ul>
+<h3 class="mume-header" id="aparat%C5%ABra">Aparat&#x16B;ra</h3>
+
+<p><img src="https://cdn-learn.adafruit.com/assets/assets/000/043/921/medium800/microcontrollers_nRF52Pinout.png?1500272417" alt="Adafruit nRF52"><br>
+Diska mikrokontrolieris: <a href="https://www.adafruit.com/product/3406">Adafruit nRF52</a></p>
+<ul>
+<li>Arduino ietvara atbalsts</li>
+<li>Bluetooth Low Energy atbalsts</li>
+<li>Izejo&#x161;s 3.3V izvads &#x101;r&#x113;ju ier&#x12B;&#x10D;u baro&#x161;anai (sensoram)</li>
+<li>Ieejo&#x161;s 4.5V - 5.2V LiPo akumulatora ievads mikrokontroliera baro&#x161;anai</li>
+<li>USB ligzda izstr&#x101;dei un baro&#x161;anai</li>
+<li>I2C protokola atbalsts (piem. sensora komunik&#x101;cijai)</li>
+<li>SPI protokola atbalsts (piem. raid&#x12B;t&#x101;ja komunik&#x101;cijai)</li>
+<li>Analog&#x101;s ievadligzdas (neizmantotas)</li>
+<li>PWM izvadligzdas (neizmantotas)</li>
+<li>NFC atbalsts (neizmantots)</li>
+<li>ZigBee atbalsts (neizmantots)</li>
+<li>Laika atbalsts (<code>millis()</code> funkcija m&#x113;ra milisekundes kop&#x161; iesl&#x113;g&#x161;an&#x101;s, &quot;data type overflow&quot; p&#x113;c ~50 dien&#x101;m)</li>
+</ul>
+<p><img src="https://cdn-shop.adafruit.com/1200x900/4565-03.jpg" alt="Adafruit LSM6DSOX + LIS3MDL"><br>
+Diska sensori: <a href="https://www.adafruit.com/product/3406">Adafruit LSM6DSOX + LIS3MDL</a></p>
+<ul>
+<li>Ieejo&#x161;a 3.3V ligzda sensoru baro&#x161;anai</li>
+<li>I2C protokola atbalsts mikrokontroliera komunik&#x101;cijai</li>
+<li>LIS3MDL magnetometrs (m&#x113;ra magn&#x113;tismu, var lietot debespusu noteik&#x161;anai)</li>
+<li>LSM6DS akselerometrs (m&#x113;ra pa&#x101;trin&#x101;jumu)</li>
+<li>LSM6DS &#x17E;iroskops (m&#x113;ra rot&#x101;cijas &#x101;trumu jeb le&#x146;&#x137;us laik&#x101; relat&#x12B;vi atskaites sist&#x113;mai)</li>
+<li>LSM6DS temperat&#x16B;ras sensors</li>
+</ul>
+<p><img src="https://images-na.ssl-images-amazon.com/images/I/71EPckcD8ZL._AC_SL1244_.jpg" alt="Raspberry Pi"><br>
+Proof of concept groza mikrokontrolieris: <a href="https://www.raspberrypi.org/products/raspberry-pi-4-model-b/specifications/">Raspberry Pi 4B</a></p>
+<ul>
+<li>Bluetooth atbalsts (komunik&#x101;cijai ar disku)</li>
+<li>Wi-Fi atbalsts (p&#x101;rn&#x113;s&#x101;jam&#x101; t&#x12B;kl&#x101;ja savienojumam komunik&#x101;cijai ar centr&#x101;lo serveri)</li>
+<li>Linux OS atbalsts (proof-of-concept &#x101;trai prototip&#x113;&#x161;anai ar NodeJS vai Python, u.c.)</li>
+</ul>
+<p><img src="https://cdn-shop.adafruit.com/1200x900/3178-05.jpg" alt="Adafruit RFM95"><br>
+Produkcijas LoRaWAN groza un releja raid&#x12B;t&#x101;js: <a href="https://www.adafruit.com/product/3178">Adafruit nRF52 + RFM95</a></p>
+<ul>
+<li>Adafruit RFM95 jeb LoRaWAN raid&#x12B;t&#x101;js ir <a href="https://learn.adafruit.com/adafruit-feather-32u4-radio-with-lora-radio-module/using-the-rfm-9x-radio">savietojams ar Adafruit nRF52 mikrokontrolieri</a></li>
+<li>Adafruit RFM95 ir SPI protokola atbalsts mikrokontroliera komunik&#x101;cijai</li>
+<li>Adafruit RFM95 ir LoRaWAN atbalsts (grozu, releju, b&#x101;zes stacijas savienojumiem komunik&#x101;cijai ar centr&#x101;lo serveri)</li>
+<li>Adafruit nRF52 ir atbalsts <a href="http://www.airspayce.com/mikem/arduino/RadioHead/">RadioHead bibliot&#x113;kai</a> komunik&#x101;cijai ar <code>RFM95</code> raid&#x12B;t&#x101;ju</li>
+<li>Eksist&#x113; <a href="https://nootropicdesign.com/projectlab/2018/10/20/lora-mesh-networking/comment-page-1/">dokument&#x113;ts</a> un <a href="https://github.com/nootropicdesign/lora-mesh">atv&#x113;rt&#x101; koda</a> piem&#x113;rs LoRaWAN re&#x17E;&#x123;t&#x12B;kla (mesh network) izstr&#x101;dei ar <code>RadioHead</code> bibliot&#x113;ku</li>
+<li><code>RadioHead</code> bibliot&#x113;kai ir <a href="http://www.airspayce.com/mikem/arduino/RadioHead/classRHMesh.html#details">eksit&#x113;jo&#x161;a dinamiska, atteikumnotur&#x12B;ga re&#x17E;&#x123;t&#x12B;kla mar&#x161;rut&#x113;&#x161;anas realiz&#x101;cija</a></li>
+</ul>
+<p><img src="https://images-na.ssl-images-amazon.com/images/I/71EPckcD8ZL._AC_SL1244_.jpg" alt="Raspberry Pi"><br>
+<img src="https://cdn-shop.adafruit.com/1200x900/3178-05.jpg" alt="Adafruit RFM95"><br>
+Produkcijas LoRaWAN &amp; TCP/IP b&#x101;zes stacija: <a href="https://www.adafruit.com/product/3178">Raspberry Pi + RFM95</a></p>
+<ul>
+<li>Adafruit RFM95 jeb LoRaWAN raid&#x12B;t&#x101;js ir <a href="https://learn.adafruit.com/lora-and-lorawan-radio-for-raspberry-pi">savietojams ar Raspberry Pi mikrokontrolieriem</a></li>
+<li>Raspberry Pi ir Ethernet un Wi-Fi atbalsts savienojumam ar b&#x101;zes stacijas interneta mar&#x161;rut&#x113;t&#x101;ju komunik&#x101;cijai ar centr&#x101;lo serveri</li>
+<li>Raspberry Pi ir atbalsts <a href="http://www.airspayce.com/mikem/arduino/RadioHead/">RadioHead bibliot&#x113;kai</a> komunik&#x101;cijai ar <code>RFM95</code> raid&#x12B;t&#x101;ju</li>
+<li>Eksist&#x113; <a href="https://nootropicdesign.com/projectlab/2018/10/20/lora-mesh-networking/comment-page-1/">dokument&#x113;ts</a> un <a href="https://github.com/nootropicdesign/lora-mesh">atv&#x113;rt&#x101; koda</a> piem&#x113;rs LoRaWAN re&#x17E;&#x123;t&#x12B;kla (mesh network) izstr&#x101;dei ar <code>RadioHead</code> bibliot&#x113;ku</li>
+<li><code>RadioHead</code> bibliot&#x113;kai ir <a href="http://www.airspayce.com/mikem/arduino/RadioHead/classRHMesh.html#details">eksit&#x113;jo&#x161;a dinamiska, atteikumnotur&#x12B;ga re&#x17E;&#x123;t&#x12B;kla mar&#x161;rut&#x113;&#x161;anas realiz&#x101;cija</a></li>
+</ul>
+<p><img src="https://sakib.ninja/content/images/2019/07/play-akka.png" alt="Scala + Play + Akka"><br>
+Centr&#x101;lais serveris: <a href="https://www.playframework.com/">Scala + Play + Akka</a></p>
+<ul>
+<li>HTTP REST API datu apmai&#x146;ai ar groziem (caur b&#x101;zes staciju) un lietot&#x101;jiem</li>
+<li>SQL datub&#x101;zes savienojums datu persistencei</li>
+<li>WebSocket datu straum&#x113;&#x161;anai</li>
+<li>Akka ActorSystem (Cluster) notikumu/zi&#x146;ojumu datu apmai&#x146;ai</li>
+</ul>
+<p><img src="https://d1yjjnpx0p53s8.cloudfront.net/styles/logo-thumbnail/s3/0024/7432/brand.gif?itok=UtXX483H" alt="PostgreSQL"><br>
+Datub&#x101;ze: <a href="https://www.postgresql.org/">PostgreSQL</a></p>
+<ul>
+<li>Nodro&#x161;ina datu persistenci &#x1F603;</li>
+</ul>
+<p><img src="https://onextrapixel.com/wp-content/uploads/2016/04/reactjs-thumb.jpg" alt="React"><br>
+Lietotne: <a href="https://reactjs.org/">React</a></p>
+<ul>
+<li>Nodro&#x161;ina interakt&#x12B;vas lietotnes izstr&#x101;di</li>
+</ul>
+<h3 class="mume-header" id="programmat%C5%ABra">Programmat&#x16B;ra</h3>
+
+<p>Neskaitot iepriek&#x161;min&#x113;t&#x101;s tehnolo&#x123;ijas, izstr&#x101;de ir veicama ar:</p>
+<ul>
+<li>PlatformIO (Arduino un citu iegulto programmaparat&#x16B;ras izstr&#x101;dei)</li>
+<li>IntelliJ IDEA (Scala izstr&#x101;dei)</li>
+<li>Visual Studio Code (C/C++/TypeScript izstr&#x101;dei, PlatformIO integr&#x101;cijai)</li>
+<li>Jupyter Notebooks (Sensoru datu apstr&#x101;dei prototip&#x113;&#x161;anai)</li>
+<li>DBeaver (Datub&#x101;zes p&#x101;rvald&#x12B;bai un p&#x101;rskatam)</li>
+</ul>
+
+      </div>
+      
+      
+    
+    
+    
+    
+    
+    
+    
+    
+  
+    </body></html>

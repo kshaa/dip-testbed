@@ -1,0 +1,19 @@
+title: Trases izspēlēšana
+
+
+Spēlētājs ar lietotni -> Disks D1: Met disku uz groza G1 pusi
+Disks D1 -> Disks D1: Ar sensoriem skaita metienus
+Spēlētājs ar lietotni -> Disks D1: 4 metienos iemet disku D1 grozā G1
+Disks D1 -> Grozs G1: Bluetooth paziņojums
+Grozs G1 -> Disks D1: Izveido Bluetooth savienojumu un pieprasa magnetometra sensora datus
+Disks D1 -> Grozs G1: Sūta magnetometra sensora datus
+note: Disku golfa trases saimnieks grozos ir salicis magnētus, lai vieglāk detektēt iemetienu.
+Grozs G1 -> Grozs G1: Pārbauda BT stiprumu, magnetometra datus, secina iemetienu
+Grozs G1 -> Disks D1: Pieprasa metienu skaitu
+Disks D1 -> Grozs G1: Metienu skaits N spēlē G1
+Grozs G1 -> Trases bāzes stacija: Metienu skaits N līdz grozam G1 spēlē G1
+Trases bāzes stacija -> Centr. serveris: Metienu skaits N līdz grozam G1 spēlē G1
+Centr. serveris -> Trases bāzes stacija: Jaunie spēles G1 dati
+Trases bāzes stacija -> Grozs G1: Jaunie spēles G1 dati
+Grozs G1 -> Disks D1: Jaunie spēles G1 dati
+Disks D1 -> Spēlētājs ar lietotni: Audiovizuāli informē spēlētāju par iemetienu

@@ -1,0 +1,16 @@
+title: Trases izspēlēšanas sākšana
+
+Trases saimnieks -> Spēlētājs ar lietotni: Fiziski iedod disku D1
+Spēlētājs ar lietotni -> Centr. serveris: Reģistrē spēli trasē T1 ar disku D1
+Centr. serveris -> Spēlētājs ar lietotni: Jaunizveidotā spēle G1
+Spēlētājs ar lietotni -> Disks D1: Ieslēdz disku D1
+Disks D1 -> Spēlētājs ar lietotni: Dod vizuālu signālu, ka ir ieslēgts
+Spēlētājs ar lietotni -> Spēlētājs ar lietotni: Aiziet uz trases sākumu TS1
+Spēlētājs ar lietotni -> Disks D1: Pieliek disku trases sākuma kartei TS1
+Disks D1 -> Trases sāk. TS1: Vaicā vai diskam D1 ir iesākta spēle
+Trases sāk. TS1 -> Centr. serveris: Vaicā vai trasē T1 diskam D1 ir iesākta spēle
+Centr. serveris -> Trases sāk. TS1: Spēles G1 dati diskam D1 trasē T1
+Trases sāk. TS1 -> Centr. serveris: Uzsāk izveidoto spēli G1
+Centr. serveris -> Trases sāk. TS1: Jaunākie G1 dati
+Trases sāk. TS1 -> Disks D1: Spēles G1 dati
+Disks D1 -> Spēlētājs ar lietotni: Audiovizuāli informē spēlētāju par uzsākto spēli
