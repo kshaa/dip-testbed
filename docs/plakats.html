@@ -382,6 +382,165 @@ Lietotne: <a href="https://reactjs.org/">React</a></p>
 <li>Jupyter Notebooks (Sensoru datu apstr&#x101;dei prototip&#x113;&#x161;anai)</li>
 <li>DBeaver (Datub&#x101;zes p&#x101;rvald&#x12B;bai un p&#x101;rskatam)</li>
 </ul>
+<h2 class="mume-header" id="demo-izp%C4%93tes-nol%C5%ABkiem">Demo izp&#x113;tes nol&#x16B;kiem</h2>
+
+<h3 class="mume-header" id="centr%C4%81lais-serveris">Centr&#x101;lais serveris</h3>
+
+<p>Iesl&#x113;dzam centraliz&#x113;to serveri</p>
+<pre data-role="codeBlock" data-info="bash" class="language-bash">$ <span class="token function">git</span> rev-parse --show-prefix
+backend/
+$ sbt web/run
+<span class="token punctuation">[</span>info<span class="token punctuation">]</span> welcome to sbt <span class="token number">1.5</span>.0 <span class="token punctuation">(</span>AdoptOpenJDK Java <span class="token number">11.0</span>.11<span class="token punctuation">)</span>
+<span class="token punctuation">[</span>info<span class="token punctuation">]</span> loading global plugins from /home/kshaa/.sbt/1.0/plugins
+<span class="token punctuation">[</span>info<span class="token punctuation">]</span> loading settings <span class="token keyword">for</span> project backend-build from plugins.sbt <span class="token punctuation">..</span>.
+<span class="token punctuation">[</span>info<span class="token punctuation">]</span> loading project definition from /home/kshaa/Code/iot-frisbee/backend/project
+<span class="token punctuation">[</span>info<span class="token punctuation">]</span> loading settings <span class="token keyword">for</span> project root from build.sbt <span class="token punctuation">..</span>.
+<span class="token punctuation">[</span>info<span class="token punctuation">]</span> <span class="token builtin class-name">set</span> current project to root <span class="token punctuation">(</span>in build file:/home/kshaa/Code/iot-frisbee/backend/<span class="token punctuation">)</span>
+
+--- <span class="token punctuation">(</span>Running the application, auto-reloading is enabled<span class="token punctuation">)</span> ---
+
+<span class="token punctuation">[</span>info<span class="token punctuation">]</span> p.c.s.AkkaHttpServer - Listening <span class="token keyword">for</span> HTTP on /0:0:0:0:0:0:0:0:9000
+
+<span class="token punctuation">(</span>Server started, use Enter to stop and go back to the console<span class="token punctuation">..</span>.<span class="token punctuation">)</span>
+</pre><p>Test&#x113;jam p&#x101;ris interesantus piepras&#x12B;jumus</p>
+<pre data-role="codeBlock" data-info="bash" class="language-bash">$ <span class="token comment"># Izveidojam lietot&#x101;ju centraliz&#x113;taj&#x101; server&#x12B;</span>
+$ <span class="token function">curl</span> --location --request POST <span class="token string">&apos;http://localhost:9000/api/v1/users/&apos;</span> <span class="token punctuation">\</span>
+    --header <span class="token string">&apos;Content-Type: application/json&apos;</span> <span class="token punctuation">\</span>
+    --data-raw <span class="token string">&apos;{ &quot;username&quot;: &quot;krisjanisv&quot; }&apos;</span>
+<span class="token punctuation">{</span>
+  <span class="token string">&quot;success&quot;</span> <span class="token builtin class-name">:</span> <span class="token punctuation">{</span>
+    <span class="token string">&quot;id&quot;</span> <span class="token builtin class-name">:</span> <span class="token string">&quot;57c69997-e19b-4e11-9901-946ed72b1026&quot;</span>,
+    <span class="token string">&quot;username&quot;</span> <span class="token builtin class-name">:</span> <span class="token string">&quot;krisjanisv&quot;</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+$ <span class="token comment"># Re&#x123;istr&#x113;jam aparat&#x16B;ru centraliz&#x113;taj&#x101; server&#x12B;</span>
+$ <span class="token function">curl</span> --location --request POST <span class="token string">&apos;http://localhost:9000/api/v1/hardwares/&apos;</span> <span class="token punctuation">\</span>
+    --header <span class="token string">&apos;Content-Type: application/json&apos;</span> <span class="token punctuation">\</span>
+    --data-raw <span class="token string">&apos;{ &quot;name&quot;: &quot;raspberry-pi-4b-nr-1&quot;, &quot;ownerId&quot;: &quot;57c69997-e19b-4e11-9901-946ed72b1026&quot; }&apos;</span>
+<span class="token punctuation">{</span>
+  <span class="token string">&quot;success&quot;</span> <span class="token builtin class-name">:</span> <span class="token punctuation">{</span>
+    <span class="token string">&quot;id&quot;</span> <span class="token builtin class-name">:</span> <span class="token string">&quot;b0909d2b-e8c7-44c2-bf94-4d60c24fb18c&quot;</span>,
+    <span class="token string">&quot;name&quot;</span> <span class="token builtin class-name">:</span> <span class="token string">&quot;raspberry-pi-4b-nr-1&quot;</span>,
+    <span class="token string">&quot;batteryPercent&quot;</span> <span class="token builtin class-name">:</span> <span class="token number">0.0</span>,
+    <span class="token string">&quot;ownerId&quot;</span> <span class="token builtin class-name">:</span> <span class="token string">&quot;57c69997-e19b-4e11-9901-946ed72b1026&quot;</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+$ <span class="token comment"># P&#x101;rbaudam, ka protam bash uzrakst&#x12B;t divas komandas t&#x101;, ka viena izpild&#x12B;sies fon&#x101; p&#x113;c 5 sekund&#x113;m</span>
+$ <span class="token function">sleep</span> 5s <span class="token operator">&amp;&amp;</span> <span class="token builtin class-name">echo</span> <span class="token string">&quot;second&quot;</span> <span class="token operator">&amp;</span> <span class="token builtin class-name">echo</span> <span class="token string">&quot;first&quot;</span>
+<span class="token punctuation">[</span><span class="token number">1</span><span class="token punctuation">]</span> <span class="token number">282791</span>
+first
+<span class="token punctuation">[</span><span class="token punctuation">..</span>. paiet <span class="token number">5</span> sekundes<span class="token punctuation">]</span>
+<span class="token punctuation">[</span><span class="token number">1</span><span class="token punctuation">]</span>+  Done                    <span class="token builtin class-name">echo</span> <span class="token string">&quot;first&quot;</span>
+second
+$ <span class="token comment"># Abonam&#x113;jamies pie aparat&#x16B;ras ies&#x16B;t&#x12B;taj&#x101;m zi&#x146;&#x101;m un p&#x113;c 5 sekund&#x113;m ies&#x16B;tam aparat&#x16B;ras zi&#x146;u</span>
+$ <span class="token function">sleep</span> 5s <span class="token operator">&amp;&amp;</span> <span class="token punctuation">\</span>
+    <span class="token function">curl</span> -s --location --request POST <span class="token string">&apos;http://localhost:9000/api/v1/hardware-messages/&apos;</span> <span class="token punctuation">\</span>
+    --header <span class="token string">&apos;Content-Type: application/json&apos;</span> <span class="token punctuation">\</span>
+    --data-raw <span class="token string">&apos;{ &quot;hardwareId&quot;: &quot;b0909d2b-e8c7-44c2-bf94-4d60c24fb18c&quot;, &quot;messageType&quot;: &quot;test-debug-websocket&quot;, &quot;message&quot;: &quot;foobar&quot; }&apos;</span> <span class="token operator">&gt;</span> /dev/null <span class="token operator">&amp;</span> <span class="token punctuation">\</span>
+    ws ws://localhost:9000/api/v1/hardwares/b0909d2b-e8c7-44c2-bf94-4d60c24fb18c/messages/subscribe
+<span class="token punctuation">[</span><span class="token number">1</span><span class="token punctuation">]</span> <span class="token number">283588</span>
+<span class="token punctuation">[</span><span class="token punctuation">..</span>. Akka Play serveris inicializ&#x113; abonamentu<span class="token punctuation">]</span>
+<span class="token operator">&lt;</span> subscribed
+<span class="token punctuation">[</span><span class="token punctuation">..</span>. p&#x113;c <span class="token number">5</span> sekund&#x113;m tiek ies&#x16B;t&#x12B;ta zi&#x146;a un m&#x113;s sa&#x146;emam notifik&#x101;ciju<span class="token punctuation">]</span>
+<span class="token operator">&lt;</span> <span class="token punctuation">{</span>
+  <span class="token string">&quot;id&quot;</span> <span class="token builtin class-name">:</span> <span class="token string">&quot;97cab652-c647-446c-acd6-0318be994a77&quot;</span>,
+  <span class="token string">&quot;hardwareId&quot;</span> <span class="token builtin class-name">:</span> <span class="token string">&quot;b0909d2b-e8c7-44c2-bf94-4d60c24fb18c&quot;</span>,
+  <span class="token string">&quot;messageType&quot;</span> <span class="token builtin class-name">:</span> <span class="token string">&quot;test-debug-websocket&quot;</span>,
+  <span class="token string">&quot;message&quot;</span> <span class="token builtin class-name">:</span> <span class="token string">&quot;foobar&quot;</span>
+<span class="token punctuation">}</span>
+<span class="token operator">&gt;</span>  
+</pre><p><img src="./postman.png" alt="Centr&#x101;l&#x101; servera Postman piepras&#x12B;jumi"></p>
+<h3 class="mume-header" id="mikrokontroliera-serial-ble-komunik%C4%81cija">Mikrokontroliera serial, BLE komunik&#x101;cija</h3>
+
+<pre data-role="codeBlock" data-info="bash" class="language-bash">$ <span class="token function">sudo</span> <span class="token function">su</span> <span class="token comment"># Jo bez root NodeJS bibliot&#x113;ka nesp&#x113;j piek&#x13C;&#x16B;t Bluetooth adapterim</span>
+<span class="token variable">$#</span> <span class="token function">git</span> rev-parse --show-prefix
+basket/
+<span class="token variable">$#</span> npx ts-node main.ts
+Running IoT Basket
+powered on, starting scanning
+Started scanning
+Device <span class="token string">&apos;IoT Frisbee&apos;</span>, RSSI: -55 <span class="token punctuation">(</span>Very good<span class="token punctuation">)</span>, <span class="token keyword">in</span> basket <span class="token operator">=</span> <span class="token boolean">false</span>
+Stopped scanning
+Device <span class="token string">&apos;IoT Frisbee&apos;</span>, RSSI: -54 <span class="token punctuation">(</span>Very good<span class="token punctuation">)</span>, <span class="token keyword">in</span> basket <span class="token operator">=</span> <span class="token boolean">false</span>
+Device <span class="token string">&apos;IoT Frisbee&apos;</span>, RSSI: -55 <span class="token punctuation">(</span>Very good<span class="token punctuation">)</span>, <span class="token keyword">in</span> basket <span class="token operator">=</span> <span class="token boolean">false</span>
+Device <span class="token string">&apos;IoT Frisbee&apos;</span>, RSSI: -54 <span class="token punctuation">(</span>Very good<span class="token punctuation">)</span>, <span class="token keyword">in</span> basket <span class="token operator">=</span> <span class="token boolean">false</span>
+Device <span class="token string">&apos;IoT Frisbee&apos;</span>, RSSI: -54 <span class="token punctuation">(</span>Very good<span class="token punctuation">)</span>, <span class="token keyword">in</span> basket <span class="token operator">=</span> <span class="token boolean">false</span>
+Device <span class="token string">&apos;IoT Frisbee&apos;</span>, RSSI: -49 <span class="token punctuation">(</span>Excellent<span class="token punctuation">)</span>, <span class="token keyword">in</span> basket <span class="token operator">=</span> <span class="token boolean">true</span>
+Frisbee seems to have fallen <span class="token keyword">in</span> the basket, inspecting<span class="token punctuation">..</span>.
+Frisbee UART connection found, extracting data
+<span class="token punctuation">[</span><span class="token punctuation">..</span>.<span class="token punctuation">]</span>
+$ <span class="token builtin class-name">echo</span> <span class="token string">&quot;bluetooth mic check&quot;</span> <span class="token operator">&gt;</span> /dev/ttyUSB0
+<span class="token punctuation">[</span><span class="token punctuation">..</span>.<span class="token punctuation">]</span>
+Data:  bluetooth mic check
+</pre><h3 class="mume-header" id="sensora-datu-apstr%C4%81de">Sensora datu apstr&#x101;de</h3>
+
+<pre data-role="codeBlock" data-info="bash" class="language-bash">$ <span class="token function">git</span> rev-parse --show-prefix
+frisbee/
+$ pio run --target<span class="token operator">=</span>upload
+Processing adafruit_feather_nrf52832 <span class="token punctuation">(</span>platform: nordicnrf52<span class="token punctuation">;</span> board: adafruit_feather_nrf52832<span class="token punctuation">;</span> framework: arduino<span class="token punctuation">)</span>
+<span class="token punctuation">[</span><span class="token punctuation">..</span>.<span class="token punctuation">]</span>
+RAM:   <span class="token punctuation">[</span><span class="token operator">=</span>         <span class="token punctuation">]</span>  <span class="token number">14.3</span>% <span class="token punctuation">(</span>used <span class="token number">9340</span> bytes from <span class="token number">65536</span> bytes<span class="token punctuation">)</span>
+Flash: <span class="token punctuation">[</span><span class="token operator">==</span>        <span class="token punctuation">]</span>  <span class="token number">15.9</span>% <span class="token punctuation">(</span>used <span class="token number">83512</span> bytes from <span class="token number">524288</span> bytes<span class="token punctuation">)</span>
+Building .pio/build/adafruit_feather_nrf52832/firmware.zip
+<span class="token punctuation">[</span><span class="token punctuation">..</span>.<span class="token punctuation">]</span>
+Auto-detected: /dev/ttyUSB0
+Uploading .pio/build/adafruit_feather_nrf52832/firmware.zip
+Upgrading target on /dev/ttyUSB0 with DFU package /home/kshaa/Code/iot-frisbee/frisbee/.pio/build/adafruit_feather_nrf52832/firmware.zip. Flow control is disabled, Single bank, Touch disabled
+<span class="token comment">########################################</span>
+<span class="token comment">########################################</span>
+<span class="token comment">########################################</span>
+<span class="token comment">########################################</span>
+<span class="token comment">####</span>
+Activating new firmware
+Device programmed.
+$ <span class="token function">mkdir</span> experiments
+$ <span class="token comment"># 3 reizes pielikts magn&#x113;ts</span>
+$ <span class="token comment"># 1 reizes pielikts kl&#x101;t silts lod&#x101;murs</span>
+$ pio device monitor -b <span class="token number">115200</span> <span class="token operator">|</span> <span class="token function">tee</span> experiments/demo_1
+--- Available filters and text transformations: colorize, debug, default, direct, hexlify, log2file, nocontrol, printable, send_on_enter, <span class="token function">time</span>
+--- More details at http://bit.ly/pio-monitor-filters
+Initializing iot-frisbee with Adafruit nRF52832, LSM6DS, LIS3MDL<span class="token operator">!</span>
+Starting LSM6DS chip I2C connection
+Started LSM6DS chip I2C connection
+Starting LIS3MDL chip I2C connection
+Started LIS3MDL chip I2C connection
+Setting LSM6DS accelerometer range to: +-4G
+Setting LSM6DS accelerometer data rate to: <span class="token number">12.5</span> Hz
+Setting LSM6DS gyro range to: <span class="token number">250</span> degrees/s
+Setting LSM6DS gyro data rate to: <span class="token number">12.5</span> Hz
+Setting LSM6DS magnetometer range to: +-4 gauss
+Setting LSM6DS magnetometer data rate to: <span class="token number">155</span> Hz
+Setting LSM6DS magnetometer performance mode to: Medium
+Setting LSM6DS magnetometer operation mode to: Continuous
+Starting Bluefruit chip
+Started Bluefruit chip
+Starting Bluetooth device information <span class="token function">service</span>
+Started Bluetooth device information <span class="token function">service</span>
+Starting Bluetooth UART <span class="token function">service</span>
+Started Bluetooth UART <span class="token function">service</span>
+Starting Bluetooth battery level <span class="token function">service</span>
+Started Bluetooth battery level <span class="token function">service</span>
+Starting Bluetooth advertisement <span class="token function">service</span>
+Started Bluetooth advertisement <span class="token function">service</span>
+<span class="token punctuation">{</span> <span class="token string">&quot;time&quot;</span><span class="token builtin class-name">:</span> <span class="token number">348</span>, <span class="token string">&quot;acc_x&quot;</span><span class="token builtin class-name">:</span> -0.5204, <span class="token string">&quot;acc_y&quot;</span><span class="token builtin class-name">:</span> -0.1137, <span class="token string">&quot;acc_z&quot;</span><span class="token builtin class-name">:</span> <span class="token number">9.8596</span>, <span class="token string">&quot;gyro_x&quot;</span><span class="token builtin class-name">:</span> -0.0006, <span class="token string">&quot;gyro_y&quot;</span><span class="token builtin class-name">:</span> -0.0199, <span class="token string">&quot;gyro_z&quot;</span><span class="token builtin class-name">:</span> -0.0147, <span class="token string">&quot;mag_x&quot;</span><span class="token builtin class-name">:</span> -16.1649, <span class="token string">&quot;mag_y&quot;</span><span class="token builtin class-name">:</span> <span class="token number">5.5101</span>, <span class="token string">&quot;mag_z&quot;</span><span class="token builtin class-name">:</span> -35.9690, <span class="token string">&quot;temp&quot;</span><span class="token builtin class-name">:</span> <span class="token number">24.42</span> <span class="token punctuation">}</span> 
+<span class="token punctuation">{</span> <span class="token string">&quot;time&quot;</span><span class="token builtin class-name">:</span> <span class="token number">470</span>, <span class="token string">&quot;acc_x&quot;</span><span class="token builtin class-name">:</span> -0.5109, <span class="token string">&quot;acc_y&quot;</span><span class="token builtin class-name">:</span> -0.1149, <span class="token string">&quot;acc_z&quot;</span><span class="token builtin class-name">:</span> <span class="token number">9.8584</span>, <span class="token string">&quot;gyro_x&quot;</span><span class="token builtin class-name">:</span> -0.0002, <span class="token string">&quot;gyro_y&quot;</span><span class="token builtin class-name">:</span> -0.0205, <span class="token string">&quot;gyro_z&quot;</span><span class="token builtin class-name">:</span> -0.0148, <span class="token string">&quot;mag_x&quot;</span><span class="token builtin class-name">:</span> -15.8287, <span class="token string">&quot;mag_y&quot;</span><span class="token builtin class-name">:</span> <span class="token number">5.3493</span>, <span class="token string">&quot;mag_z&quot;</span><span class="token builtin class-name">:</span> -37.0213, <span class="token string">&quot;temp&quot;</span><span class="token builtin class-name">:</span> <span class="token number">24.41</span> <span class="token punctuation">}</span> 
+<span class="token punctuation">{</span> <span class="token string">&quot;time&quot;</span><span class="token builtin class-name">:</span> <span class="token number">591</span>, <span class="token string">&quot;acc_x&quot;</span><span class="token builtin class-name">:</span> -0.4917, <span class="token string">&quot;acc_y&quot;</span><span class="token builtin class-name">:</span> -0.1017, <span class="token string">&quot;acc_z&quot;</span><span class="token builtin class-name">:</span> <span class="token number">9.8596</span>, <span class="token string">&quot;gyro_x&quot;</span><span class="token builtin class-name">:</span> -0.0014, <span class="token string">&quot;gyro_y&quot;</span><span class="token builtin class-name">:</span> -0.0188, <span class="token string">&quot;gyro_z&quot;</span><span class="token builtin class-name">:</span> -0.0151, <span class="token string">&quot;mag_x&quot;</span><span class="token builtin class-name">:</span> -15.5218, <span class="token string">&quot;mag_y&quot;</span><span class="token builtin class-name">:</span> <span class="token number">5.0570</span>, <span class="token string">&quot;mag_z&quot;</span><span class="token builtin class-name">:</span> -37.2406, <span class="token string">&quot;temp&quot;</span><span class="token builtin class-name">:</span> <span class="token number">24.36</span> <span class="token punctuation">}</span> 
+<span class="token punctuation">[</span><span class="token punctuation">..</span>.<span class="token punctuation">]</span>
+$ <span class="token function">cp</span> experiments/demo_1  experiments/demo_1.json <span class="token operator">&amp;&amp;</span> <span class="token function">vim</span> experiments/demo_1.json
+$ <span class="token comment"># Manu&#x101;la seri&#x101;lo datu apstr&#x101;de, lai izveidotu korekti strukturiz&#x113;tu JSON failu</span>
+$ <span class="token comment"># 3 metieni</span>
+$ <span class="token comment"># 3 rot&#x113;ts sensors</span>
+$ pio device monitor -b <span class="token number">115200</span> <span class="token operator">|</span> <span class="token function">tee</span> experiments/demo_2
+<span class="token punctuation">[</span><span class="token punctuation">..</span>.<span class="token punctuation">]</span>
+$ <span class="token function">cp</span> experiments/demo_2  experiments/demo_2.json <span class="token operator">&amp;&amp;</span> <span class="token function">vim</span> experiments/demo_2.json
+$ <span class="token comment"># Manu&#x101;la seri&#x101;lo datu apstr&#x101;de, lai izveidotu korekti strukturiz&#x113;tu JSON failu</span>
+$ jupyter-notebook
+<span class="token punctuation">[</span>I 02:41:23.172 NotebookApp<span class="token punctuation">]</span> Serving notebooks from <span class="token builtin class-name">local</span> directory: /home/kshaa/Code/iot-frisbee/frisbee/experiments
+<span class="token punctuation">[</span>I 02:41:23.172 NotebookApp<span class="token punctuation">]</span> Jupyter Notebook <span class="token number">6.2</span>.0 is running at:
+<span class="token punctuation">[</span><span class="token punctuation">..</span>.<span class="token punctuation">]</span>
+$ <span class="token comment"># Jupyter notebook izp&#x113;tes skripta sarakst&#x12B;&#x161;ana</span>
+<span class="token punctuation">[</span><span class="token punctuation">..</span>.<span class="token punctuation">]</span>
+</pre><p><img src="./plots.png" alt="Demo plots"></p>
 
       </div>
       
