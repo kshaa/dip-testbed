@@ -2,6 +2,7 @@
 #include <Adafruit_LSM6DSOX.h>
 #include <Adafruit_LIS3MDL.h>
 #include <bluefruit.h>
+#include <ble_hci.h>
 #include "frisbee_config.hpp"
 #include "frisbee_engine.hpp"
 #include "lsm6ds_sensor.hpp"
@@ -16,12 +17,21 @@ BLEDis  blDevice;
 BLEBas  blBattery;
 BLEUart blUART;
 
-void blConnectCallback(uint16_t conn_hdl) {
-  Serial.println("Device '" + String(conn_hdl) + "' connected to frisbee, advertising stopped");
+void blConnectCallback(uint16_t conn_handle) {
+  BLEConnection* connection = Bluefruit.Connection(conn_handle);
+  char centralName[32] = "";
+  connection->getPeerName(centralName, sizeof(centralName));
+  Serial.println("Device '" + String(centralName) + "' connected to frisbee, advertising stopped");
 }
 
-void blDisconnectCallback(uint16_t conn_hdl, uint8_t reason) {
-  Serial.println("Device '" + String(conn_hdl) + "' disconnected from frisbee, advertising restarted");
+void blDisconnectCallback(uint16_t conn_handle, uint8_t reason) {
+  BLEConnection* connection = Bluefruit.Connection(conn_handle);
+  char centralName[32] = "";
+  connection->getPeerName(centralName, sizeof(centralName));
+  Serial.print("Device '" + String(centralName) + "' disconnected from frisbee with reason '");
+  Serial.print(reason, HEX);
+  Serial.print("', advertising restarted");
+  Serial.println();
 }
 
 void setup(void) {
@@ -90,14 +100,14 @@ void setup(void) {
 
   // Configure Bluetooth connectivity & event handlers
   Bluefruit.autoConnLed(BL_AUTO_CONN_LED);
-  Bluefruit.setName(BL_DEVICE_NAME);
-  Bluefruit.Periph.setConnectCallback(blConnectCallback);
-  Bluefruit.Periph.setDisconnectCallback(blDisconnectCallback);
   runUntilSuccessSerial(
     [](void) { return Bluefruit.begin(); },
     "Bluefruit chip",
     SERVICE_INIT_TIMEOUT_MS
   );
+  Bluefruit.setName(BL_DEVICE_NAME);
+  Bluefruit.Periph.setConnectCallback(blConnectCallback);
+  Bluefruit.Periph.setDisconnectCallback(blDisconnectCallback);
 
   // Configure Bluetooth device information
   blDevice.setManufacturer(BL_DEVICE_MANUFACTURER);
@@ -109,7 +119,6 @@ void setup(void) {
   );
 
   // Configure Bluetooth UART service
-  Bluefruit.Advertising.addService(blUART);
   runUntilSuccessSerial(
     [](void) { return blUART.begin() == ERROR_NONE; },
     "Bluetooth UART service",
@@ -126,6 +135,10 @@ void setup(void) {
   // Configure device advertisement
   Bluefruit.Advertising.addFlags(BL_ADVERTISEMENT_FLAGS);
   Bluefruit.Advertising.addTxPower();
+  Bluefruit.Advertising.addService(blUART);
+  Bluefruit.Advertising.restartOnDisconnect(true);
+  // Bluefruit.Advertising.setIntervalMS(BL_FAST_RETRY_INTERVAL_MS, BL_SLOW_RETRY_INTERVAL_MS);
+  // Bluefruit.Advertising.setFastTimeout(BL_FAST_TIMEOUT_S);
   Bluefruit.ScanResponse.addName();
   runUntilSuccessSerial(
     [](void) { return Bluefruit.Advertising.start(); },
@@ -139,37 +152,108 @@ void loop() {
   sensors_event_t accel, gyro, mag, temp;
   lsm6ds.getEvent(&accel, &gyro, &temp);
   lis3mdl.getEvent(&mag);
+  unsigned long time = millis();
 
-  // Print acceleration in `m/s^2`
-  Serial.print("\t\tAccel X: ");
+  // Forward data from HW Serial to BLEUART
+  while (Serial.available())
+  {
+    // Delay to wait for enough input, since we have a limited transmission buffer
+    delay(10);
+
+    uint8_t buf[64];
+    int count = Serial.readBytes(buf, sizeof(buf));
+    // Serial.printf("\t\tSerial: %d", buf);
+    // Serial.println();
+    blUART.write(buf, count);
+  }
+
+  // Forward from BLEUART to HW Serial
+  while (blUART.available()) {
+    uint8_t ch;
+    ch = (uint8_t) blUART.read();
+    Serial.write(ch);
+  }
+
+  Serial.print("{ ");
+
+  Serial.print("\"time\": ");
+  Serial.print(time);
+  Serial.print(", ");
+
+  Serial.print("\"acc_x\": ");
   Serial.print(accel.acceleration.x, 4);
-  Serial.print(" \tY: ");
+  Serial.print(", ");
+
+  Serial.print("\"acc_y\": ");
   Serial.print(accel.acceleration.y, 4);
-  Serial.print(" \tZ: ");
+  Serial.print(", ");
+
+  Serial.print("\"acc_z\": ");
   Serial.print(accel.acceleration.z, 4);
-  Serial.println(" \tm/s^2 ");
+  Serial.print(", ");
 
-  // Print rotation in `rad/s`
-  Serial.print("\t\tGyro  X: ");
+  Serial.print("\"gyro_x\": ");
   Serial.print(gyro.gyro.x, 4);
-  Serial.print(" \tY: ");
+  Serial.print(", ");
+
+  Serial.print("\"gyro_y\": ");
   Serial.print(gyro.gyro.y, 4);
-  Serial.print(" \tZ: ");
+  Serial.print(", ");
+
+  Serial.print("\"gyro_z\": ");
   Serial.print(gyro.gyro.z, 4);
-  Serial.println(" \tradians/s ");
+  Serial.print(", ");
 
-  // Print magnetic field in `uTesla`
-  Serial.print(" \t\tMag   X: ");
+  Serial.print("\"mag_x\": ");
   Serial.print(mag.magnetic.x, 4);
-  Serial.print(" \tY: ");
-  Serial.print(mag.magnetic.y, 4);
-  Serial.print(" \tZ: ");
-  Serial.print(mag.magnetic.z, 4);
-  Serial.println(" \tuTesla ");
+  Serial.print(", ");
 
-  Serial.print("\t\tTemp   :\t\t\t\t\t");
+  Serial.print("\"mag_y\": ");
+  Serial.print(mag.magnetic.y, 4);
+  Serial.print(", ");
+
+  Serial.print("\"mag_z\": ");
+  Serial.print(mag.magnetic.z, 4);
+  Serial.print(", ");
+
+  Serial.print("\"temp\": ");
   Serial.print(temp.temperature);
-  Serial.println(" \tdeg C");
-  Serial.println();
-  delay(1000);
+  Serial.print(" ");
+
+  Serial.println("} ");
+
+  delay(100);
+
+  // // Print acceleration in `m/s^2`
+  // Serial.print("\t\tAccel X: ");
+  // Serial.print(accel.acceleration.x, 4);
+  // Serial.print(" \tY: ");
+  // Serial.print(accel.acceleration.y, 4);
+  // Serial.print(" \tZ: ");
+  // Serial.print(accel.acceleration.z, 4);
+  // Serial.println(" \tm/s^2 ");
+
+  // // Print rotation in `rad/s`
+  // Serial.print("\t\tGyro  X: ");
+  // Serial.print(gyro.gyro.x, 4);
+  // Serial.print(" \tY: ");
+  // Serial.print(gyro.gyro.y, 4);
+  // Serial.print(" \tZ: ");
+  // Serial.print(gyro.gyro.z, 4);
+  // Serial.println(" \tradians/s ");
+
+  // // Print magnetic field in `uTesla`
+  // Serial.print(" \t\tMag   X: ");
+  // Serial.print(mag.magnetic.x, 4);
+  // Serial.print(" \tY: ");
+  // Serial.print(mag.magnetic.y, 4);
+  // Serial.print(" \tZ: ");
+  // Serial.print(mag.magnetic.z, 4);
+  // Serial.println(" \tuTesla ");
+
+  // Serial.print("\t\tTemp   :\t\t\t\t\t");
+  // Serial.print(temp.temperature);
+  // Serial.println(" \tdeg C");
+  // Serial.println();
+  // delay(1000);
 }
