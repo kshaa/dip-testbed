@@ -1,5 +1,5 @@
 # Database
 
 ```bash
-docker-compose --compatibility -p frisbee up
+docker-compose --compatibility -p dip up
 ```
