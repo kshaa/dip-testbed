@@ -3,14 +3,47 @@ use std::path::PathBuf;
 use std::process;
 use log::*;
 use url::Url;
-use std::fs::File;
+// use std::fs::File;
+use std::error;
+use std::fmt;
+use std::result;
+use futures_util::{future, pin_mut, StreamExt};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio_tungstenite::{
     connect_async,
-    tungstenite::{Error, Result},
+    tungstenite,
+    tungstenite::{
+        // Error as TkError,
+        // Result as TgResult,
+        protocol::Message
+    }
 };
 
+#[derive(Debug)]
+struct StringError {
+    details: String
+}
+
+impl StringError {
+    fn new(msg: &str) -> StringError {
+        StringError { details: msg.to_string() }
+    }
+}
+
+impl fmt::Display for StringError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.details)
+    }
+}
+
+impl error::Error for StringError {
+    fn description(&self) -> &str {
+        &self.details
+    }
+}
+
 #[tokio::main]
-async fn main() {
+async fn main() -> result::Result<(), StringError> {
     // Setup logging
     let env = env_logger::Env::default();
     let env_with_info_log = env.filter_or(env_logger::DEFAULT_FILTER_ENV, "info");
@@ -54,14 +87,43 @@ async fn main() {
     if let Some(ref subparams) = params.subcommand_matches("adafruit-nrf52-sh") {
         let baudrate: u32 = subparams.value_of_t("baudrate").unwrap_or_else(|e| e.exit());
         let device: PathBuf = subparams.value_of_t("device").unwrap_or_else(|e| e.exit());
+        
         if !device.exists() {
-            println!("error: Device file does not exist");
-            process::exit(1);
+            return Err(StringError::new("error: Device file does not exist"))
         }
 
-        println!("{:?}, {:?}, {:?}", server, baudrate, device);
+        info!("Starting nRF52 agent");
+
+        // Spawn rx/tx connection w/ stdio
+        // debug!("Initiating stdio connection");
+        // let (stdin_tx, stdin_rx) = futures_channel::mpsc::unbounded();
+        // let stdin_tx_handle = tokio::spawn(read_stdin(stdin_tx));
+
+        // Connect to server
+        info!("Connecting to server '{}'", server);
+        let connection = match (connect_async(server).await) {
+            Ok(it) => it,
+            Err(err) => return Err(StringError::new(&err.to_string()))
+        };
+        info!("Successful connection");
+
+        return Ok(())
     } else {
-        println!("error: Subcommand for agent is required");
-        process::exit(1);
+        return Err(StringError::new("Subcommand for agent is required"));
+    }
+}
+
+// Our helper method which will read data from stdin and send it along the
+// sender provided.
+async fn read_stdin(tx: futures_channel::mpsc::UnboundedSender<Message>) {
+    let mut stdin = tokio::io::stdin();
+    loop {
+        let mut buf = vec![0; 1024];
+        let n = match stdin.read(&mut buf).await {
+            Err(_) | Ok(0) => break,
+            Ok(n) => n,
+        };
+        buf.truncate(n);
+        tx.unbounded_send(Message::binary(buf)).unwrap();
     }
 }
