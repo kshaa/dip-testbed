@@ -3,7 +3,9 @@ use log::*;
 use url::Url;
 // use std::fs::File;
 use std::result;
-use futures_util::{future, pin_mut, StreamExt};
+use std::str;
+use futures_util::{stream, future, pin_mut, Sink, SinkExt, StreamExt};
+use std::clone::Clone;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio_tungstenite::{
     connect_async,
@@ -17,6 +19,7 @@ mod adafruit_nrf52_sh_agent;
 mod commands;
 mod errors;
 mod cli;
+use commands::*;
 use errors::*;
 use cli::agent_cli;
 
@@ -52,26 +55,86 @@ async fn main() -> result::Result<(), AgentError> {
                 return Err(AgentError::StartupError(StartupError(BasicAgentError::new(&msg.to_string()))))
             }
         };
-        info!("Successful connection");
+        let (ws_tx, ws_rx) = futures_channel::mpsc::unbounded::<Message>();
+        info!("Successful server connection & message channel creation");
 
-        // Spawn rx/tx connection w/ stdio
+        // Connect to stdio
         debug!("Connecting stdio");
         let (stdin_tx, stdin_rx) = futures_channel::mpsc::unbounded();
         let stdin_tx_handle = tokio::spawn(read_stdin(stdin_tx));
-                
-        // Connect stdio to server
-        debug!("Attaching stdio to server");
-        let (write, read) = ws_stream.split();
-        let stdin_to_ws = stdin_rx.map(Ok).forward(write);
-        let ws_to_stdout = {
-            read.for_each(|message| async {
-                let data = message.unwrap().into_data();
-                tokio::io::stdout().write_all(&data).await.unwrap();
-            })
-        };
+        info!("Successful stdio connection & message channel creation");
 
-        pin_mut!(stdin_to_ws, ws_to_stdout);
-        future::select(stdin_to_ws, ws_to_stdout).await;
+        // Connect stdio and agent logic to server
+        debug!("Attaching agent logic to server");
+        let (mut sink, stream) = ws_stream.split();
+        let other_to_ws = ws_rx.map(Ok).forward(&mut sink);
+
+        let ws_to_stdout = stream.for_each(|message| async {
+            let data = message.unwrap().into_data();
+            let utf8_data: &str = match str::from_utf8(&data) {
+                Ok(it) => it,
+                Err(err) => {
+                    let info: String = format!("Invalid UTF-8 sequence: {}", err);
+                    debug!("{}", info);
+                    let parse_message = OutgoingMessage::ParseMessage(ParseMessage { info });
+                    let serialized = match serde_json::to_string(&parse_message) {
+                        Ok(it) => it,
+                        Err(err) => {
+                            error!("Failed to construct message about failure to parse UTF-8 message: {}", err);
+                            return;
+                        }
+                    };
+                    let response_message: Message = Message::Text(serialized);
+                    match ws_tx.unbounded_send(response_message) {
+                        Ok(it) => it,
+                        Err(err) => {
+                            error!("Failed to send message about failure to parse UTF-8 message: {}", err);
+                            return;
+                        }
+                    };
+                    return;
+                },
+            };
+        
+            let parsed: IncomingMessage = match serde_json::from_str(utf8_data) {
+                Ok(it) => it,
+                Err(err) => {
+                    let info = format!("Request contains unknown message: {}", err); 
+                    debug!("{}", info);
+                    let parse_message = OutgoingMessage::ParseMessage(ParseMessage { info });
+                    let serialized = match serde_json::to_string(&parse_message) {
+                        Ok(it) => it,
+                        Err(err) => {
+                            error!("Failed to construct message about encountering unknown message: {}", err);
+                            return;
+                        }
+                    };
+                    let response_message: Message = Message::Text(serialized);
+                    match ws_tx.unbounded_send(response_message) {
+                        Ok(it) => it,
+                        Err(err) => {
+                            error!("Failed to send message about failure to parse UTF-8 message: {}", err);
+                            return;
+                        }
+                    };
+                    return;
+                }
+            };
+
+            match parsed {
+                IncomingMessage::MonitorMessage(message) => {
+                    println!("Monitor")
+                },
+                IncomingMessage::UploadMessage(message) => {
+                    println!("Upload")
+                } 
+            }
+
+            return;
+        });
+
+        pin_mut!(other_to_ws, ws_to_stdout);
+        future::select(other_to_ws, ws_to_stdout).await;
     
         return Ok(())
     } else {

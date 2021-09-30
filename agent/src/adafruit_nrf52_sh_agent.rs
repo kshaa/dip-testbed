@@ -5,8 +5,8 @@ use tokio::process::Command;
 use crate::errors;
 use errors::*;
 
-pub static monitor_script: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/adafruit_nrf52_sh_agent/monitor.sh"));
-pub static upload_script: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/adafruit_nrf52_sh_agent/upload.sh"));
+pub static MONITOR_SCRIPT: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/adafruit_nrf52_sh_agent/monitor.sh"));
+pub static UPLOAD_SCRIPT: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/adafruit_nrf52_sh_agent/upload.sh"));
 
 pub fn monitor(
     device: PathBuf,
@@ -20,7 +20,7 @@ pub fn monitor(
             return Err(MonitorError::TempFileError(TempFileError(BasicAgentError::new(&msg.to_string()))))}
     };
 
-    match monitor_script_file.write_all(monitor_script.as_bytes()) {
+    match monitor_script_file.write_all(MONITOR_SCRIPT.as_bytes()) {
         Ok(it) => it,
         Err(err) => {
             let msg = format!("Failed to write temporary for nRF52 agent's monitor script file: {}", err);
