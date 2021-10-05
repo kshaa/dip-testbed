@@ -37,7 +37,13 @@ pub enum MonitorError {
 }
 
 #[derive(Debug)]
+pub enum UploadError {
+    TempFileError(TempFileError)
+}
+
+#[derive(Debug)]
 pub enum AgentError {
     StartupError(StartupError),
     MonitorError(MonitorError),
+    UploadError(UploadError),
 }

@@ -12,7 +12,7 @@ pub struct MonitorMessage {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct ParseMessage {
+pub struct ParseErrorMessage {
     pub info: String
 }
 
@@ -23,8 +23,51 @@ pub enum IncomingMessage {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub enum OutgoingMessage {
-    ParseMessage(ParseMessage),
+pub struct ScriptRunError {
+    pub info: String
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct AlreadyMonitoring {}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ConnectionError {
+    pub info: String
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub enum MonitorErrorMessage {
+    ScriptRunError(ScriptRunError),
+    AlreadyMonitoring(AlreadyMonitoring),
+    ConnectionError(ConnectionError),
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub enum OutgoingControlMessage {
+    ParseErrorMessage(ParseErrorMessage),
+    MonitorErrorMessage(MonitorErrorMessage)
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Stdout {
+    pub bytes: String
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Stderr {
+    pub bytes: String
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Exit {
+    pub code: u8
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub enum OutgoingMonitorMessage {
+    Stdout(Stdout),
+    Stderr(Stderr),
+    Exit(Exit)
 }
 
 #[test]
