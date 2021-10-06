@@ -17,11 +17,8 @@ import iotfrisbee.protocol.WebResult._
 class HomeController(
   val cc: ControllerComponents,
   val userService: UserService[IO],
-  val diskGolfTrackService: DiskGolfTrackService[IO],
   val hardwareService: HardwareService[IO],
   val hardwareMessageService: HardwareMessageService[IO],
-  val diskGolfDiskService: DiskGolfDiskService[IO],
-  val diskGolfBasketService: DiskGolfBasketService[IO],
 )(implicit
   @unused ec: ExecutionContext,
   @unused iort: IORuntime,
@@ -35,18 +32,12 @@ class HomeController(
     IOActionAny { _ =>
       (for {
         userCount <- EitherT(userService.countUsers())
-        diskGolfTrackCount <- EitherT(diskGolfTrackService.countDiskGolfTracks())
         hardwareCount <- EitherT(hardwareService.countHardware())
         hardwareMessageCount <- EitherT(hardwareMessageService.countHardwareMessage())
-        diskGolfDiskCount <- EitherT(diskGolfDiskService.countDiskGolfDisks())
-        diskGolfBasketCount <- EitherT(diskGolfBasketService.countDiskGolfBaskets())
         status = ServiceStatus(
           userCount,
-          diskGolfTrackCount,
           hardwareCount,
           hardwareMessageCount,
-          diskGolfDiskCount,
-          diskGolfBasketCount,
         )
       } yield status)
         .bimap(

@@ -6,8 +6,7 @@ import akka.stream.Materializer
 import akka.testkit.TestProbe
 import cats.effect.IO
 import io.circe.syntax._
-import iotfrisbee.domain.{DomainTimeZoneId, Hardware}
-import iotfrisbee.domain.controllers.DiskGolfTrackSpec._
+import iotfrisbee.domain.Hardware
 import iotfrisbee.domain.controllers.HardwareMessageSpec.createHardwareMessage
 import iotfrisbee.domain.controllers.HardwareSpec.createHardware
 import iotfrisbee.domain.controllers.IotFrisbeeSpec
@@ -26,7 +25,6 @@ class IotFrisbeeScenarioSpec extends IotFrisbeeSpec with GivenWhenThen {
   implicit lazy val materializer: Materializer = module.materializer
   lazy val homeController: HomeController = module.homeController
   lazy val userController: UserController = module.userController
-  lazy val diskGolfTrackController: DiskGolfTrackController = module.diskGolfTrackController
   lazy val hardwareController: HardwareController = module.hardwareController
   lazy val hardwareMessageController: HardwareMessageController = module.hardwareMessageController
 
@@ -68,21 +66,9 @@ class IotFrisbeeScenarioSpec extends IotFrisbeeSpec with GivenWhenThen {
           messageSubscriber.expectMsg(hardwareMessage.asJson.toString).shouldEqual(hardwareMessage.asJson.toString)
         _ = messageSubscription ! PoisonPill
 
-        _ = And("A disk golf track w/ a generated id should be creatable")
-        rigaTimeZoneId = DomainTimeZoneId.fromString("Europe/Riga").toOption.get
-        diskGolfTrackCreation <- createDiskGolfTrack(
-          diskGolfTrackController,
-          CreateDiskGolfTrack(user.id, "Talsi", rigaTimeZoneId),
-        )
-        diskGolfTrack = diskGolfTrackCreation.map(_.value).toOption.get
-        diskGolfTrackCheck =
-          diskGolfTrackCreation
-            .map(t => (t.value.name, t.value.timezoneId))
-            .shouldEqual(Right("Talsi", rigaTimeZoneId))
-
         _ = And("Finally the status should represent the changes")
         finalStatus <- getStatus(homeController)
-        finalStatusCheck = finalStatus.shouldEqual(Right(Success(ServiceStatus(1, 1, 1, 1, 0))))
+        finalStatusCheck = finalStatus.shouldEqual(Right(Success(ServiceStatus(1, 1, 1))))
 
         assertions =
           initialStatusCheck ::
@@ -91,7 +77,6 @@ class IotFrisbeeScenarioSpec extends IotFrisbeeSpec with GivenWhenThen {
             messageSubscriptionInitCheck ::
             hardwareMessageCreationCheck ::
             messageSubscriptionReceiveCheck ::
-            diskGolfTrackCheck ::
             finalStatusCheck ::
             Nil
         assertion = assertions.forall(_ === Succeeded).shouldBe(true)
