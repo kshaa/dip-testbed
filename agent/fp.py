@@ -11,6 +11,18 @@ class Option(Generic[A]):
     value: A
     isDefined: bool
 
+    def __repr__(self):
+        return self.displayed()
+
+    def __str__(self):
+        return self.displayed()
+
+    def displayed(self):
+        if self.isDefined:
+            return f"Some({self.value})"
+        else:
+            return f"None"
+
     @classmethod
     def as_none(cls) -> 'Option[A]':
         c = cls()
@@ -33,6 +45,20 @@ class Either(Generic[A, B]):
     isLeft: bool
     right: B
     isRight: bool
+
+    def __repr__(self):
+        return self.displayed()
+
+    def __str__(self):
+        return self.displayed()
+
+    def displayed(self):
+        if self.isLeft:
+            return f"Left({self.left})"
+        elif self.isRight:
+            return f"Right({self.right})"
+        else:
+            return f"Either::neither"
 
     @classmethod
     def as_right(cls, value: B) -> 'Either[A, B]':

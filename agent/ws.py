@@ -1,7 +1,7 @@
 import websockets
 from websockets.exceptions import ConnectionClosedError
 from typing import TypeVar, Generic, Any
-from protocol import Decoder, Encoder
+from codec import Decoder, Encoder
 from fp import Option, Either
 
 PI = TypeVar('PI')
