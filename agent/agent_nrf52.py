@@ -5,7 +5,7 @@ import subprocess
 from subprocess import CalledProcessError
 from typing import Iterable, Tuple, Any
 from engine import Engine
-from protocol import CommonIncomingMessage
+from protocol import CommonIncomingMessage, UploadMessage
 from sh import root_relative_path
 from fp import Either
 
@@ -42,8 +42,8 @@ class EngineNRF52(Engine[CommonIncomingMessage, Any]):
 
     def process(self, message: CommonIncomingMessage) -> Either[Exception, Any]:
         """Consume server-sent message and react accordingly"""
-        match type(message):
-            case UploadMessage:
-                pass
-            case _:
-                return Either.as_left(NotImplementedError())
+        message_type = type(message)
+        if message_type == UploadMessage:
+            return Either.as_left(Exception("tada"))
+
+        return Either.as_left(NotImplementedError())

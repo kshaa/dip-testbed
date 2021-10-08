@@ -41,7 +41,9 @@ async def agent() -> int:
             outgoing_result = engine.process(incoming_message)
             LOGGER.debug("Processed message")
             if outgoing_result.isLeft:
-                LOGGER.error("Failed to process message: %s", pformat(outgoing_result.left, indent=4))
+                LOGGER.error(
+                    "Failed to process message: %s",
+                    pformat(outgoing_result.left, indent=4))
                 await websocket.disconnect()
                 return 1
             else:
