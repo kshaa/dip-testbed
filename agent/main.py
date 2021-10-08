@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+"""Run an asynchronous agent instance till it fails or gracefully finishes"""
 
 import asyncio
 import sys

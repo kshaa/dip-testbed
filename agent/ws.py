@@ -1,6 +1,8 @@
+"""Typed, auto-coded websocket client definition"""
+
+from typing import TypeVar, Generic, Any
 import websockets
 from websockets.exceptions import ConnectionClosedError
-from typing import TypeVar, Generic, Any
 from codec import Decoder, Encoder
 from fp import Option, Either
 
@@ -9,6 +11,7 @@ PO = TypeVar('PO')
 
 
 class WebSocket(Generic[PI, PO]):
+    """Typed, auto-coded websocket client"""
     url: str
     decoder: Decoder[PI]
     encoder: Encoder[PO]
@@ -20,7 +23,10 @@ class WebSocket(Generic[PI, PO]):
         self.decoder = decoder
 
     async def connect(self) -> Option[Exception]:
+        """Initialize connection to the websocket server"""
         try:
+            # For some reason the `.connect` method isn't detected
+            # pylint: disable=E1101
             self.socket = Option.as_some(
                 await websockets.connect(self.url))  # type: ignore
             return Option.as_none()
@@ -28,6 +34,7 @@ class WebSocket(Generic[PI, PO]):
             return Option.as_some(e)
 
     async def disconnect(self) -> Option[Exception]:
+        """Close the connection to the websocket server"""
         if not self.socket.isDefined:
             return Option.as_some(Exception("Already disconnected"))
         try:
@@ -38,6 +45,7 @@ class WebSocket(Generic[PI, PO]):
             return Option.as_some(e)
 
     async def rx(self) -> Either[Exception, PI]:
+        """Receive and auto-decode message from server"""
         if not self.socket.isDefined:
             return Either.as_left(Exception("Not connected"))
         try:
@@ -54,6 +62,7 @@ class WebSocket(Generic[PI, PO]):
             return Either.as_left(e)
 
     async def tx(self, data: PO) -> Option[Exception]:
+        """Transmit and auto-encode message to server"""
         if not self.socket.isDefined:
             return Option.as_some(Exception("Not connected"))
         try:

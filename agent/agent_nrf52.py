@@ -1,16 +1,18 @@
 #!/usr/bin/env python
+"""NRF52 micro-controller agent functionality."""
 
 import subprocess
 from subprocess import CalledProcessError
-from sh import script_relative_path
 from typing import Iterable, Tuple
+from sh import root_relative_path
 from fp import Either
 
-firmware_upload_relative_path = 'static/adafruit_nrf52/upload.sh'
+FIRMWARE_UPLOAD_PATH = 'static/adafruit_nrf52/upload.sh'
 
 
 def firmware_upload_args(firmware_path: str, device_path: str, baud_rate: int) -> Iterable[str]:
-    upload_script_path = script_relative_path(firmware_upload_relative_path)
+    """Create command line arguments to initiate firmware upload"""
+    upload_script_path = root_relative_path(FIRMWARE_UPLOAD_PATH)
     return [
         "bash",
         "-c",
@@ -18,7 +20,12 @@ def firmware_upload_args(firmware_path: str, device_path: str, baud_rate: int) -
     ]
 
 
-def firmware_upload(firmware_path: str, device_path: str, baud_rate: int) -> Either[Tuple[int, bytes], bytes]:
+def firmware_upload(
+        firmware_path: str,
+        device_path: str,
+        baud_rate: int
+) -> Either[Tuple[int, bytes], bytes]:
+    """Run firmware upload command and return error code & stderr or stdout"""
     runner_args = firmware_upload_args(firmware_path, device_path, baud_rate)
     try:
         return Either.as_right(subprocess.check_output(runner_args))  # type: ignore

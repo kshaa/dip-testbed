@@ -5,4 +5,6 @@
 - Run `pipenv install` for dependency download  
 - Run `pipenv shell` to enter project-specific python environment  
 - Run `mypy ./` to test static type checks  
-- Run `bash test.sh` to run unit tests  
+- Run `./test.sh` to run unit tests  
+- Run `./lint.sh` to run linter
+- Run `./main.py` to run agent

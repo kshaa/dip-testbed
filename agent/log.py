@@ -1,9 +1,12 @@
+"""Helper module for logging-specific functionality"""
+
 import logging
 from logging import Logger
 import sys
 
 
 def timed_named_logger(logger_name: str) -> Logger:
+    """Create an opinionated, timestamped, named, formatted Logger instance"""
     formatter = logging.Formatter(
         fmt = f"[%(asctime)s] [%(levelname)s] [{logger_name}] %(message)s",
         datefmt = '%Y-%m-%d %H:%M:%S')

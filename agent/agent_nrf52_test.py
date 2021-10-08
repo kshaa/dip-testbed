@@ -1,14 +1,18 @@
 #!/usr/bin/env python
+"""Test NRF52 agent functionality"""
 
-from sh import script_relative_path
-from agent_nrf52 import firmware_upload_args, firmware_upload_relative_path
 import unittest
+from sh import root_relative_path
+from agent_nrf52 import firmware_upload_args, FIRMWARE_UPLOAD_PATH
 
 
 class TestNrf52(unittest.TestCase):
+    """NRF52 agent test suite"""
+
     def test_firmware_upload_args(self):
+        """Test whether upload arguments are constructed properly"""
         reality = firmware_upload_args("/home/me/code/nrf/run.hex", "/dev/tty0", 115200)
-        upload_script_path = script_relative_path(firmware_upload_relative_path)
+        upload_script_path = root_relative_path(FIRMWARE_UPLOAD_PATH)
         expectations = [
             'bash',
             '-c',

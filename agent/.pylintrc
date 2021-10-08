@@ -1,0 +1,10 @@
+[FORMAT]
+# Allow seemingly incorrectly formatted names
+good-names=e
+
+[MESSAGES CONTROL]
+# W0703: Ignore use of catch-all blocks
+# C0103: Ignore class pascal case definitions, because I use a lot of generic A's and B's
+# R1705: Ignore if A: return .. \n else: return ..
+# R0903: Ignore classes having too few public methods, because classes _are_ for storing data #fpgang
+disable=W0703,C0103,R1705,R0903
