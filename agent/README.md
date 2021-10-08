@@ -9,3 +9,4 @@
 - Run `./lint.sh` to run linter
 - Run `./check.sh` to run all aforementioned types of tests
 - Run `./main.py` to run agent
+- Configure log level w/ env. variable `LOG_LEVEL`  

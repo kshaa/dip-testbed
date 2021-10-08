@@ -3,7 +3,9 @@
 
 import subprocess
 from subprocess import CalledProcessError
-from typing import Iterable, Tuple
+from typing import Iterable, Tuple, Any
+from engine import Engine
+from protocol import CommonIncomingMessage
 from sh import root_relative_path
 from fp import Either
 
@@ -33,3 +35,15 @@ def firmware_upload(
         return Either.as_left((e.returncode, e.output))
     except Exception as e:
         return Either.as_left((1, str.encode(f"{e}")))
+
+
+class EngineNRF52(Engine[CommonIncomingMessage, Any]):
+    """Engine for NRF52 microcontroller"""
+
+    def process(self, message: CommonIncomingMessage) -> Either[Exception, Any]:
+        """Consume server-sent message and react accordingly"""
+        match type(message):
+            case UploadMessage:
+                pass
+            case _:
+                return Either.as_left(NotImplementedError())

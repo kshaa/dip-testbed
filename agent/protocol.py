@@ -1,6 +1,8 @@
 """Module containing messages sent between this agent and the control server"""
 from uuid import UUID
 from dataclasses import dataclass
+from typing import Union
+
 
 @dataclass(frozen=True, eq=False)
 class UploadMessage:
@@ -9,3 +11,6 @@ class UploadMessage:
 
     def __eq__(self, other) -> bool:
         return str(self.firmware_id) == str(other.firmware_id)
+
+
+CommonIncomingMessage = Union[UploadMessage]
