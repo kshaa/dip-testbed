@@ -19,4 +19,5 @@ object Versions {
   lazy val circeGenericExtrasVersion = "0.12.2"
   lazy val circeParserVersion = "0.12.2"
   lazy val scalaTestVersion = "3.2.7"
+  lazy val hasherVersion = "1.2.0"
 }
