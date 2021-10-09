@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 """NRF52 micro-controller agent functionality."""
 
+from typing import Iterable, Tuple, Any
 import subprocess
 from subprocess import CalledProcessError
-from typing import Iterable, Tuple, Any
+from result import Result, Err, Ok
 from engine import Engine
 from protocol import CommonIncomingMessage, UploadMessage
 from sh import root_relative_path
-from fp import Either
 
 FIRMWARE_UPLOAD_PATH = 'static/adafruit_nrf52/upload.sh'
 
@@ -26,24 +26,24 @@ def firmware_upload(
         firmware_path: str,
         device_path: str,
         baud_rate: int
-) -> Either[Tuple[int, bytes], bytes]:
+) -> Result[bytes, Tuple[int, bytes]]:
     """Run firmware upload command and return error code & stderr or stdout"""
     runner_args = firmware_upload_args(firmware_path, device_path, baud_rate)
     try:
-        return Either.as_right(subprocess.check_output(runner_args))  # type: ignore
+        return Ok(subprocess.check_output(runner_args))  # type: ignore
     except CalledProcessError as e:
-        return Either.as_left((e.returncode, e.output))
+        return Err((e.returncode, e.output))
     except Exception as e:
-        return Either.as_left((1, str.encode(f"{e}")))
+        return Err((1, str.encode(f"{e}")))
 
 
 class EngineNRF52(Engine[CommonIncomingMessage, Any]):
     """Engine for NRF52 microcontroller"""
 
-    def process(self, message: CommonIncomingMessage) -> Either[Exception, Any]:
+    def process(self, message: CommonIncomingMessage) -> Result[Any, Exception]:
         """Consume server-sent message and react accordingly"""
         message_type = type(message)
         if message_type == UploadMessage:
-            return Either.as_left(Exception("tada"))
+            return Err(Exception("tada"))
 
-        return Either.as_left(NotImplementedError())
+        return Err(NotImplementedError())

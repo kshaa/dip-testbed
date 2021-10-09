@@ -3,6 +3,7 @@
 
 import unittest
 from uuid import UUID
+from result import Ok
 import protocol
 import s11n
 
@@ -21,8 +22,8 @@ class TestS11n(unittest.TestCase):
         self.assertEqual(real_serialized_message, expected_serialized_message)
         # De-serialization
         unserialized_message = codec.decode(real_serialized_message)
-        self.assertTrue(unserialized_message.isRight)
-        self.assertEqual(message, unserialized_message.right)
+        self.assertTrue(isinstance(unserialized_message, Ok))
+        self.assertEqual(message, unserialized_message.value)
 
 
 if __name__ == '__main__':
