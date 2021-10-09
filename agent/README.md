@@ -1,4 +1,4 @@
-# Agent
+# DIP Testbed Agent
   
 ## Usage
 - Install `pipenv` for dependency management  
@@ -8,5 +8,5 @@
 - Run `./test.sh` to run unit tests  
 - Run `./lint.sh` to run linter
 - Run `./check.sh` to run all aforementioned types of tests
-- Run `./main.py` to run agent
-- Configure log level w/ env. variable `LOG_LEVEL`  
+- Define `LOG_LEVEL` environment variable to configure logging verbosity  
+- Run `./main.py --help` to print agent CLI usage definition

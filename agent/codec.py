@@ -7,7 +7,7 @@ T = TypeVar('T')
 
 
 class CodecParseException(Exception):
-    pass
+    """Exception thrown by failing decoders"""
 
 
 class Decoder(Generic[T]):
@@ -37,7 +37,7 @@ class Codec(Generic[T]):
         """Alias method to serialize to JSON"""
         return self.encoder.transform(value)
 
-    def decode(self, value: str) -> Result[T, Exception]:
+    def decode(self, value: str) -> Result[T, CodecParseException]:
         """Alias method to un-serialize from JSON"""
         return self.decoder.transform(value)
 

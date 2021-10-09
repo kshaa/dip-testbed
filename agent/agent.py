@@ -1,24 +1,41 @@
 #!/usr/bin/env python
 """Supervising agent, listening to server commands, passing to agent-specific engine"""
 
-from pprint import pprint, pformat
+from typing import TypeVar
+from pprint import pformat
 from websockets.exceptions import ConnectionClosedError
 from result import Err
 from ws import WebSocket
 import log
-from codec import CodecParseException, identityDecoder, identityEncoder
+from codec import CodecParseException, Encoder, Decoder
 from engine import Engine
 
 LOGGER = log.timed_named_logger("agent")
 
 
-async def agent() -> int:
+class AgentConfig:
+    """Common i.e. microcontroller-non-specific agent configuration options"""
+    control_server: str
+    static_server: str
+
+    def __init__(self, control_server: str, static_server: str):
+        self.control_server = control_server
+        self.static_server = static_server
+
+
+PI = TypeVar('PI')
+PO = TypeVar('PO')
+
+
+async def agent(
+        config: AgentConfig,
+        encoder: Encoder[PO],
+        decoder: Decoder[PI],
+        engine: Engine[PI, PO]) -> int:
     """Supervising agent, which connects to a websocket, listens
      to commands from server, passes them to an agent-specific engine"""
-    engine: Engine[str, str] = Engine()
-    control_server = "ws://localhost:12345"
-    websocket = WebSocket(control_server, identityDecoder, identityEncoder)
-    LOGGER.debug("Connecting connect to control server: %s", control_server)
+    websocket = WebSocket(config.control_server, decoder, encoder)
+    LOGGER.debug("Connecting connect to control server: %s", config.control_server)
     error = await websocket.connect()
     if error is not None:
         LOGGER.error("Couldn't connect to control server: %s", error)

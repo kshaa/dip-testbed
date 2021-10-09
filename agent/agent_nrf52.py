@@ -37,8 +37,21 @@ def firmware_upload(
         return Err((1, str.encode(f"{e}")))
 
 
+class EngineNRF52Config:
+    """NRF52 engine configuration options"""
+    baudrate: int
+
+    def __init__(self, baudrate: int):
+        self.baudrate = baudrate
+
+
 class EngineNRF52(Engine[CommonIncomingMessage, Any]):
     """Engine for NRF52 microcontroller"""
+    config: EngineNRF52Config
+
+    def __init__(self, config: EngineNRF52Config):
+        super().__init__()
+        self.config = config
 
     def process(self, message: CommonIncomingMessage) -> Result[Any, Exception]:
         """Consume server-sent message and react accordingly"""

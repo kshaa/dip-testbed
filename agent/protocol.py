@@ -1,7 +1,7 @@
 """Module containing messages sent between this agent and the control server"""
 from uuid import UUID
 from dataclasses import dataclass
-from typing import Union
+from typing import Union, Any
 
 
 @dataclass(frozen=True, eq=False)
@@ -14,3 +14,4 @@ class UploadMessage:
 
 
 CommonIncomingMessage = Union[UploadMessage]
+CommonOutgoingMessage = Union[Any]  # FIXME: Narrow this type down

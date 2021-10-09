@@ -1,15 +1,13 @@
 #!/usr/bin/env python
-"""Run an asynchronous agent instance till it fails or gracefully finishes"""
+"""Execute CLI definition which will trigger various entrypoints"""
 
-import asyncio
-import sys
-from agent import agent
+from cli import cli_agent
 import log
 
 LOGGER = log.timed_named_logger("main")
 
-# Run async agent
-LOGGER.info("Initializing agent")
-agent_return_code = asyncio.run(agent())
-LOGGER.info("Exiting with status code: %s", agent_return_code)
-sys.exit(agent_return_code)
+if __name__ == '__main__':
+    # This function auto-magically receives arguments/parameters
+    # from the click library, therefore we can ignore type errors
+    # pylint: disable=E1120
+    cli_agent()

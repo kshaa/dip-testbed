@@ -49,7 +49,9 @@ class WebSocket(Generic[PI, PO]):
             return Err(Exception("Not connected"))
         try:
             data = await self.socket.recv()
-            return self.decoder.transform(data)
+            # This returns CodecParseException, which mypy doesn't recognize
+            # as a type of Exception, which is weird, but lets suppress this
+            return self.decoder.transform(data)  # type: ignore
         except ConnectionClosedError as e:
             self.socket = None
             return Err(e)
