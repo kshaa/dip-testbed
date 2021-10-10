@@ -9,4 +9,5 @@
 - Run `sbt scalafix --check` to check lint
 - Run `sbt scalafix` to fix lint
 - Run `sbt scapegoat` to run static code analysis check 
-- Run `sbt web/run` to start the backend web server  
+- Run `sbt web/run` to start the development backend web server  
+- Run `sbt web/start` to start the production backend web server  
