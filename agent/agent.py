@@ -3,8 +3,11 @@
 
 from typing import TypeVar
 from pprint import pformat
+from dataclasses import dataclass
+from urllib.parse import ParseResult
 from websockets.exceptions import ConnectionClosedError
 from result import Err
+from agent_util import unparse_url
 from ws import WebSocket
 import log
 from codec import CodecParseException, Encoder, Decoder
@@ -12,15 +15,11 @@ from engine import Engine
 
 LOGGER = log.timed_named_logger("agent")
 
-
+@dataclass(frozen=True, eq=False)
 class AgentConfig:
     """Common i.e. microcontroller-non-specific agent configuration options"""
-    control_server: str
-    static_server: str
-
-    def __init__(self, control_server: str, static_server: str):
-        self.control_server = control_server
-        self.static_server = static_server
+    control_server: ParseResult
+    static_server: ParseResult
 
 
 PI = TypeVar('PI')
@@ -34,7 +33,12 @@ async def agent(
         engine: Engine[PI, PO]) -> int:
     """Supervising agent, which connects to a websocket, listens
      to commands from server, passes them to an agent-specific engine"""
-    websocket = WebSocket(config.control_server, decoder, encoder)
+    control_sever_str_result = unparse_url(config.control_server)
+    if isinstance(control_sever_str_result, Err):
+        LOGGER.error("Couldn't encode control server URL: %s", control_sever_str_result.value)
+        return 0
+    control_sever_str = control_sever_str_result.value
+    websocket = WebSocket(control_sever_str, decoder, encoder)
     LOGGER.debug("Connecting connect to control server: %s", config.control_server)
     error = await websocket.connect()
     if error is not None:

@@ -57,6 +57,5 @@ class EngineNRF52(Engine[CommonIncomingMessage, Any]):
         """Consume server-sent message and react accordingly"""
         message_type = type(message)
         if message_type == UploadMessage:
-            return Err(Exception("tada"))
-
+            return Err(NotImplementedError())
         return Err(NotImplementedError())

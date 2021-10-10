@@ -24,7 +24,7 @@ def supervise_agent(
         decoder: Decoder[PI],
         engine: Engine[PI, PO]):
     """Run any given, configured async agent"""
-    LOGGER.info("Configuring agent: %s", pformat(config, indent=4))
+    LOGGER.debug("Configuring agent: %s", pformat(config, indent=4))
     async_agent = agent(config, encoder, decoder, engine)
     LOGGER.info("Running async agent")
     agent_return_code = asyncio.run(async_agent)
