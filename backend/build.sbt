@@ -16,7 +16,8 @@ lazy val domain = (project in file("domain"))
     libraryDependencies ++= Seq(
       circeCorePackage,
       circeParserPackage,
-      hasher,
+      pbkdf2,
+      scalaTestPackage,
     ),
   )
 
@@ -79,6 +80,6 @@ lazy val web = (project in file("web"))
       slickPackage,
       catsEffectPackage,
       catsEffectTestingPackage,
-      hasher,
+      pbkdf2,
     ),
   )

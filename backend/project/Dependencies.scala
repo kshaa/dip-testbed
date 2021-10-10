@@ -23,6 +23,6 @@ object Dependencies {
   lazy val circeGenericExtrasPackage = "io.circe" %% "circe-generic-extras" % circeGenericExtrasVersion
   lazy val circeParserPackage = "io.circe" %% "circe-parser" % circeParserVersion
   lazy val scalaTestPackage = "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
-  lazy val hasher = "com.roundeights" % "hasher_2.12" % hasherVersion
+  lazy val pbkdf2 = "io.github.nremond" %% "pbkdf2-scala" % pbkdf2Version
 
 }

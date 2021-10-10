@@ -9,7 +9,7 @@ import cats.effect.unsafe.IORuntime
 import cats.implicits._
 import play.api.mvc._
 import iotfrisbee.database.services.UserService
-import iotfrisbee.domain.UserId
+import iotfrisbee.domain.{HashedPassword, UserId}
 import iotfrisbee.protocol._
 import iotfrisbee.protocol.Codecs._
 import iotfrisbee.protocol.WebResult._
@@ -28,7 +28,7 @@ class UserController(
 
   def createUser: Action[CreateUser] = {
     IOActionJSON[CreateUser] { request =>
-      EitherT(userService.createUser(request.body.username))
+      EitherT(userService.createUser(request.body.username, HashedPassword.fromPassword(request.body.password)))
         .leftMap(error => Failure(error.message).withHttpStatus(INTERNAL_SERVER_ERROR))
         .flatMap(creation =>
           EitherT.fromEither(

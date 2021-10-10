@@ -4,7 +4,7 @@ import scala.concurrent.ExecutionContext
 import slick.dbio.DBIOAction.sequenceOption
 import cats.effect.Async
 import cats.implicits._
-import iotfrisbee.domain.{User, UserId}
+import iotfrisbee.domain.{HashedPassword, User, UserId}
 import iotfrisbee.database.catalog.UserCatalog.{UserRow, UserTable, toDomain => userToDomain}
 import iotfrisbee.database.driver.DatabaseDriverOps._
 import iotfrisbee.database.driver.DatabaseOutcome.DatabaseResult
@@ -18,8 +18,8 @@ class UserService[F[_]: Async](
   def countUsers(): F[DatabaseResult[Int]] =
     UserQuery.length.result.tryRunDBIO(dbDriver)
 
-  def createUser(username: String): F[DatabaseResult[Option[User]]] = {
-    val row: UserRow = UserRow(username = username)
+  def createUser(username: String, hashedPassword: HashedPassword): F[DatabaseResult[Option[User]]] = {
+    val row: UserRow = UserRow(username = username, hashedPassword = hashedPassword.toSerializedString)
     val userCreation: DBIOAction[Option[Int], NoStream, Effect.Read with Effect.Write] = for {
       userUniqueCheck <- UserQuery.filter(_.username === username).result.headOption
       userCreation <- sequenceOption(Option.when(userUniqueCheck.isEmpty)(UserQuery += row))
@@ -42,4 +42,14 @@ class UserService[F[_]: Async](
       .headOption
       .map(_.map(userToDomain))
       .tryRunDBIO(dbDriver)
+
+  def getUserWithPassword(id: UserId, hashedPassword: HashedPassword): F[DatabaseResult[Option[User]]] =
+    UserQuery
+      .filter(_.uuid === id.value)
+      .filter(_.hashedPassword === hashedPassword.toSerializedString)
+      .result
+      .headOption
+      .map(_.map(userToDomain))
+      .tryRunDBIO(dbDriver)
+
 }

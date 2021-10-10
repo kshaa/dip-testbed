@@ -6,7 +6,7 @@
 create table "user" (
   "uuid" uuid not null primary key,
   "username" varchar(255) not null unique,
-  "password" varchar(255) not null,
+  "hashed_password" varchar(255) not null,
 );
 
 -- hardware

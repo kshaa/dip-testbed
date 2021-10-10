@@ -1,3 +1,3 @@
 package iotfrisbee.protocol
 
-case class CreateUser(username: String)
+case class CreateUser(username: String, password: String)
