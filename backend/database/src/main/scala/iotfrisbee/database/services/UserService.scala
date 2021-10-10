@@ -43,13 +43,12 @@ class UserService[F[_]: Async](
       .map(_.map(userToDomain))
       .tryRunDBIO(dbDriver)
 
-  def getUserWithPassword(id: UserId, hashedPassword: HashedPassword): F[DatabaseResult[Option[User]]] =
+  def getUserByName(username: String): F[DatabaseResult[Option[(User, HashedPassword)]]] =
     UserQuery
-      .filter(_.uuid === id.value)
-      .filter(_.hashedPassword === hashedPassword.toSerializedString)
+      .filter(_.username === username)
       .result
       .headOption
-      .map(_.map(userToDomain))
+      .map(_.map(row => (userToDomain(row), HashedPassword.fromSerializedString(row.hashedPassword).get)))
       .tryRunDBIO(dbDriver)
 
 }

@@ -27,7 +27,7 @@ class HardwareController(
     with IOController {
 
   def createHardware: Action[CreateHardware] =
-    IOActionJSON[CreateHardware] { request =>
+    IOActionJSON[CreateHardware] { request: Request[CreateHardware] =>
       EitherT(hardwareService.createHardware(request.body.name, request.body.ownerId))
         .leftMap(error => Failure(error.message).withHttpStatus(INTERNAL_SERVER_ERROR))
         .flatMap(create =>
