@@ -5,6 +5,7 @@ import asyncio
 from typing import TypeVar
 import sys
 from pprint import pformat
+import s11n
 from codec import Encoder, Decoder
 from engine import Engine
 from agent import AgentConfig, agent
@@ -34,6 +35,6 @@ def supervise_agent(
 def supervise_agent_nrf52(agent_config: AgentConfig, engine_config: EngineNRF52Config):
     """Initiate NRF52 microcontroller agent"""
     engine = EngineNRF52(engine_config)
-    encoder = NotImplemented  # FIXME: Define an actual encoder for NRF52
-    decoder = NotImplemented  # FIXME: Define an actual decoder for NRF52
+    encoder = s11n.COMMON_OUTGOING_MESSAGE_ENCODER
+    decoder = s11n.COMMON_INCOMING_MESSAGE_DECODER
     supervise_agent(agent_config, encoder, decoder, engine)

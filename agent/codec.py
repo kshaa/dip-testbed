@@ -8,6 +8,8 @@ T = TypeVar('T')
 
 class CodecParseException(Exception):
     """Exception thrown by failing decoders"""
+    def __eq__(self, other) -> bool:
+        return str(self) == str(other)
 
 
 class Decoder(Generic[T]):
@@ -42,6 +44,6 @@ class Codec(Generic[T]):
         return self.decoder.transform(value)
 
 
-identityEncoder: Encoder[str] = Encoder(lambda x: x)
-identityDecoder: Decoder[str] = Decoder(Ok)
-identityCodec: Codec[str] = Codec(identityDecoder, identityEncoder)
+stringEncoder: Encoder[str] = Encoder(lambda x: x)
+stringDecoder: Decoder[str] = Decoder(Ok)
+stringCodec: Codec[str] = Codec(stringDecoder, stringEncoder)

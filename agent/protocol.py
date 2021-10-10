@@ -1,7 +1,7 @@
 """Module containing messages sent between this agent and the control server"""
 from uuid import UUID
 from dataclasses import dataclass
-from typing import Union, Any
+from typing import Union
 
 
 @dataclass(frozen=True, eq=False)
@@ -13,5 +13,14 @@ class UploadMessage:
         return str(self.firmware_id) == str(other.firmware_id)
 
 
+@dataclass(frozen=True, eq=False)
+class FailedUploadMessage:
+    """Message regarding failure to upload a given binary firmware to the microcontroller"""
+    error_message: str
+
+    def __eq__(self, other) -> bool:
+        return str(self.error_message) == str(other.error_message)
+
+
 CommonIncomingMessage = Union[UploadMessage]
-CommonOutgoingMessage = Union[Any]  # FIXME: Narrow this type down
+CommonOutgoingMessage = Union[FailedUploadMessage]
