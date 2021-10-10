@@ -32,12 +32,13 @@ class UserControllerSpec extends IotFrisbeeSpec with GivenWhenThen {
         _ <- IO.pure(Given("An empty database"))
 
         _ = Then("A user w/ a generated id should be creatable")
-        userCreation <- createUser(userController, CreateUser("john"))
+        userPassword = "hunter2"
+        userCreation <- createUser(userController, CreateUser("john", userPassword))
         user = userCreation.map(_.value).toOption
         userCreationCheck = userCreation.map(_.value.username).shouldEqual(Right("john"))
 
         _ = Then("A user w/ a duplicate username should be forbidden")
-        userDuplicateCreation <- createUser(userController, CreateUser("john"))
+        userDuplicateCreation <- createUser(userController, CreateUser("john", userPassword))
         userDuplicateCreationCheck = userDuplicateCreation.isLeft.shouldBe(true)
 
         _ = And("A user should be retrievable by a generated id")

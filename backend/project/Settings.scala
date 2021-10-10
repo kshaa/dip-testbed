@@ -1,9 +1,13 @@
 import sbt.Keys._
 import play.sbt.PlayImport.PlayKeys._
+import scalafix.sbt.ScalafixPlugin.autoImport.scalafixSemanticdb
 
 object Settings {
   lazy val scalaSettings = Seq(
     scalaVersion := Versions.scalaVersion,
+    semanticdbEnabled := true,
+    semanticdbVersion := scalafixSemanticdb.revision,
+//    scapegoatVersion := Versions.scapegoat
   )
 
   lazy val playDevSettings = Seq(

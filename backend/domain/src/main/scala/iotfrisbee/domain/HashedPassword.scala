@@ -21,13 +21,20 @@ object HashedPassword {
       case _ => None
     }
 
-  def fromPassword(password: String, salt: Salt = Salt.randomSalt(), iterations: Int = 20000, keyLength: Int = 32): HashedPassword = {
-    val hash = Hash(PBKDF2(
-      password.getBytes(StandardCharsets.UTF_8),
-      salt.value,
-      iterations,
-      keyLength
-    ))
+  def fromPassword(
+    password: String,
+    salt: Salt = Salt.randomSalt(),
+    iterations: Int = 20000,
+    keyLength: Int = 32,
+  ): HashedPassword = {
+    val hash = Hash(
+      PBKDF2(
+        password.getBytes(StandardCharsets.UTF_8),
+        salt.value,
+        iterations,
+        keyLength,
+      ),
+    )
     HashedPassword(salt, hash)
   }
 }

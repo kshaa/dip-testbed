@@ -1,10 +1,11 @@
 import Settings._
 import Dependencies._
 
+ThisBuild / scapegoatVersion := Versions.scapegoatVersion
+
 lazy val root = (project in file("."))
   .settings(scalaSettings: _*)
   .settings(metaSettings: _*)
-  .settings(scalacSettings: _*)
   .aggregate(domain, protocol, database, web)
 
 lazy val domain = (project in file("domain"))

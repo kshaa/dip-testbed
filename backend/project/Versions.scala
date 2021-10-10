@@ -1,5 +1,6 @@
 object Versions {
   lazy val scalaVersion = "2.13.5"
+  lazy val scapegoatVersion = "1.4.9"
   lazy val slickVersion = "3.3.3"
   lazy val akkaClusterToolsVersion = "2.6.14"
   lazy val akkaTestkitVersion = "2.6.14"

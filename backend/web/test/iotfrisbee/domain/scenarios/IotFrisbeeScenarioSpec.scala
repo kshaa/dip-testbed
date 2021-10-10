@@ -38,7 +38,8 @@ class IotFrisbeeScenarioSpec extends IotFrisbeeSpec with GivenWhenThen {
         initialStatusCheck = initialStatus.shouldEqual(Right(Success(ServiceStatus.empty)))
 
         _ = And("A user w/ a generated id should be creatable")
-        userCreation <- createUser(userController, CreateUser("andrew"))
+        userPassword = "hunter2"
+        userCreation <- createUser(userController, CreateUser("andrew", userPassword))
         userCreationCheck = userCreation.map(_.value.username).shouldEqual(Right("andrew"))
         user = userCreation.map(_.value).toOption.get
 

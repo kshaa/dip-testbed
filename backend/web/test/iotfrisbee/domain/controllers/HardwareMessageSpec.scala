@@ -36,7 +36,8 @@ class HardwareMessageSpec extends IotFrisbeeSpec with GivenWhenThen {
         _ <- IO.pure(Given("An empty database"))
 
         _ = When("A user w/ a generated id is created")
-        userCreation <- createUser(userController, CreateUser("janisberzins"))
+        userPassword = "hunter2"
+        userCreation <- createUser(userController, CreateUser("janisberzins", userPassword))
         user = userCreation.map(_.value).toOption.get
 
         _ = And("Their hardware w/ a generated id is created")

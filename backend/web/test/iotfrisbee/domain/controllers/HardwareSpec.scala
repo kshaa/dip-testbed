@@ -40,7 +40,8 @@ class HardwareSpec extends IotFrisbeeSpec with GivenWhenThen {
             .shouldEqual(Right(Failure("Owner with that id doesn't exist")))
 
         _ = When("A user w/ a generated id is created")
-        userCreation <- createUser(userController, CreateUser("janisberzins"))
+        userPassword = "hunter2"
+        userCreation <- createUser(userController, CreateUser("janisberzins", userPassword))
         user = userCreation.map(_.value).toOption.get
 
         _ = Then("Hardware w/ a generated id should be creatable")
