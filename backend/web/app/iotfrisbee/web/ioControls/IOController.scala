@@ -4,6 +4,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
 import scala.util.Try
 import akka.stream.Materializer
+import cats.Monad
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
 import cats.implicits._
@@ -17,6 +18,8 @@ import iotfrisbee.web.ioControls.PipelineOps._
 trait IOController extends Circe {
   import PipelineTypes._
 
+  val effectMonad: Monad[IO] = Monad[IO]
+
   def cc: play.api.mvc.ControllerComponents
 
   def charset(result: Result): Option[String] =
@@ -26,6 +29,7 @@ trait IOController extends Circe {
     }
 
   // This method is bad and it makes me unhappy - https://i.imgur.com/8gvEZqx.jpg
+  // (because of the global execution context use)
   def resultAsString(result: Result)(implicit materializer: Materializer): String = {
     import scala.concurrent.ExecutionContext.Implicits.global
     Await.result(result.body.consumeData.map(_.decodeString(charset(result).getOrElse("utf-8"))), 1.minute)

@@ -18,23 +18,23 @@ class IotFrisbeeRouter(
     case GET(p"/status") => homeController.status
 
     // Users
-    case POST(p"/users")                => userController.createUser
-    case GET(p"/users")                 => userController.getUsers
-    case GET(p"/users/${uuid(userId)}") => userController.getUser(UserId(userId))
+    case POST(p"/user")                => userController.createUser
+    case GET(p"/user")                 => userController.getUsers
+    case GET(p"/user/${uuid(userId)}") => userController.getUser(UserId(userId))
 
     // Hardware
-    case POST(p"/hardwares")                    => hardwareController.createHardware
-    case GET(p"/hardwares")                     => hardwareController.getHardwares
-    case GET(p"/hardwares/${uuid(hardwareId)}") => hardwareController.getHardware(HardwareId(hardwareId))
+    case POST(p"/hardware")                    => hardwareController.createHardware
+    case GET(p"/hardware")                     => hardwareController.getHardwares
+    case GET(p"/hardware/${uuid(hardwareId)}") => hardwareController.getHardware(HardwareId(hardwareId))
 
     // Hardware message
-    case POST(p"/hardware-messages") => hardwareMessageController.createHardwareMessage
-    case GET(p"/hardware-messages")  => hardwareMessageController.getHardwareMessages(None)
-    case GET(p"/hardware-messages/${uuid(hardwareMessageId)}") =>
+    case POST(p"/hardware-message") => hardwareMessageController.createHardwareMessage
+    case GET(p"/hardware-message")  => hardwareMessageController.getHardwareMessages(None)
+    case GET(p"/hardware-message/${uuid(hardwareMessageId)}") =>
       hardwareMessageController.getHardwareMessage(HardwareMessageId(hardwareMessageId))
-    case GET(p"/hardwares/${uuid(hardwareId)}/messages") =>
+    case GET(p"/hardware/${uuid(hardwareId)}/message") =>
       hardwareMessageController.getHardwareMessages(Some(HardwareId(hardwareId)))
-    case GET(p"/hardwares/${uuid(hardwareId)}/messages/subscribe") =>
+    case GET(p"/hardware/${uuid(hardwareId)}/message/subscribe") =>
       hardwareMessageController.subscribeHardwareMessages(HardwareId(hardwareId))
 
   }

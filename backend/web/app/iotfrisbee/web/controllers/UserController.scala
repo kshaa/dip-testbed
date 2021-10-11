@@ -24,22 +24,20 @@ class UserController(
   @unused iort: IORuntime,
   @unused materializer: Materializer,
 ) extends AbstractController(cc)
-    with IOController {
+    with IOController
+    with ResultsController[IO] {
 
   def createUser: Action[CreateUser] = {
     IOActionJSON[CreateUser] { request =>
-      EitherT(userService.createUser(request.body.username, HashedPassword.fromPassword(request.body.password)))
-        .leftMap(error => Failure(error.message).withHttpStatus(INTERNAL_SERVER_ERROR))
-        .flatMap(creation =>
-          EitherT.fromEither(
-            creation
-              .toRight("Username already taken")
-              .bimap(
-                errorMessage => Failure(errorMessage).withHttpStatus(BAD_REQUEST),
-                user => Success(user).withHttpStatus(OK),
-              ),
-          ),
-        )
+      EitherT(userService.createUser(
+        request.body.username,
+        HashedPassword.fromPassword(request.body.password)))
+        .leftMap(databaseErrorResult)
+        .subflatMap(_.toRight("Username already taken")
+          .bimap(
+            errorMessage => Failure(errorMessage).withHttpStatus(BAD_REQUEST),
+            user => Success(user).withHttpStatus(OK),
+          ))
     }
   }
 

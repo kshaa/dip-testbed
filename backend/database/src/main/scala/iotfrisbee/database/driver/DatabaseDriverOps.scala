@@ -5,7 +5,6 @@ import iotfrisbee.database.driver.DatabaseOutcome.DatabaseResult
 import slick.sql.SqlProfile
 import slick.dbio.{DBIOAction, NoStream}
 import scala.language.implicitConversions
-import cats.implicits._
 import slick.relational.RelationalBackend
 
 object DatabaseDriverOps {
@@ -22,6 +21,6 @@ object DatabaseDriverOps {
   }
 
   implicit class ResultSyntax[R](val dbioAction: DatabaseResult[R]) {
-    implicit def tryGet: R = dbioAction.leftMap(_.value).toTry.get
+    implicit def tryGet: R = dbioAction.toTry.get
   }
 }

@@ -5,7 +5,7 @@ import slick.basic.DatabaseConfig
 import slick.jdbc.{H2Profile, JdbcBackend, JdbcProfile}
 import slick.sql.SqlProfile
 import cats.implicits._
-import iotfrisbee.database.driver.DatabaseOutcome.{DatabaseError, DatabaseResult}
+import iotfrisbee.database.driver.DatabaseOutcome.{DatabaseException, DatabaseResult}
 import slick.relational.RelationalBackend
 import play.api.db.{Database => PlayDatabase}
 import slick.dbio.{DBIOAction, Effect, NoStream}
@@ -21,7 +21,7 @@ trait DatabaseDriver[B <: RelationalBackend#DatabaseDef, P <: SqlProfile] {
     Async[F].fromFuture(Async[F].pure(database.run(dbioAction)))
 
   def tryRunDBIO[F[_]: Async, R](dbioAction: DBIOAction[R, NoStream, Nothing]): F[DatabaseResult[R]] =
-    runDBIO(dbioAction).map(Either.catchNonFatal(_).leftMap(DatabaseError))
+    runDBIO(dbioAction).map(Either.catchNonFatal(_).leftMap(DatabaseException))
 }
 
 object DatabaseDriver {
