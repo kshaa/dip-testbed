@@ -12,6 +12,7 @@ class IotFrisbeeRouter(
   userController: UserController,
   hardwareController: HardwareController,
   hardwareMessageController: HardwareMessageController,
+  softwareController: SoftwareController,
 ) extends SimpleRouter {
   def routes: Routes = {
     case GET(p"/")       => homeController.index
@@ -36,6 +37,11 @@ class IotFrisbeeRouter(
       hardwareMessageController.getHardwareMessages(Some(HardwareId(hardwareId)))
     case GET(p"/hardware/${uuid(hardwareId)}/message/subscribe") =>
       hardwareMessageController.subscribeHardwareMessages(HardwareId(hardwareId))
+
+    // Software
+    case POST(p"/software") => softwareController.createSoftware
+    case GET(p"/software") => softwareController.getSoftwareMetas
+    case GET(p"/software/${uuid(softwareId)}/download") => softwareController.getSoftware(SoftwareId(softwareId))
 
   }
 }

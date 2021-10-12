@@ -2,6 +2,7 @@ package iotfrisbee.web
 
 import akka.actor.{ActorRef, ActorSystem}
 import akka.cluster.pubsub.DistributedPubSub
+
 import scala.concurrent.Future
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
@@ -18,6 +19,7 @@ import play.filters.HttpFiltersComponents
 import slick.jdbc.{H2Profile, JdbcProfile}
 import iotfrisbee.database.catalog.HardwareCatalog.HardwareTable
 import iotfrisbee.database.catalog.HardwareMessageCatalog.HardwareMessageTable
+import iotfrisbee.database.catalog.SoftwareCatalog.SoftwareTable
 import iotfrisbee.database.catalog.UserCatalog.UserTable
 import iotfrisbee.database.driver.DatabaseDriver.{JdbcDatabaseDriver, fromJdbcConfig, fromPlayDatabase}
 import iotfrisbee.database.services._
@@ -50,10 +52,12 @@ class IotFrisbeeModule(context: Context)(implicit iort: IORuntime)
   lazy val userTable = new UserTable(defaultDatabaseDriver)
   lazy val hardwareTable = new HardwareTable(defaultDatabaseDriver)
   lazy val hardwareMessageTable = new HardwareMessageTable(defaultDatabaseDriver)
+  lazy val softwareTable = new SoftwareTable(defaultDatabaseDriver)
 
   lazy val userService = new UserService[IO](userTable)
   lazy val hardwareService = new HardwareService[IO](hardwareTable, userTable)
   lazy val hardwareMessageService = new HardwareMessageService[IO](hardwareMessageTable, hardwareTable)
+  lazy val softwareService = new SoftwareService[IO](softwareTable, userTable)
 
   lazy val homeController = new HomeController(
     controllerComponents,
@@ -65,6 +69,8 @@ class IotFrisbeeModule(context: Context)(implicit iort: IORuntime)
   lazy val hardwareController = new HardwareController(controllerComponents, hardwareService, userService)
   lazy val hardwareMessageController =
     new HardwareMessageController(controllerComponents, pubSubMediator, hardwareMessageService)
+  lazy val softwareController =
+    new SoftwareController(controllerComponents, softwareService, userService)
 
   lazy val basePrefix = "/api"
   lazy val v1Prefix = "/v1"
@@ -74,6 +80,7 @@ class IotFrisbeeModule(context: Context)(implicit iort: IORuntime)
       userController,
       hardwareController,
       hardwareMessageController,
+      softwareController,
     ).withPrefix(f"${basePrefix}${v1Prefix}")
 }
 

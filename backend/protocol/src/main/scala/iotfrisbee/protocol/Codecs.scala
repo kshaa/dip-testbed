@@ -19,6 +19,8 @@ object Codecs {
   implicit val hardwareCodec: Codec[Hardware] = deriveCodec[Hardware]
   implicit val hardwareMessageIdCodec: Codec[HardwareMessageId] = deriveUnwrappedCodec[HardwareMessageId]
   implicit val hardwareMessageCodec: Codec[HardwareMessage] = deriveCodec[HardwareMessage]
+  implicit val softwareIdCodec: Codec[SoftwareId] = deriveUnwrappedCodec[SoftwareId]
+  implicit val softwareMetaCodec: Codec[SoftwareMeta] = deriveCodec[SoftwareMeta]
 
   implicit def webResultSuccessCodec[A: Encoder: Decoder]: Codec[Success[A]] =
     Codec.forProduct1[Success[A], A]("success")(Success(_))(_.value)

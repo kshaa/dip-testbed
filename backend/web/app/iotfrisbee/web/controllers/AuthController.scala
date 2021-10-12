@@ -19,6 +19,8 @@ trait AuthController[F[_]] { self: ResultsController[F] =>
   val effectMonad: Monad[F]
   val userService: UserService[F]
 
+  val authorizationErrorResult = Failure("Failed to authenticate request").withHttpStatus(UNAUTHORIZED)
+
   def withRequestAuthn[R, H](
     request: Request[R])(
     handler: (Request[R], DatabaseResult[Option[User]]) => F[H]): F[H] = {
@@ -39,7 +41,7 @@ trait AuthController[F[_]] { self: ResultsController[F] =>
       userResult
         .toEitherT[F]
         .leftMap(databaseErrorResult)
-        .flatMap(_.toRight(Failure("Failed to authenticate request").withHttpStatus(UNAUTHORIZED)).toEitherT[F])
+        .flatMap(_.toRight(authorizationErrorResult).toEitherT[F])
         .flatMap(handler(request, _))
         .value
     ))

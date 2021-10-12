@@ -1,4 +1,5 @@
 # DIP Testbed
+The mantra in this project is "first make it work, refactor later (maybe)"
 
 ## Usage
 - See [backend/README.md](./backend/README.md) for backend usage  

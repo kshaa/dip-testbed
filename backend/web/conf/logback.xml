@@ -34,12 +34,12 @@
   <logger name="com.zaxxer.hikari" level="OFF">
     <appender-ref ref="STDOUT" />
   </logger>
-  <logger name="org.jdbcdslog.ConnectionLogger" level="INFO"  />
-  <logger name="org.jdbcdslog.StatementLogger"  level="INFO" />
-  <logger name="org.jdbcdslog.ResultSetLogger"  level="INFO"  />
+  <logger name="org.jdbcdslog.ConnectionLogger" level="DEBUG"  />
+  <logger name="org.jdbcdslog.StatementLogger"  level="DEBUG" />
+  <logger name="org.jdbcdslog.ResultSetLogger"  level="DEBUG"  />
 
   <!-- Slick -->
-  <logger name="slick.jdbc.JdbcBackend.statement" level="INFO" />
+  <logger name="slick.jdbc.JdbcBackend.statement" level="DEBUG" />
 
   <!-- Evolutions -->
   <logger name="play.api.db.evolutions" level="INFO" />
