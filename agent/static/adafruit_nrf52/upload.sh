@@ -64,8 +64,23 @@ if [ ! -e "${device}" ]; then
 fi
 
 # Upload firmware to device
+tmplog=$(mktemp)
 tmpdir="$(mktemp -d)"
 dfupackage="${tmpdir}/firmware-package.zip"
-adafruit-nrfutil dfu genpkg --dev-type 0x0052 --application "${firmwarehex}" "${dfupackage}"
-adafruit-nrfutil dfu serial --package "${dfupackage}" -p "${device}" -b "${baudrate}"
+firmwarehextmp="${firmwarehex}.hex"
+cp -rf "${firmwarehex}" "${firmwarehextmp}"
+adafruit-nrfutil dfu genpkg --dev-type 0x0052 --application "${firmwarehextmp}" "${dfupackage}"
+adafruit-nrfutil dfu serial --package "${dfupackage}" -p "${device}" -b "${baudrate}" | tee $tmplog
 rm -rf "${tmpdir}"
+rm -rf "${firmwarehextmp}"
+rm -rf "${dfupackage}"
+
+# Double check if nrfutil failed
+if grep -q "Traceback" $tmplog; then
+    rm -rf "${tmplog}"
+    exit 1
+else
+    rm -rf "${tmplog}"
+    exit 0
+fi
+

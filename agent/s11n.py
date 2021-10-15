@@ -2,7 +2,7 @@
 
 import json
 import uuid
-from typing import Dict, Type, TypeVar
+from typing import Dict, Type, TypeVar, Any
 from result import Result, Err, Ok
 from codec import Encoder, Decoder, Codec, CodecParseException
 import protocol
@@ -11,12 +11,29 @@ NO_WHITESPACE_SEPERATORS = (',', ':')
 
 
 # Raw JSON
-def json_decode(value: str) -> Result[Dict, CodecParseException]:
+def json_decode(value: str) -> Result[Any, CodecParseException]:
     """Decode json or return Err Result"""
     try:
         return Ok(json.loads(value))
     except Exception as e:
         return Err(CodecParseException(str(e)))
+
+
+# Command JSON
+def named_message_extract(name: str, message: Any) -> Result[Any, CodecParseException]:
+    """Extract payload from a named command"""
+    if isinstance(message, dict):
+        command = message.get("command")
+        if not isinstance(command, str):
+            return Err(CodecParseException("Message requires string 'command' field"))
+        if not command == name:
+            return Err(CodecParseException("Unknown message command name"))
+        if "payload" not in message:
+            return Err(CodecParseException("Message requires 'payload' field"))
+        payload = message.get("payload")
+        return Ok(payload)
+    else:
+        return Err(CodecParseException("Message must be an object"))
 
 
 # UnionEncoder & UnionDecoder
@@ -52,7 +69,13 @@ def union_decoder(class_decoders: Dict[Type[C], Decoder[C]]) -> Decoder[C]:
 # protocol.UploadMessage
 def upload_message_encode(value: protocol.UploadMessage) -> str:
     """Serialize UploadMessage to JSON"""
-    return json.dumps({"firmware_id": str(value.firmware_id)}, separators=NO_WHITESPACE_SEPERATORS)
+    message = {
+        "command": "uploadSoftwareRequest",
+        "payload": {
+            "softwareId": str(value.software_id)
+        }
+    }
+    return json.dumps(message, separators=NO_WHITESPACE_SEPERATORS)
 
 
 def upload_message_decode(value: str) -> Result[protocol.UploadMessage, CodecParseException]:
@@ -60,10 +83,13 @@ def upload_message_decode(value: str) -> Result[protocol.UploadMessage, CodecPar
     json_result = json_decode(value)
     if isinstance(json_result, Err):
         return Err(json_result.value)
-    result = json_result.value
+    command_result = named_message_extract("uploadSoftwareRequest", json_result.value)
+    if isinstance(command_result, Err):
+        return Err(command_result.value)
+    result = command_result.value
 
     if isinstance(result, dict):
-        firmware_id = result.get("firmware_id")
+        firmware_id = result.get("softwareId")
         if isinstance(firmware_id, str):
             try:
                 return Ok(protocol.UploadMessage(uuid.UUID(firmware_id)))

@@ -7,10 +7,10 @@ from typing import Union
 @dataclass(frozen=True, eq=False)
 class UploadMessage:
     """Message to upload a given binary firmware to the microcontroller"""
-    firmware_id: UUID
+    software_id: UUID
 
     def __eq__(self, other) -> bool:
-        return str(self.firmware_id) == str(other.firmware_id)
+        return str(self.software_id) == str(other.software_id)
 
 
 @dataclass(frozen=True, eq=False)

@@ -1,11 +1,14 @@
 """Typed, auto-coded websocket client definition"""
 
+from pprint import pformat
 from typing import TypeVar, Generic, Any, Optional
 import websockets
 from websockets.exceptions import ConnectionClosedError
 from result import Result, Err
 from codec import Decoder, Encoder
+import log
 
+LOGGER = log.timed_named_logger("websocket")
 PI = TypeVar('PI')
 PO = TypeVar('PO')
 
@@ -49,6 +52,7 @@ class WebSocket(Generic[PI, PO]):
             return Err(Exception("Not connected"))
         try:
             data = await self.socket.recv()
+            LOGGER.debug("Received message: %s", pformat(data, indent=4))
             # This returns CodecParseException, which mypy doesn't recognize
             # as a type of Exception, which is weird, but lets suppress this
             return self.decoder.transform(data)  # type: ignore

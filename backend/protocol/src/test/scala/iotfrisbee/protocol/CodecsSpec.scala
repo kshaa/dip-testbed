@@ -39,7 +39,7 @@ class CodecsSpec extends AnyFreeSpec with Matchers {
   }
 
   "hardware control upload request messages should encode and decode" in {
-    // {"command":"uploadSoftwareResult","payload":{"error":null}}
+    // {"command":"uploadSoftwareRequest","payload":{"softwareId":"16d7ce54-2d10-11ec-a35e-d79560b12f04"}}
     val softwareUUID = "16d7ce54-2d10-11ec-a35e-d79560b12f04"
     val serialized = "{\"command\":\"uploadSoftwareRequest\",\"payload\":{\"softwareId\":\"" + softwareUUID + "\"}}"
     val softwareId = SoftwareId.fromString(softwareUUID).toOption.get
