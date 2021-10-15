@@ -1,11 +1,12 @@
 package iotfrisbee.protocol
 
-import cats.implicits._
 import io.circe.generic.semiauto.deriveCodec
 import io.circe.generic.extras.semiauto.deriveUnwrappedCodec
 import io.circe.{Codec, Decoder, DecodingFailure, Encoder}
 import io.circe.syntax._
+import cats.implicits._
 import iotfrisbee.domain._
+import iotfrisbee.domain.HardwareControlMessage._
 import iotfrisbee.protocol.WebResult._
 
 object Codecs {
@@ -21,6 +22,24 @@ object Codecs {
   implicit val hardwareMessageCodec: Codec[HardwareMessage] = deriveCodec[HardwareMessage]
   implicit val softwareIdCodec: Codec[SoftwareId] = deriveUnwrappedCodec[SoftwareId]
   implicit val softwareMetaCodec: Codec[SoftwareMeta] = deriveCodec[SoftwareMeta]
+
+  implicit val NamedMessageCodec: Codec[NamedMessage] = deriveCodec[NamedMessage]
+
+  private implicit val uploadSoftwareRequestCodec: Codec[UploadSoftwareRequest] = deriveCodec[UploadSoftwareRequest]
+  private implicit val uploadSoftwareResultCodec: Codec[UploadSoftwareResult] = deriveCodec[UploadSoftwareResult]
+  implicit val hardwareControlMessageEncoder: Encoder[HardwareControlMessage] = Encoder.instance {
+    case c: UploadSoftwareRequest => NamedMessage("uploadSoftwareRequest", c.asJson).asJson
+    case c: UploadSoftwareResult => NamedMessage("uploadSoftwareResult", c.asJson).asJson
+  }
+  implicit val hardwareControlMessageDecoder: Decoder[HardwareControlMessage] =
+    Decoder[NamedMessage].emap { m => {
+      val codec: Option[Decoder[HardwareControlMessage]] = m.command match {
+        case "uploadSoftwareRequest" => Decoder[UploadSoftwareRequest].widen[HardwareControlMessage].some
+        case "uploadSoftwareResult" => Decoder[UploadSoftwareResult].widen[HardwareControlMessage].some
+        case _ => None
+      }
+      codec.toRight("Unknown command").flatMap(_.decodeJson(m.payload).leftMap(_.message))
+    }}
 
   implicit def webResultSuccessCodec[A: Encoder: Decoder]: Codec[Success[A]] =
     Codec.forProduct1[Success[A], A]("success")(Success(_))(_.value)

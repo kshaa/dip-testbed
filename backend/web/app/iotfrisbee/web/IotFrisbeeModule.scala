@@ -66,7 +66,8 @@ class IotFrisbeeModule(context: Context)(implicit iort: IORuntime)
     hardwareMessageService,
   )
   lazy val userController = new UserController(controllerComponents, userService)
-  lazy val hardwareController = new HardwareController(controllerComponents, hardwareService, userService)
+  lazy val hardwareController =
+    new HardwareController(controllerComponents, pubSubMediator, hardwareService, userService)
   lazy val hardwareMessageController =
     new HardwareMessageController(controllerComponents, pubSubMediator, hardwareMessageService)
   lazy val softwareController =

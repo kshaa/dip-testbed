@@ -25,8 +25,6 @@ class UserService[F[_]: Async](
       userCreation <- sequenceOption(Option.when(userUniqueCheck.isEmpty)(UserQuery += row))
     } yield userCreation
 
-    println(s"Creating user w/ hashedPassword: ${hashedPassword}")
-
     userCreation
       .tryRunDBIO(dbDriver)
       .map(dbioAction => dbioAction.map(userId => userId.map(_ => userToDomain(row))))

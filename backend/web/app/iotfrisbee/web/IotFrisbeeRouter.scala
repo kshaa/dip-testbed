@@ -24,9 +24,12 @@ class IotFrisbeeRouter(
     case GET(p"/user/${uuid(userId)}") => userController.getUser(UserId(userId))
 
     // Hardware
-    case POST(p"/hardware")                    => hardwareController.createHardware
-    case GET(p"/hardware")                     => hardwareController.getHardwares
-    case GET(p"/hardware/${uuid(hardwareId)}") => hardwareController.getHardware(HardwareId(hardwareId))
+    case POST(p"/hardware")                             => hardwareController.createHardware
+    case GET(p"/hardware")                              => hardwareController.getHardwares
+    case GET(p"/hardware/${uuid(hardwareId)}")          => hardwareController.getHardware(HardwareId(hardwareId))
+    case GET(p"/hardware/${uuid(hardwareId)}/control")  => hardwareController.controlHardware(HardwareId(hardwareId))
+    case GET(p"/hardware/${uuid(hardwareId)}/upload/software/${uuid(softwareId)}") =>
+      hardwareController.uploadHardwareSoftware(HardwareId(hardwareId), SoftwareId(softwareId))
 
     // Hardware message
     case POST(p"/hardware-message") => hardwareMessageController.createHardwareMessage
