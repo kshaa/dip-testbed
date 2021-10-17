@@ -50,6 +50,7 @@ class CodecsSpec extends AnyFreeSpec with Matchers {
 
   "hardware control upload result messages should encode and decode" in {
     // {"command":"uploadSoftwareResult","payload":{"error":null}}
+    // {"command":"uploadSoftwareResult","payload":{"error":"lp0 on fire"}}
     val serialized = "{\"command\":\"uploadSoftwareResult\",\"payload\":{\"error\":null}}"
     val unserialized: HardwareControlMessage = HardwareControlMessage.UploadSoftwareResult(None)
     unserialized.asJson.noSpaces.shouldEqual(serialized)

@@ -1,5 +1,5 @@
 import Settings._
-import Dependencies._
+import Dependencies.{logback, _}
 
 ThisBuild / scapegoatVersion := Versions.scapegoatVersion
 
@@ -82,5 +82,7 @@ lazy val web = (project in file("web"))
       catsEffectPackage,
       catsEffectTestingPackage,
       pbkdf2,
+      logback,
+      scalaLogging
     ),
   )

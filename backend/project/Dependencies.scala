@@ -24,5 +24,7 @@ object Dependencies {
   lazy val circeParserPackage = "io.circe" %% "circe-parser" % circeParserVersion
   lazy val scalaTestPackage = "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
   lazy val pbkdf2 = "io.github.nremond" %% "pbkdf2-scala" % pbkdf2Version
+  lazy val logback = "ch.qos.logback" % "logback-classic" % logbackVersion
+  lazy val scalaLogging = "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion
 
 }

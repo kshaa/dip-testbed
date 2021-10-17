@@ -21,4 +21,6 @@ object Versions {
   lazy val circeParserVersion = "0.12.2"
   lazy val scalaTestVersion = "3.2.7"
   lazy val pbkdf2Version = "0.6.5"
+  lazy val logbackVersion = "1.2.3"
+  lazy val scalaLoggingVersion = "3.9.4"
 }

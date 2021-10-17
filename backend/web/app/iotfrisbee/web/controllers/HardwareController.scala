@@ -10,13 +10,14 @@ import cats.effect.IO
 import cats.effect.unsafe.IORuntime
 import cats.implicits._
 import iotfrisbee.database.services.{HardwareService, UserService}
-import iotfrisbee.domain.HardwareControlMessage.UploadSoftwareRequest
+import iotfrisbee.domain.HardwareControlMessage.{UploadSoftwareRequest, UploadSoftwareResult}
 import iotfrisbee.domain.{HardwareControlMessage, HardwareId, SoftwareId}
 import iotfrisbee.protocol._
 import iotfrisbee.protocol.Codecs._
 import iotfrisbee.protocol.WebResult._
 import iotfrisbee.web.actors.HardwareControlActor.{hardwareActor, transformer}
-import iotfrisbee.web.actors.{BetterActorFlow, HardwareControlActor}
+import iotfrisbee.web.actors.QueryActor.Promise
+import iotfrisbee.web.actors.{BetterActorFlow, HardwareControlActor, QueryActor}
 import iotfrisbee.web.ioControls.PipelineOps._
 import iotfrisbee.web.ioControls._
 import play.api.mvc._
@@ -64,8 +65,10 @@ class HardwareController(
           ))
     }
 
-  def controlHardwareActor(subscriber: ActorRef, hardwareId: HardwareId): Props =
+  def controlHardwareActor(subscriber: ActorRef, hardwareId: HardwareId): Props = {
+    implicit val timeout: Timeout = 60.seconds
     HardwareControlActor.props(pubSubMediator, subscriber, hardwareId)
+  }
 
   def controlHardware(hardwareId: HardwareId): WebSocket = {
     WebSocket.accept[HardwareControlMessage, String](_ => {
@@ -77,22 +80,37 @@ class HardwareController(
 
   def uploadHardwareSoftware(hardwareId: HardwareId, softwareId: SoftwareId): Action[AnyContent] =
     IOActionAny { _ => {
-      implicit val timeout: Timeout = 5.seconds
+      implicit val timeout: Timeout = 60.seconds
       val uploadSoftwareMessage: HardwareControlMessage = UploadSoftwareRequest(softwareId)
-      val hardwareActorPath = EitherT[IO, String, ActorRef](IO.fromFuture(IO(
-        actorSystem
-          .actorSelection(s"/user/${hardwareActor(hardwareId)}")
-          .resolveOne())).map(Right.apply))
-      val uploadResult: EitherT[IO, String, Any] = hardwareActorPath.flatMap(hardware =>
-        EitherT[IO, String, Any](IO(
-          hardware ! uploadSoftwareMessage)
-          .map(Right.apply[String, Any]))
-      )
 
-      uploadResult.bimap(
-        errorMessage => Failure(errorMessage).withHttpStatus(BAD_REQUEST),
-        _ => Success(()).withHttpStatus(OK),
-      )
+      val result: EitherT[IO, String, Any] =
+        for {
+          hardwareRef <- EitherT(IO.fromFuture(IO(actorSystem
+            .actorSelection(s"/user/${hardwareActor(hardwareId)}")
+            .resolveOne()))
+            .redeem(_ =>
+              Left.apply("Hardware not online"),
+              Right.apply))
+          result <- EitherT(QueryActor.query(
+            hardwareRef,
+            actorRef => {
+              Promise(actorRef, uploadSoftwareMessage)
+            },
+            immediate = false))
+            .bimap(
+              error => s"Failed to receive answer from hardware: ${error}",
+              identity
+            )
+          uploadResult <- (result match {
+            case r: UploadSoftwareResult => Right(r)
+            case _ => Left("Hardware responded with an invalid response")
+          }).toEitherT[IO]
+        } yield uploadResult
+
+        result.bimap(
+          errorMessage => Failure(errorMessage).withHttpStatus(BAD_REQUEST),
+          result => Success(result.toString).withHttpStatus(OK),
+        )
     }}
 
 }
