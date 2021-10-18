@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""NRF52 micro-controller agent functionality."""
+"""NRF52 micro-controller client functionality."""
 
 from typing import Sequence, Tuple, Any
 import subprocess

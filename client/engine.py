@@ -9,7 +9,7 @@ PO = TypeVar('PO')
 
 
 class Engine(Generic[PI, PO]):
-    """Implementation of microcontroller-specific agent logic"""
+    """Implementation of microcontroller-specific client logic"""
     def __init__(self):
         pass
 

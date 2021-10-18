@@ -9,10 +9,10 @@ from uuid import UUID
 from result import Result, Ok, Err
 
 
-# Generic agent config
+# Generic client config
 @dataclass(frozen=True, eq=False)
 class AgentConfig:
-    """Common i.e. microcontroller-non-specific agent configuration options"""
+    """Common i.e. microcontroller-non-specific client configuration options"""
     hardware_id: UUID
     control_server: ParseResult
     static_server: ParseResult

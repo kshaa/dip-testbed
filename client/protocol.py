@@ -1,4 +1,4 @@
-"""Module containing messages sent between this agent and the control server"""
+"""Module containing messages sent between this client and the control server"""
 from uuid import UUID
 from dataclasses import dataclass
 from typing import Union

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Test NRF52 agent functionality"""
+"""Test NRF52 client functionality"""
 
 import unittest
 from sh import root_relative_path
@@ -7,7 +7,7 @@ from agent_nrf52 import firmware_upload_args, FIRMWARE_UPLOAD_PATH
 
 
 class TestNrf52(unittest.TestCase):
-    """NRF52 agent test suite"""
+    """NRF52 client test suite"""
 
     def test_firmware_upload_args(self):
         """Test whether upload arguments are constructed properly"""

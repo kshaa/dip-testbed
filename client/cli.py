@@ -26,11 +26,11 @@ AGENT_CONFIG_ARGS = [
                    'E.g. 5400636e-2d91-11ec-9628-8fb2659e451f')
 @click.option("--control-server", '-c', "control_server_str",
               type=str, envvar="AGENT_CONTROL_SERVER", required=True,
-              help='WebSocket server URL to the agent commanding/controlling backend server. '
+              help='WebSocket server URL to the client commanding/controlling backend server. '
                    'E.g. ws://localhost:9000/')
 @click.option("--static-server", '-s', "static_server_str",
               type=str, envvar="AGENT_STATIC_SERVER", required=True,
-              help='HTTP server URL to the agent commanding/controlling backend server. '
+              help='HTTP server URL to the client commanding/controlling backend server. '
                    'E.g. http://localhost:9000/')
 @click.pass_context
 def cli_agent(ctx, hardware_id_str, control_server_str, static_server_str):

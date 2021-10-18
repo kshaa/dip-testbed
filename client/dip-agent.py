@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Execute CLI definition which will trigger various entrypoints"""
+"""Execute CLI definition which will trigger various agent entrypoints"""
 
 from cli import cli_agent
 import log

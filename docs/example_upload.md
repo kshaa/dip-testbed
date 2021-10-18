@@ -60,9 +60,9 @@ curl --location --request POST 'http://localhost:9000/api/v1/software/' \
   
 `[agent]` Start microcontroller agent:  
 ```bash
-$ ./main.py -i e61aeddd-1119-49b6-9a8e-6c0405c437f1 -c ws://localhost:9000/ -s http://localhost:9000/ cli-agent-nrf52 -b 115200 -d /dev/ttyUSB0
-[2021-10-15 13:29:37] [INFO] [entrypoint] Running async agent
-[2021-10-15 13:29:37] [INFO] [agent] Connected to control server, listening for commands
+$ ./dip-client.py -i e61aeddd-1119-49b6-9a8e-6c0405c437f1 -c ws://localhost:9000/ -s http://localhost:9000/ cli-client-nrf52 -b 115200 -d /dev/ttyUSB0
+[2021-10-15 13:29:37] [INFO] [entrypoint] Running async client
+[2021-10-15 13:29:37] [INFO] [client] Connected to control server, listening for commands
 ```
 
 `[backend]` Creates a microcontroller control actor:  
@@ -85,7 +85,7 @@ curl --location --request GET 'http://localhost:9000/api/v1/hardware/e61aeddd-11
   
 `[agent]` Agent receives message and triggers software download and subsequent upload:  
 ```bash
-[2021-10-15 13:29:40] [INFO] [agent] Message received: UploadMessage(software_id=UUID('82b0a3ce-3230-4b18-8552-84feea7383f4'))
+[2021-10-15 13:29:40] [INFO] [client] Message received: UploadMessage(software_id=UUID('82b0a3ce-3230-4b18-8552-84feea7383f4'))
 [2021-10-15 13:29:40] [INFO] [nrf52] Downloading firmware
 [2021-10-15 13:29:40] [INFO] [nrf52] Downloaded software: /tmp/tmpdg2y7ch7
 [2021-10-15 13:29:45] [INFO] [nrf52] Upload successful: (0, b'Zip created at /tmp/tmp.anZMhegpVA/firmware-package.zip\nUpgrading target on /dev/ttyUSB0 with DFU package /tmp/tmp.anZMhegpVA/firmware-package.zip. Flow control is disabled, Dual bank, Touch disabled\n########################################\n#######\nActivating new firmware\nDevice programmed.\n', b'')

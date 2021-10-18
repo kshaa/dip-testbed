@@ -6,7 +6,7 @@ from agent_util import parse_url, url_with_path, unparse_url
 
 
 class TestAgentUtils(unittest.TestCase):
-    """Common agent functionality test suite"""
+    """Common client functionality test suite"""
 
     def test_url_append(self):
         """Test parsing URL's and appending to path"""
@@ -18,7 +18,7 @@ class TestAgentUtils(unittest.TestCase):
 
         # append to url
         example_agent_id = "aaf4a840-29d3-11ec-876c-97b00656b091"
-        appended_path = f"/agent/{example_agent_id}/control"
+        appended_path = f"/client/{example_agent_id}/control"
         agent_url_result = url_with_path(url, appended_path)
         self.assertTrue(isinstance(agent_url_result, Ok))
         agent_url = agent_url_result.value
@@ -29,7 +29,7 @@ class TestAgentUtils(unittest.TestCase):
         agent_url_str = agent_url_str_result.value
 
         # expect correct outcome
-        expectation = f"ws://127.0.0.1:12345/agent/{example_agent_id}/control"
+        expectation = f"ws://127.0.0.1:12345/client/{example_agent_id}/control"
         self.assertEqual(agent_url_str, expectation)
 
 

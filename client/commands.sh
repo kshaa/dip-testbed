@@ -101,7 +101,7 @@ curl --location --request POST 'http://localhost:9000/api/v1/software/' \
 #     }
 # }
 
-# [API] Initiate agent control connection
+# [API] Initiate client control connection
 websocat "http://localhost:9000/api/v1/hardware/b7640937-905e-4c2d-acc0-832c2732c17e/control"
 
 # E.g.

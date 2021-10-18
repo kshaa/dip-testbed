@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Supervising agent, listening to server commands, passing to agent-specific engine"""
+"""Supervising client, listening to server commands, passing to client-specific engine"""
 
 from typing import TypeVar
 from pprint import pformat
@@ -11,7 +11,7 @@ from codec import CodecParseException, Encoder, Decoder
 from engine import Engine
 from agent_util import AgentConfig
 
-LOGGER = log.timed_named_logger("agent")
+LOGGER = log.timed_named_logger("client")
 PI = TypeVar('PI')
 PO = TypeVar('PO')
 
@@ -21,8 +21,8 @@ async def agent(
         encoder: Encoder[PO],
         decoder: Decoder[PI],
         engine: Engine[PI, PO]) -> int:
-    """Supervising agent, which connects to a websocket, listens
-     to commands from server, passes them to an agent-specific engine"""
+    """Supervising client, which connects to a websocket, listens
+     to commands from server, passes them to an client-specific engine"""
 
     # Construct hardware control URL
     hardware_control_url_result = config.hardware_control_url()
