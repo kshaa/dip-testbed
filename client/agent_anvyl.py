@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""NRF52 micro-controller client functionality."""
+"""Anvyl FPGA client functionality."""
 
 from typing import Sequence, Tuple, Any
 import subprocess
@@ -11,27 +11,27 @@ from sh import root_relative_path
 from agent_util import AgentConfig, download_temp_software
 import log
 
-LOGGER = log.timed_named_logger("nrf52")
-FIRMWARE_UPLOAD_PATH = 'static/adafruit_nrf52/upload.sh'
+LOGGER = log.timed_named_logger("anvyl")
+FIRMWARE_UPLOAD_PATH = 'static/digilent_anvyl/upload.sh'
 
 
-def firmware_upload_args(firmware_path: str, device_path: str, baud_rate: int) -> Sequence[str]:
+def firmware_upload_args(firmware_path: str, device_name: str, scan_chain_index: int) -> Sequence[str]:
     """Create command line arguments to initiate firmware upload"""
     upload_script_path = root_relative_path(FIRMWARE_UPLOAD_PATH)
     return [
         "bash",
         "-c",
-        f"{upload_script_path} -d \"{device_path}\" -b \"{baud_rate}\" -f \"{firmware_path}\""
+        f"{upload_script_path} -d \"{device_name}\" -s \"{scan_chain_index}\" -f \"{firmware_path}\""
     ]
 
 
 def firmware_upload(
     firmware_path: str,
-    device_path: str,
-    baud_rate: int
+    device_name: str,
+    scan_chain_index: int
 ) -> Result[Tuple[int, bytes, bytes], Tuple[int, bytes, bytes]]:
     """Run firmware upload command and return error code & stderr or stdout"""
-    runner_args = firmware_upload_args(firmware_path, device_path, baud_rate)
+    runner_args = firmware_upload_args(firmware_path, device_name, scan_chain_index)
     try:
         LOGGER.debug("Running command: %s", runner_args)
         proc = subprocess.Popen(
@@ -54,28 +54,28 @@ def firmware_upload(
         return Err((1, "", str.encode(f"{e}")))
 
 
-class EngineNRF52Config:
-    """NRF52 engine configuration options"""
+class EngineAnvylConfig:
+    """Anvyl engine configuration options"""
     common: AgentConfig
-    device: str
-    baudrate: int
+    device_name: str
+    scan_chain_index: int
 
-    def __init__(self, common: AgentConfig, device: str, baudrate: int):
+    def __init__(self, common: AgentConfig, device_name: str, scan_chain_index: int):
         self.common = common
-        self.device = device
-        self.baudrate = baudrate
+        self.device_name = device_name
+        self.scan_chain_index = scan_chain_index
 
 
-class EngineNRF52(Engine[CommonIncomingMessage, Any]):
-    """Engine for NRF52 microcontroller"""
-    config: EngineNRF52Config
+class EngineAnvyl(Engine[CommonIncomingMessage, Any]):
+    """Engine for Anvyl microcontroller"""
+    config: EngineAnvylConfig
 
-    def __init__(self, config: EngineNRF52Config):
+    def __init__(self, config: EngineAnvylConfig):
         super().__init__()
         self.config = config
 
     def process_upload_message(self, message: UploadMessage) -> Result[Any, Exception]:
-        """Logic for NRF52 for UploadMessage"""
+        """Logic for Anvyl for UploadMessage"""
         # Download software
         LOGGER.info("Downloading firmware")
         file_result = download_temp_software(self.config.common, message.software_id)
@@ -86,7 +86,7 @@ class EngineNRF52(Engine[CommonIncomingMessage, Any]):
         LOGGER.info("Downloaded software: %s", file)
 
         # Upload software
-        upload_result = firmware_upload(file, self.config.device, self.config.baudrate)
+        upload_result = firmware_upload(file, self.config.device_name, self.config.scan_chain_index)
         if isinstance(upload_result, Err):
             LOGGER.error("Failed upload: %s", upload_result.value)
             return Err(NotImplementedError("Correct server reply not implemented"))
