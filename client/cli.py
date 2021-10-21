@@ -13,6 +13,8 @@ import agent_entrypoints
 import log
 import cli_util
 from rich_util import print_error, print_json
+from rich.table import Table
+from rich import print as richprint
 
 LOGGER = log.timed_named_logger("cli")
 PASS_AGENT_CONFIG = click.make_pass_decorator(AgentConfig)
@@ -117,8 +119,9 @@ def cli_agent_anvyl_upload(
 
 
 @cli_client.command()
+@cli_util.JSON_OUTPUT_OPTION
 @cli_util.STATIC_SERVER_OPTION
-def user_list(static_server_str: str):
+def user_list(json_output: bool, static_server_str: str):
     """Fetch list of users"""
     # Backend config constructor
     backend_config_result = cli_util.backend_config(None, static_server_str)
@@ -132,11 +135,20 @@ def user_list(static_server_str: str):
     if isinstance(user_list_result, Err):
         print_error(f"Failed to fetch user list: {user_list_result.value}")
         sys.exit(1)
-    json = list(map(asdict, user_list_result.value))
-    print_json(json)
+    user_list = user_list_result.value
+
+    # Print output
+    if json_output:
+        print_json(list(map(asdict, user_list)))
+    else:
+        table = Table("Id", "Username", title="User list")
+        for user in user_list:
+            table.add_row(str(user.id), user.username)
+        richprint(table)
 
 
 @cli_client.command()
+@cli_util.JSON_OUTPUT_OPTION
 @cli_util.STATIC_SERVER_OPTION
 @click.option('--username', '-u', "username", show_envvar=True,
               type=str, envvar="USER_USERNAME", required=True,
@@ -144,7 +156,7 @@ def user_list(static_server_str: str):
 @click.option('--password', '-p', "password", show_envvar=True,
               type=str, envvar="USER_PASSWORD", required=True,
               help='User password (e.g. \'12345\').')
-def user_create(static_server_str: str, username: str, password: str):
+def user_create(json_output: bool, static_server_str: str, username: str, password: str):
     """Create new user"""
     # Backend config constructor
     backend_config_result = cli_util.backend_config(None, static_server_str)

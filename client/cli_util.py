@@ -29,6 +29,11 @@ HARDWARE_ID_OPTION = click.option(
     help='UUID for the hardware to be managed. '
     'E.g. 5400636e-2d91-11ec-9628-8fb2659e451f'
 )
+JSON_OUTPUT_OPTION = click.option(
+    "--json-output", '-j', "json_output", show_envvar=True, default=False,
+    type=bool, envvar="CLIENT_JSON_OUTPUT", required=False,
+    help='Print client output as JSON when appropriate'
+)
 
 
 def backend_config(control_server_str: Optional[str], static_server_str: Optional[str]):

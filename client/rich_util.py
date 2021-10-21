@@ -5,6 +5,8 @@ from typing import Any
 import json
 from rich import print as richprint
 from rich.console import Console
+from rich.table import Table
+
 console = Console()
 
 
