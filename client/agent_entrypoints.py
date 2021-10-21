@@ -10,6 +10,7 @@ from codec import Encoder, Decoder
 from engine import Engine
 from agent import AgentConfig, agent
 from agent_nrf52 import EngineNRF52Config, EngineNRF52
+from agent_anvyl import EngineAnvylConfig, EngineAnvyl
 import log
 
 LOGGER = log.timed_named_logger("entrypoint")
@@ -35,6 +36,14 @@ def supervise_agent(
 def supervise_agent_nrf52(agent_config: AgentConfig, engine_config: EngineNRF52Config):
     """Initiate NRF52 microcontroller client"""
     engine = EngineNRF52(engine_config)
+    encoder = s11n.COMMON_OUTGOING_MESSAGE_ENCODER
+    decoder = s11n.COMMON_INCOMING_MESSAGE_DECODER
+    supervise_agent(agent_config, encoder, decoder, engine)
+
+
+def supervise_agent_anvyl(agent_config: AgentConfig, engine_config: EngineAnvylConfig):
+    """Initiate Anvyl FPGA client"""
+    engine = EngineAnvyl(engine_config)
     encoder = s11n.COMMON_OUTGOING_MESSAGE_ENCODER
     decoder = s11n.COMMON_INCOMING_MESSAGE_DECODER
     supervise_agent(agent_config, encoder, decoder, engine)

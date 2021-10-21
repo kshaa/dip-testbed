@@ -10,8 +10,11 @@ coloredlogs = "*"
 pylint = "*"
 result = "*"
 click = "*"
+requests = "*"
+rich = "*"
 
 [dev-packages]
+pyinstaller = "*"
 
 [requires]
 python_version = "3.8"

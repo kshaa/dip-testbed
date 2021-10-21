@@ -1,11 +1,11 @@
-"""Test functionality common between multiple agents"""
+"""Test functionality for URL manipulation"""
 
 import unittest
 from result import Ok
-from agent_util import parse_url, url_with_path, unparse_url
+from url import parse_url, url_with_path, unparse_url
 
 
-class TestAgentUtils(unittest.TestCase):
+class TestURL(unittest.TestCase):
     """Common client functionality test suite"""
 
     def test_url_append(self):

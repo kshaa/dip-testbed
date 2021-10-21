@@ -6,7 +6,7 @@ from sh import root_relative_path
 from agent_anvyl import firmware_upload_args, FIRMWARE_UPLOAD_PATH
 
 
-class TestNrf52(unittest.TestCase):
+class TestAnvyl(unittest.TestCase):
     """Anvyl client test suite"""
 
     def test_firmware_upload_args(self):
