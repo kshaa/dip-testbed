@@ -11,3 +11,4 @@ class AgentConfig:
     """Common i.e. microcontroller-non-specific client configuration options"""
     hardware_id: UUID
     backend: BackendConfig
+    heartbeat_seconds: int

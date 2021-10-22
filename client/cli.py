@@ -3,6 +3,7 @@
 
 import os
 import sys
+import shutil
 from dataclasses import asdict
 from uuid import UUID
 import click
@@ -39,6 +40,7 @@ def cli_client():
 @cli_util.HARDWARE_ID_OPTION
 @cli_util.CONTROL_SERVER_OPTION
 @cli_util.STATIC_SERVER_OPTION
+@cli_util.HEARTBEAT_SECONDS_OPTION
 @click.option(
     '--device', '-d', "device_str",
     type=str, envvar="DIP_NRF52_DEVICE",
@@ -53,17 +55,21 @@ def cli_client():
     help='Baudrate for NRF52 microcontroller serial port communications. '
          'E.g. baud rate of 115200'
 )
-def cli_agent_nrf52_upload(
+def agent_nrf52_upload(
         hardware_id_str: str,
         control_server_str: str,
         static_server_str: str,
+        heartbeat_seconds: int,
         device_str: str,
         baudrate: int
 ):
-    """Agent for managing NRF52 microcontroller uploads"""
+    """[Linux] NRF52 microcontroller upload agent"""
     # Agent config constructor
     agent_config_result = cli_util.agent_config(
-        hardware_id_str, control_server_str, static_server_str)
+        hardware_id_str,
+        control_server_str,
+        static_server_str,
+        heartbeat_seconds)
     if isinstance(agent_config_result, Err):
         print_error(f"Failed to construct agent config: {agent_config_result.value}")
         sys.exit(1)
@@ -79,6 +85,20 @@ def cli_agent_nrf52_upload(
         print_error("Baudrate must be a positive number")
         sys.exit(1)
 
+    # Validate dependencies
+    if shutil.which("adafruit-nrfutil") is None:
+        print_error("'adafruit-nrfutil' must be installed")
+        sys.exit(1)
+    if shutil.which("bash") is None:
+        print_error("'bash' must be installed")
+        sys.exit(1)
+    if shutil.which("grep") is None:
+        print_error("'grep' must be installed")
+        sys.exit(1)
+    if shutil.which("tee") is None:
+        print_error("'tee' must be installed")
+        sys.exit(1)
+
     # Construct engine
     engine_config = EngineNRF52Config(agent_config, device_str, baudrate)
     agent_entrypoints.supervise_agent_nrf52(agent_config, engine_config)
@@ -88,25 +108,28 @@ def cli_agent_nrf52_upload(
 @cli_util.HARDWARE_ID_OPTION
 @cli_util.CONTROL_SERVER_OPTION
 @cli_util.STATIC_SERVER_OPTION
+@cli_util.HEARTBEAT_SECONDS_OPTION
 @click.option('--device', '-d', "device_str", show_envvar=True,
               type=str, envvar="DIP_ANVYL_DEVICE", required=True,
               help='Device user name (e.g. Anvyl).')
 @click.option('--scanchainindex', '-s', "scan_chain_index", show_envvar=True,
               type=int, envvar="DIP_ANVYL_SCAN_CHAIN_IDEX", required=True,
               help='Scan chain index of target JTAG device (e.g. 0)')
-def cli_agent_anvyl_upload(
+def agent_anvyl_upload(
         hardware_id_str: str,
         control_server_str: str,
         static_server_str: str,
+        heartbeat_seconds: int,
         device_str: str,
         scan_chain_index: int
 ):
-    """Agent for managing Anvyl FPGA uploads"""
+    """[Linux] Anvyl FPGA upload agent"""
     # Agent config constructor
     agent_config_result = cli_util.agent_config(
         hardware_id_str,
         control_server_str,
-        static_server_str)
+        static_server_str,
+        heartbeat_seconds)
     if isinstance(agent_config_result, Err):
         print_error(f"Failed to construct agent config: {agent_config_result.value}")
         sys.exit(1)
@@ -115,6 +138,14 @@ def cli_agent_anvyl_upload(
     # Validate scan chain index
     if scan_chain_index < 0:
         print_error("Scan chain index must be a non-negative number")
+        sys.exit(1)
+
+    # Validate dependencies
+    if shutil.which("djtgcfg") is None:
+        print_error("'djtgcfg' must be installed")
+        sys.exit(1)
+    if shutil.which("bash") is None:
+        print_error("'bash' must be installed")
         sys.exit(1)
 
     # Construct engine

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Anvyl FPGA client functionality."""
 
+import asyncio
 from typing import Sequence, Tuple, Any
 from result import Result, Err
 from engine import Engine, EngineConfig
@@ -8,6 +9,7 @@ from protocol import CommonOutgoingMessage, CommonIncomingMessage, UploadMessage
 from sh import root_relative_path, outcome_sh
 from agent_util import AgentConfig
 import log
+from ws import WebSocket
 
 LOGGER = log.timed_named_logger("anvyl")
 FIRMWARE_UPLOAD_PATH = 'static/digilent_anvyl/upload.sh'

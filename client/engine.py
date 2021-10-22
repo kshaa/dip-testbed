@@ -1,13 +1,20 @@
 #!/usr/bin/env python
 """Engine which reacts to server commands and supervises microcontroller"""
 
-from typing import TypeVar, Generic, Callable, Tuple
+from typing import TypeVar, Generic, Callable, Tuple, Any
+import asyncio
 import os
 from result import Result, Err, Ok
 from pprint import pformat
 import log
 from agent_util import AgentConfig
-from protocol import UploadMessage, UploadResultMessage
+from protocol import \
+    PingMessage, \
+    UploadMessage, \
+    UploadResultMessage, \
+    CommonIncomingMessage, \
+    CommonOutgoingMessage
+from ws import WebSocket
 
 LOGGER = log.timed_named_logger("engine")
 PI = TypeVar('PI')
@@ -25,9 +32,40 @@ class EngineConfig:
 class Engine(Generic[PI, PO]):
     """Implementation of generic microcontroller agent engine"""
     config: EngineConfig
+    ping_enabled: bool = True
+    engine_on: bool = True
+    active_ping_task: Any
 
     def __init__(self, config):
         self.config = config
+
+    async def keep_pinging(
+        self,
+        socket: WebSocket[CommonIncomingMessage, CommonOutgoingMessage]
+    ):
+        """Keeps pinging server while engine is on"""
+        while self.engine_on:
+            await socket.tx(PingMessage())
+            await asyncio.sleep(self.config.agent.heartbeat_seconds)
+
+    def start_ping(self, socket: WebSocket):
+        """Start sending regular heartbeat to server"""
+        loop = asyncio.get_event_loop()
+        self.active_ping_task = loop.create_task(self.keep_pinging(socket))
+
+    def stop_ping(self):
+        """Stop sending regular heartbeat to server"""
+        self.active_ping_task.cancel()
+
+    def on_start(self, socket: WebSocket):
+        """Engine start hook"""
+        self.engine_on = True
+        self.start_ping(socket)
+
+    def on_end(self):
+        """Engine end hook"""
+        self.engine_on = False
+        self.stop_ping()
 
     # W0613: ignore unused message, because this class is abstract
     # R0201: ignore no-self-use, because I want this method here regardless

@@ -203,6 +203,40 @@ UPLOAD_RESULT_MESSAGE_CODEC: Codec[protocol.UploadResultMessage] = \
     Codec(UPLOAD_RESULT_MESSAGE_DECODER, UPLOAD_RESULT_MESSAGE_ENCODER)
 
 
+# protocol.PingMessage
+def ping_message_encode(_: protocol.PingMessage) -> str:
+    """Serialize PingMessage to JSON"""
+    message = {
+        "command": "ping",
+        "payload": {}
+    }
+    return json.dumps(message, separators=NO_WHITESPACE_SEPERATORS)
+
+
+def ping_message_decode(value: str) -> Result[protocol.PingMessage, CodecParseException]:
+    """Un-serialize PingMessage from JSON"""
+    json_result = json_decode(value)
+    if isinstance(json_result, Err):
+        return Err(json_result.value)
+    command_result = named_message_extract("ping", json_result.value)
+    if isinstance(command_result, Err):
+        return Err(command_result.value)
+    result = command_result.value
+
+    if isinstance(result, dict):
+        return Ok(protocol.PingMessage())
+    else:
+        return Err(CodecParseException("PingMessage must be an object"))
+
+
+PING_MESSAGE_ENCODER: Encoder[protocol.PingMessage] = \
+    Encoder(ping_message_encode)
+PING_MESSAGE_DECODER: Decoder[protocol.PingMessage] = \
+    Decoder(ping_message_decode)
+PING_MESSAGE_CODEC: Codec[protocol.UploadResultMessage] = \
+    Codec(UPLOAD_RESULT_MESSAGE_DECODER, UPLOAD_RESULT_MESSAGE_ENCODER)
+
+
 # protocol.CreateUserMessage
 def create_user_message_encode(value: protocol.CreateUserMessage) -> str:
     """Serialize CreateUserMessage to JSON"""
@@ -313,10 +347,12 @@ COMMON_INCOMING_MESSAGE_CODEC = Codec(
 
 # protocol.CommonOutgoingMessage
 COMMON_OUTGOING_MESSAGE_ENCODER = union_encoder({
-    protocol.UploadResultMessage: UPLOAD_RESULT_MESSAGE_ENCODER
+    protocol.UploadResultMessage: UPLOAD_RESULT_MESSAGE_ENCODER,
+    protocol.PingMessage: PING_MESSAGE_ENCODER
 })
 COMMON_OUTGOING_MESSAGE_DECODER = union_decoder({
-    protocol.UploadResultMessage: UPLOAD_RESULT_MESSAGE_DECODER
+    protocol.UploadResultMessage: UPLOAD_RESULT_MESSAGE_DECODER,
+    protocol.PingMessage: PING_MESSAGE_DECODER
 })
 COMMON_OUTGOING_MESSAGE_CODEC = Codec(
     COMMON_OUTGOING_MESSAGE_DECODER,

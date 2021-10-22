@@ -57,5 +57,10 @@ class FailureMessage(Generic[T]):
     value: T
 
 
+@dataclass(frozen=True, eq=False)
+class PingMessage(Generic[T]):
+    """Message for sending heartbeats to server"""
+
+
 CommonIncomingMessage = Union[UploadMessage]
-CommonOutgoingMessage = Union[UploadResultMessage]
+CommonOutgoingMessage = Union[UploadResultMessage, PingMessage]

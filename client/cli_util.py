@@ -32,7 +32,12 @@ HARDWARE_ID_OPTION = click.option(
 SOFTWARE_ID_OPTION = click.option(
     '--software-id', '-i', "software_id_str", show_envvar=True,
     type=str, envvar="DIP_SOFTWARE_ID", required=True,
-    help='Software id (e.g. \'16db6c30-3328-11ec-ae41-ff1d66202dcc\''
+    help='Software id (e.g. \'16db6c30-3328-11ec-ae41-ff1d66202dcc\')'
+)
+HEARTBEAT_SECONDS_OPTION = click.option(
+    '--heartbeat-seconds', '-r', "heartbeat_seconds", show_envvar=True,
+    type=int, envvar="DIP_HEARTBEAT_SECONDS", required=True, default=30,
+    help='Regular interval in which to ping the server'
 )
 JSON_OUTPUT_OPTION = click.option(
     "--json-output", '-j', "json_output", show_envvar=True, default=False,
@@ -75,13 +80,22 @@ def backend_config(control_server_str: Optional[str], static_server_str: Optiona
     return Ok(BackendConfig(control_server, static_server))
 
 
-def agent_config(hardware_id_str: str, control_server_str: str, static_server_str: str):
+def agent_config(
+    hardware_id_str: str,
+    control_server_str: str,
+    static_server_str: str,
+    heartbeat_seconds: int
+):
     """Construct common agent config from CLI params"""
     # Hardware id validation
     try:
         hardware_id = UUID(hardware_id_str)
     except Exception as e:
         return Err(f"Invalid hardware id: ${e}")
+
+    # Heartbeat validation
+    if heartbeat_seconds <= 0:
+        return Err("Heartbeat seconds must be positive number")
 
     # Backend config constructor
     be_config_result = backend_config(control_server_str, static_server_str)
@@ -90,4 +104,4 @@ def agent_config(hardware_id_str: str, control_server_str: str, static_server_st
     be_config = be_config_result.value
 
     # Agent configuration
-    return Ok(AgentConfig(hardware_id, be_config))
+    return Ok(AgentConfig(hardware_id, be_config, heartbeat_seconds))

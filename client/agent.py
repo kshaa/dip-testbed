@@ -42,18 +42,22 @@ async def agent(
         return 0
 
     # Start communication/logic loop
-    LOGGER.info("Connected to control server, listening for commands")
+    LOGGER.info(
+        "Connected to control server, listening for commands, running start hook")
+    engine.on_start(websocket)
     while True:
         incoming_result = await websocket.rx()
         if isinstance(incoming_result, Err) \
                 and isinstance(incoming_result.value, ConnectionClosedError):
             LOGGER.error("Control server connection closed")
+            engine.on_end()
             return 1
         if isinstance(incoming_result, Err) \
                 and isinstance(incoming_result.value, CodecParseException):
             LOGGER.error("Unknown command received, ignoring")
         elif isinstance(incoming_result, Err):
             LOGGER.error("Failed to receive message: %s", pformat(incoming_result.value, indent=4))
+            engine.on_end()
             await websocket.disconnect()
             return 1
         else:
@@ -69,6 +73,7 @@ async def agent(
                 LOGGER.error(
                     "Failed to process message: %s",
                     pformat(outgoing_result.value, indent=4))
+                engine.on_end()
                 await websocket.disconnect()
                 return 1
             else:
@@ -79,6 +84,7 @@ async def agent(
                         "Failed to transmit message (%s): %s",
                         pformat(outgoing_message, indent=4),
                         pformat(transmit_error, indent=4))
+                    engine.on_end()
                     await websocket.disconnect()
                     return 1
                 else:

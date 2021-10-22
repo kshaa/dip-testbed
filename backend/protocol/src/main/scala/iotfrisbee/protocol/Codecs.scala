@@ -27,19 +27,24 @@ object Codecs {
 
   private implicit val uploadSoftwareRequestCodec: Codec[UploadSoftwareRequest] = deriveCodec[UploadSoftwareRequest]
   private implicit val uploadSoftwareResultCodec: Codec[UploadSoftwareResult] = deriveCodec[UploadSoftwareResult]
+  private implicit val pingCodec: Codec[Ping] = deriveCodec[Ping]
   implicit val hardwareControlMessageEncoder: Encoder[HardwareControlMessage] = Encoder.instance {
     case c: UploadSoftwareRequest => NamedMessage("uploadSoftwareRequest", c.asJson).asJson
-    case c: UploadSoftwareResult => NamedMessage("uploadSoftwareResult", c.asJson).asJson
+    case c: UploadSoftwareResult  => NamedMessage("uploadSoftwareResult", c.asJson).asJson
+    case c: Ping                  => NamedMessage("ping", c.asJson).asJson
   }
   implicit val hardwareControlMessageDecoder: Decoder[HardwareControlMessage] =
-    Decoder[NamedMessage].emap { m => {
-      val codec: Option[Decoder[HardwareControlMessage]] = m.command match {
-        case "uploadSoftwareRequest" => Decoder[UploadSoftwareRequest].widen[HardwareControlMessage].some
-        case "uploadSoftwareResult" => Decoder[UploadSoftwareResult].widen[HardwareControlMessage].some
-        case _ => None
+    Decoder[NamedMessage].emap { m =>
+      {
+        val codec: Option[Decoder[HardwareControlMessage]] = m.command match {
+          case "uploadSoftwareRequest" => Decoder[UploadSoftwareRequest].widen[HardwareControlMessage].some
+          case "uploadSoftwareResult"  => Decoder[UploadSoftwareResult].widen[HardwareControlMessage].some
+          case "ping"                  => Decoder[Ping].widen[HardwareControlMessage].some
+          case _                       => None
+        }
+        codec.toRight("Unknown command").flatMap(_.decodeJson(m.payload).leftMap(_.message))
       }
-      codec.toRight("Unknown command").flatMap(_.decodeJson(m.payload).leftMap(_.message))
-    }}
+    }
 
   implicit def webResultSuccessCodec[A: Encoder: Decoder]: Codec[Success[A]] =
     Codec.forProduct1[Success[A], A]("success")(Success(_))(_.value)
