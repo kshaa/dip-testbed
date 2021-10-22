@@ -6,15 +6,15 @@ import sys
 from dataclasses import asdict
 import click
 from result import Err
+from rich.table import Table
+from rich import print as richprint
+from rich_util import print_error, print_json
 from agent import AgentConfig
 from agent_nrf52 import EngineNRF52Config
 from agent_anvyl import EngineAnvylConfig
 import agent_entrypoints
 import log
 import cli_util
-from rich_util import print_error, print_json
-from rich.table import Table
-from rich import print as richprint
 
 LOGGER = log.timed_named_logger("cli")
 PASS_AGENT_CONFIG = click.make_pass_decorator(AgentConfig)
@@ -23,7 +23,14 @@ PASS_AGENT_CONFIG = click.make_pass_decorator(AgentConfig)
 @click.group()
 def cli_client():
     """DIP Testbed Agent is a command line tool that serves as a remote
-     microcontroller management middleman for the DIP Testbed Backend"""
+     microcontroller management middleman for the DIP Testbed Backend
+
+     Use environment variable LOG_LEVEL with value 'debug' for debugging
+     or 'info' when running an agent in regular mode or 'error' when you
+     barely care about anything
+
+     Use <command> --help for more information about commands. Note that
+     most command options can also be defined as environment variables!"""
 
 
 @cli_client.command()
@@ -32,14 +39,14 @@ def cli_client():
 @cli_util.STATIC_SERVER_OPTION
 @click.option(
     '--device', '-d', "device_str",
-    type=str, envvar="NRF52_DEVICE",
+    type=str, envvar="DIP_NRF52_DEVICE",
     required=True, show_envvar=True,
     help='Serial device file path for NRF52 microcontroller serial port communications. '
     'E.g. /dev/ttyUSB0'
 )
 @click.option(
     '--baudrate', '-b', "baudrate",
-    type=int, envvar="NRF52_BAUDRATE",
+    type=int, envvar="DIP_NRF52_BAUDRATE",
     required=True, show_envvar=True,
     help='Baudrate for NRF52 microcontroller serial port communications. '
     'E.g. baud rate of 115200'
@@ -80,10 +87,10 @@ def cli_agent_nrf52_upload(
 @cli_util.CONTROL_SERVER_OPTION
 @cli_util.STATIC_SERVER_OPTION
 @click.option('--device', '-d', "device_str", show_envvar=True,
-              type=str, envvar="ANVYL_DEVICE", required=True,
+              type=str, envvar="DIP_ANVYL_DEVICE", required=True,
               help='Device user name (e.g. Anvyl).')
 @click.option('--scanchainindex', '-s', "scan_chain_index", show_envvar=True,
-              type=int, envvar="ANVYL_SCAN_CHAIN_IDEX", required=True,
+              type=int, envvar="DIP_ANVYL_SCAN_CHAIN_IDEX", required=True,
               help='Scan chain index of target JTAG device (e.g. 0)')
 def cli_agent_anvyl_upload(
     hardware_id_str: str,
@@ -135,14 +142,14 @@ def user_list(json_output: bool, static_server_str: str):
     if isinstance(user_list_result, Err):
         print_error(f"Failed to fetch user list: {user_list_result.value}")
         sys.exit(1)
-    user_list = user_list_result.value
+    users = user_list_result.value
 
     # Print output
     if json_output:
-        print_json(list(map(asdict, user_list)))
+        print_json(list(map(asdict, users)))
     else:
         table = Table("Id", "Username", title="User list")
-        for user in user_list:
+        for user in users:
             table.add_row(str(user.id), user.username)
         richprint(table)
 
@@ -151,10 +158,10 @@ def user_list(json_output: bool, static_server_str: str):
 @cli_util.JSON_OUTPUT_OPTION
 @cli_util.STATIC_SERVER_OPTION
 @click.option('--username', '-u', "username", show_envvar=True,
-              type=str, envvar="USER_USERNAME", required=True,
+              type=str, envvar="DIP_USER_USERNAME", required=True,
               help='User username (e.g. \'johndoe\').')
 @click.option('--password', '-p', "password", show_envvar=True,
-              type=str, envvar="USER_PASSWORD", required=True,
+              type=str, envvar="DIP_USER_PASSWORD", required=True,
               help='User password (e.g. \'12345\').')
 def user_create(json_output: bool, static_server_str: str, username: str, password: str):
     """Create new user"""
@@ -170,5 +177,12 @@ def user_create(json_output: bool, static_server_str: str, username: str, passwo
     if isinstance(user_create_result, Err):
         print_error(f"Failed to create user: {user_create_result.value}")
         sys.exit(1)
-    json = asdict(user_create_result.value)
-    print_json(json)
+    user_created = user_create_result.value
+
+    # Print output
+    if json_output:
+        print_json(asdict(user_created))
+    else:
+        table = Table("Id", "Username", title="User list")
+        table.add_row(str(user_created.id), user_created.username)
+        richprint(table)

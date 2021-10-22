@@ -5,9 +5,8 @@ from typing import Any
 import json
 from rich import print as richprint
 from rich.console import Console
-from rich.table import Table
 
-console = Console()
+RICH_CONSOLE = Console()
 
 
 def print_error(error: str):
@@ -17,4 +16,4 @@ def print_error(error: str):
 
 def print_json(obj: Any):
     """Print styled dictionary"""
-    console.print_json(json.dumps(obj))
+    RICH_CONSOLE.print_json(json.dumps(obj))

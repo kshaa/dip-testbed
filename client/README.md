@@ -1,6 +1,7 @@
 # DIP Testbed Client
   
 ## Usage
+### Development
 - Install `pipenv` for dependency management  
 - Run `pipenv install --dev` for development dependency download  
 - Run `pipenv shell` to enter project-specific python environment  
@@ -8,6 +9,8 @@
 - Run `./test.sh` to run unit tests  
 - Run `./lint.sh` to run linter
 - Run `./check.sh` to run all aforementioned types of tests
-- Define `LOG_LEVEL` environment variable to configure logging verbosity  
 - Run `./dip_client.py --help` to print client CLI usage definition
-- Run `pyinstaller dip_client.spec` to create a single executable client file  
+- Run `./build.sh` to create a single executable client file
+
+### Built client
+- Run `./dist/dip_client --help` to print built client CLI usage definition
