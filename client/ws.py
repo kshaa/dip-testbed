@@ -2,6 +2,7 @@
 
 from pprint import pformat
 from typing import TypeVar, Generic, Any, Optional
+import websockets.client
 import websockets
 from websockets.exceptions import ConnectionClosedError
 from result import Result, Err
@@ -67,8 +68,9 @@ class WebSocket(Generic[PI, PO]):
         if self.socket is None:
             return Exception("Not connected")
         try:
+            LOGGER.debug("Sending message: %s", pformat(data, indent=4))
             message = self.encoder.transform(data)
-            self.socket.send(message)
+            await self.socket.send(message)
             return None
         except Exception as e:
             return e

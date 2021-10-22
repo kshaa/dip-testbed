@@ -163,39 +163,44 @@ UPLOAD_MESSAGE_CODEC: Codec[protocol.UploadMessage] = \
     Codec(UPLOAD_MESSAGE_DECODER, UPLOAD_MESSAGE_ENCODER)
 
 
-# protocol.FailedUploadMessage
-def failed_upload_message_encode(value: protocol.FailedUploadMessage) -> str:
-    """Serialize FailedUploadMessage to JSON"""
-    return json.dumps(
-        {"error_message": str(value.error_message)},
-        separators=NO_WHITESPACE_SEPERATORS)
+# protocol.UploadResultMessage
+def upload_result_message_encode(value: protocol.UploadResultMessage) -> str:
+    """Serialize UploadResultMessage to JSON"""
+    message = {
+        "command": "uploadSoftwareResult",
+        "payload": {
+            "error": value.error
+        }
+    }
+    return json.dumps(message, separators=NO_WHITESPACE_SEPERATORS)
 
 
-def failed_upload_message_decode(
-        value: str) -> Result[protocol.FailedUploadMessage, CodecParseException]:
-    """Un-serialize FailedUploadMessage from JSON"""
+def upload_result_message_decode(value: str) -> Result[protocol.UploadResultMessage, CodecParseException]:
+    """Un-serialize UploadResultMessage from JSON"""
     json_result = json_decode(value)
     if isinstance(json_result, Err):
         return Err(json_result.value)
-    result = json_result.value
+    command_result = named_message_extract("uploadSoftwareResult", json_result.value)
+    if isinstance(command_result, Err):
+        return Err(command_result.value)
+    result = command_result.value
 
     if isinstance(result, dict):
-        error_message = result.get("error_message")
-        if isinstance(error_message, str):
-            return Ok(protocol.FailedUploadMessage(error_message))
+        error = result.get("error")
+        if isinstance(error, str) or error is None:
+            return Ok(protocol.UploadResultMessage(error))
         else:
-            pass
-        return Err(CodecParseException("FailedUploadMessage must have .error_message string"))
+            return Err(CodecParseException("UploadResultMessage must have .error as null or string"))
     else:
-        return Err(CodecParseException("FailedUploadMessage must be an object"))
+        return Err(CodecParseException("UploadResultMessage must be an object"))
 
 
-FAILED_UPLOAD_MESSAGE_ENCODER: Encoder[protocol.FailedUploadMessage] = \
-    Encoder(failed_upload_message_encode)
-FAILED_UPLOAD_MESSAGE_DECODER: Decoder[protocol.FailedUploadMessage] = \
-    Decoder(failed_upload_message_decode)
-FAILED_UPLOAD_MESSAGE_CODEC: Codec[protocol.FailedUploadMessage] = \
-    Codec(FAILED_UPLOAD_MESSAGE_DECODER, FAILED_UPLOAD_MESSAGE_ENCODER)
+UPLOAD_RESULT_MESSAGE_ENCODER: Encoder[protocol.UploadResultMessage] = \
+    Encoder(upload_result_message_encode)
+UPLOAD_RESULT_MESSAGE_DECODER: Decoder[protocol.UploadResultMessage] = \
+    Decoder(upload_result_message_decode)
+UPLOAD_RESULT_MESSAGE_CODEC: Codec[protocol.UploadResultMessage] = \
+    Codec(UPLOAD_RESULT_MESSAGE_DECODER, UPLOAD_RESULT_MESSAGE_ENCODER)
 
 
 # protocol.CreateUserMessage
@@ -210,6 +215,19 @@ def create_user_message_encode(value: protocol.CreateUserMessage) -> str:
 
 CREATE_USER_MESSAGE_ENCODER: Encoder[protocol.CreateUserMessage] = \
     Encoder(create_user_message_encode)
+
+
+# protocol.CreateUserMessage
+def create_hardware_message_encode(value: protocol.CreateHardwareMessage) -> str:
+    """Serialize CreateHardwareMessage to JSON"""
+    message = {
+        "name": value.name
+    }
+    return json.dumps(message, separators=NO_WHITESPACE_SEPERATORS)
+
+
+CREATE_HARDWARE_MESSAGE_ENCODER: Encoder[protocol.CreateHardwareMessage] = \
+    Encoder(create_hardware_message_encode)
 
 
 # protocol.SuccessMessage
@@ -295,10 +313,10 @@ COMMON_INCOMING_MESSAGE_CODEC = Codec(
 
 # protocol.CommonOutgoingMessage
 COMMON_OUTGOING_MESSAGE_ENCODER = union_encoder({
-    protocol.FailedUploadMessage: FAILED_UPLOAD_MESSAGE_ENCODER
+    protocol.UploadResultMessage: UPLOAD_RESULT_MESSAGE_ENCODER
 })
 COMMON_OUTGOING_MESSAGE_DECODER = union_decoder({
-    protocol.FailedUploadMessage: FAILED_UPLOAD_MESSAGE_DECODER
+    protocol.UploadResultMessage: UPLOAD_RESULT_MESSAGE_DECODER
 })
 COMMON_OUTGOING_MESSAGE_CODEC = Codec(
     COMMON_OUTGOING_MESSAGE_DECODER,
@@ -309,7 +327,7 @@ COMMON_OUTGOING_MESSAGE_CODEC = Codec(
 def user_decode(
     value: str,
 ) -> Result[backend_domain.User, CodecParseException]:
-    """Un-serialize FailureMessage from JSON"""
+    """Un-serialize User from JSON"""
     json_result = json_decode(value)
     if isinstance(json_result, Err):
         return Err(json_result.value)
@@ -327,3 +345,57 @@ def user_decode(
         return Ok(backend_domain.User(user_id, username))
     else:
         return Err(CodecParseException("User must be an object"))
+
+
+# backend_domain.Hardware
+def hardware_decode(
+    value: str,
+) -> Result[backend_domain.Hardware, CodecParseException]:
+    """Un-serialize Hardware from JSON"""
+    json_result = json_decode(value)
+    if isinstance(json_result, Err):
+        return Err(json_result.value)
+    result = json_result.value
+
+    if isinstance(result, dict):
+        hardware_id = result.get("id")
+        name = result.get("name")
+        owner_uuid = result.get("ownerId")
+
+        if hardware_id is None:
+            return Err(CodecParseException("Hardware must contain id"))
+        if name is None:
+            return Err(CodecParseException("Hardware must contain name"))
+        if owner_uuid is None:
+            return Err(CodecParseException("Hardware must contain owner_uuid"))
+
+        return Ok(backend_domain.Hardware(hardware_id, name, owner_uuid))
+    else:
+        return Err(CodecParseException("Hardware must be an object"))
+
+
+# backend_domain.Hardware
+def software_decode(
+    value: str,
+) -> Result[backend_domain.Software, CodecParseException]:
+    """Un-serialize Software from JSON"""
+    json_result = json_decode(value)
+    if isinstance(json_result, Err):
+        return Err(json_result.value)
+    result = json_result.value
+
+    if isinstance(result, dict):
+        hardware_id = result.get("id")
+        name = result.get("name")
+        owner_uuid = result.get("ownerId")
+
+        if hardware_id is None:
+            return Err(CodecParseException("Software must contain id"))
+        if name is None:
+            return Err(CodecParseException("Software must contain name"))
+        if owner_uuid is None:
+            return Err(CodecParseException("Software must contain owner_uuid"))
+
+        return Ok(backend_domain.Hardware(hardware_id, name, owner_uuid))
+    else:
+        return Err(CodecParseException("Software must be an object"))

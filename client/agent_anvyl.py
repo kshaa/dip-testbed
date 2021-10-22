@@ -4,7 +4,7 @@
 from typing import Sequence, Tuple, Any
 from result import Result, Err
 from engine import Engine, EngineConfig
-from protocol import CommonIncomingMessage, UploadMessage
+from protocol import CommonOutgoingMessage, CommonIncomingMessage, UploadMessage
 from sh import root_relative_path, outcome_sh
 from agent_util import AgentConfig
 import log
@@ -53,9 +53,12 @@ class EngineAnvyl(Engine[CommonIncomingMessage, Any]):
         return outcome_sh(firmware_upload_args(
             file, self.config.device_name, self.config.scan_chain_index))
 
-    def process(self, message: CommonIncomingMessage) -> Result[Any, Exception]:
+    def process(
+        self,
+        message: CommonIncomingMessage
+    ) -> Result[CommonOutgoingMessage, Exception]:
         """Consume server-sent message and react accordingly"""
         message_type = type(message)
         if message_type == UploadMessage:
-            return self.process_upload_message_sh(message, firmware_upload_args)
+            return self.process_upload_message_sh(message, self.firmware_upload)
         return Err(NotImplementedError())

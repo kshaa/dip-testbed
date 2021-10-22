@@ -70,6 +70,16 @@ djtgcfg init -d ${device}
 tmpdir="$(mktemp -d)"
 firmwarehextmp="${firmwarehex}.bit"
 cp -rf "${firmwarehex}" "${firmwarehextmp}"
-djtgcfg prog -d "${device}" -i ${scanchainindex} -f "${firmwarehextmp}"
-rm -rf "${tmpdir}"
-rm -rf "${firmwarehextmp}"
+echo "Uploading '${firmwarehextmp}'"
+if djtgcfg prog -d "${device}" -i ${scanchainindex} -f "${firmwarehextmp}"; then
+  rm -rf "${tmpdir}"
+  rm -rf "${firmwarehextmp}"
+  echo "Uploaded firmware"
+  exit 0
+else
+  rm -rf "${tmpdir}"
+  rm -rf "${firmwarehextmp}"
+  echo "Upload failed, was the firmware a valid program?"
+  exit 1
+fi
+

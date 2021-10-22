@@ -13,8 +13,7 @@ create table "user" (
 create table "hardware" (
   "uuid" uuid not null primary key,
   "name" varchar(255) not null,
-  "owner_uuid" uuid not null,
-  "battery_percent" decimal null
+  "owner_uuid" uuid not null
 );
 
 create table "hardware_message" (

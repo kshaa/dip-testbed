@@ -1,6 +1,6 @@
 """Module containing messages sent between this client and the control server"""
 
-from typing import TypeVar, Generic, Union
+from typing import TypeVar, Generic, Union, Optional
 from uuid import UUID
 from dataclasses import dataclass
 
@@ -17,12 +17,12 @@ class UploadMessage:
 
 
 @dataclass(frozen=True, eq=False)
-class FailedUploadMessage:
-    """Message regarding failure to upload a given binary firmware to the microcontroller"""
-    error_message: str
+class UploadResultMessage:
+    """Message regarding result of a hardware software upload"""
+    error: Optional[str]
 
     def __eq__(self, other) -> bool:
-        return self.error_message == other.error_message
+        return self.error == other.error
 
 
 @dataclass(frozen=True, eq=False)
@@ -34,6 +34,15 @@ class CreateUserMessage:
     def __eq__(self, other) -> bool:
         return self.username == other.username and \
                self.password == other.password
+
+
+@dataclass(frozen=True, eq=False)
+class CreateHardwareMessage:
+    """Message to request hardware creation"""
+    name: str
+
+    def __eq__(self, other) -> bool:
+        return self.name == other.name
 
 
 @dataclass(frozen=True, eq=False)
@@ -49,4 +58,4 @@ class FailureMessage(Generic[T]):
 
 
 CommonIncomingMessage = Union[UploadMessage]
-CommonOutgoingMessage = Union[FailedUploadMessage]
+CommonOutgoingMessage = Union[UploadResultMessage]

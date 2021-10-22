@@ -48,12 +48,21 @@ def url_with_path_str(url: Optional[ParseResult], with_path: str) -> Result[str,
 
 
 # URL downloads
+def download_file(url: str, path: str) -> Result[str, str]:
+    """Download file and return file path"""
+    try:
+        urllib.request.urlretrieve(url, path)
+        return Ok(path)
+    except Exception as e:
+        return Err(f"Failed to download file: {e}")
+
+
 def download_temp_file(url: str) -> Result[str, str]:
     """Download temporary file and return file path"""
     try:
         tmp = tempfile.NamedTemporaryFile(delete=False)
-        urllib.request.urlretrieve(url, tmp.name)
-        return Ok(tmp.name)
+        file_result = download_file(url, tmp.name)
+        return file_result
     except Exception as e:
         return Err(f"Failed to download file: {e}")
 

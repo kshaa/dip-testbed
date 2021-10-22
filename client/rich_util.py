@@ -14,6 +14,11 @@ def print_error(error: str):
     richprint("[bold red]Error:[/bold red]", error)
 
 
+def print_success(success: str):
+    """Print styled success message"""
+    richprint("[bold green]Success:[/bold green]", success)
+
+
 def print_json(obj: Any):
     """Print styled dictionary"""
     RICH_CONSOLE.print_json(json.dumps(obj))

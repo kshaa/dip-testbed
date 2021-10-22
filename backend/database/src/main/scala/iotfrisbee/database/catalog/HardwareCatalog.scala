@@ -12,14 +12,12 @@ object HardwareCatalog {
     class HardwareTable(tag: Tag) extends Table[HardwareRow](tag, "hardware") {
       def uuid: Rep[UUID] = column[UUID]("uuid", O.PrimaryKey)
       def name: Rep[String] = column[String]("name")
-      def batteryPercent: Rep[Option[Double]] = column[Option[Double]]("battery_percent")
       def ownerUuid: Rep[UUID] = column[UUID]("owner_uuid")
 
       def * : ProvenShape[HardwareRow] =
         (
           uuid,
           name,
-          batteryPercent,
           ownerUuid,
         ) <> ((HardwareRow.apply _).tupled, HardwareRow.unapply)
     }
@@ -30,7 +28,6 @@ object HardwareCatalog {
   case class HardwareRow(
     id: UUID = UUID.randomUUID(),
     name: String,
-    batteryPercent: Option[Double] = Some(0.00),
     ownerId: UUID,
   )
 
@@ -38,7 +35,6 @@ object HardwareCatalog {
     HardwareRow(
       hardware.id.value,
       hardware.name,
-      hardware.batteryPercent,
       hardware.ownerId.value,
     )
 
@@ -46,7 +42,6 @@ object HardwareCatalog {
     Hardware(
       HardwareId(hardware.id),
       hardware.name,
-      hardware.batteryPercent,
       UserId(hardware.ownerId),
     )
 }

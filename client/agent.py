@@ -25,7 +25,7 @@ async def agent(
      to commands from server, passes them to an client-specific engine"""
 
     # Construct hardware control URL
-    hardware_control_url_result = config.hardware_control_url()
+    hardware_control_url_result = config.backend.hardware_control_url(config.hardware_id)
     if isinstance(hardware_control_url_result, Err):
         LOGGER.error(
             "Couldn't construct hardware-specific control server URL: %s",
@@ -35,7 +35,7 @@ async def agent(
 
     # Connect to control
     websocket = WebSocket(hardware_control_url, decoder, encoder)
-    LOGGER.debug("Connecting connect to control server: %s", config.control_server)
+    LOGGER.debug("Connecting connect to control server: %s", config.backend.control_server)
     error = await websocket.connect()
     if error is not None:
         LOGGER.error("Couldn't connect to control server: %s", error)

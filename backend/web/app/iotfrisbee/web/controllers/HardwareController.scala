@@ -27,7 +27,7 @@ class HardwareController(
   val cc: ControllerComponents,
   val pubSubMediator: ActorRef,
   val hardwareService: HardwareService[IO],
-  val userService: UserService[IO]
+  val userService: UserService[IO],
 )(implicit
   @unused iort: IORuntime,
   @unused actorSystem: ActorSystem,
@@ -38,31 +38,40 @@ class HardwareController(
     with ResultsController[IO] {
 
   def createHardware: Action[CreateHardware] =
-    IOActionJSON[CreateHardware](withRequestAuthnOrFail(_)((request, user) =>
-      for {
-        creation <- EitherT(hardwareService.createHardware(request.body.name, user.id)).leftMap(databaseErrorResult)
-        result <- creation.toRight("Authenticated user was removed while executing request")
-          .bimap(
-            errorMessage => Failure(errorMessage).withHttpStatus(BAD_REQUEST),
-            hardware => Success(hardware).withHttpStatus(OK),
-          ).toEitherT[IO]
-      } yield result
-    ))
+    IOActionJSON[CreateHardware](
+      withRequestAuthnOrFail(_)((request, user) =>
+        for {
+          creation <- EitherT(hardwareService.createHardware(request.body.name, user.id)).leftMap(databaseErrorResult)
+          result <-
+            creation
+              .toRight("Authenticated user was removed while executing request")
+              .bimap(
+                errorMessage => Failure(errorMessage).withHttpStatus(BAD_REQUEST),
+                hardware => Success(hardware).withHttpStatus(OK),
+              )
+              .toEitherT[IO]
+        } yield result,
+      ),
+    )
 
   def getHardwares: Action[AnyContent] =
     IOActionAny { _ =>
-      EitherT(hardwareService.getHardwares).leftMap(databaseErrorResult)
+      EitherT(hardwareService.getHardwares)
+        .leftMap(databaseErrorResult)
         .map(hardwares => Success(hardwares).withHttpStatus(OK))
     }
 
   def getHardware(hardwareId: HardwareId): Action[AnyContent] =
     IOActionAny { _ =>
-      EitherT(hardwareService.getHardware(hardwareId)).leftMap(databaseErrorResult)
-        .subflatMap(_.toRight("Hardware with that id doesn't exist")
-          .bimap(
-            errorMessage => Failure(errorMessage).withHttpStatus(BAD_REQUEST),
-            hardware => Success(hardware).withHttpStatus(OK),
-          ))
+      EitherT(hardwareService.getHardware(hardwareId))
+        .leftMap(databaseErrorResult)
+        .subflatMap(
+          _.toRight("Hardware with that id doesn't exist")
+            .bimap(
+              errorMessage => Failure(errorMessage).withHttpStatus(BAD_REQUEST),
+              hardware => Success(hardware).withHttpStatus(OK),
+            ),
+        )
     }
 
   def controlHardwareActor(subscriber: ActorRef, hardwareId: HardwareId): Props = {
@@ -74,43 +83,53 @@ class HardwareController(
     WebSocket.accept[HardwareControlMessage, String](_ => {
       BetterActorFlow.actorRef(
         subscriber => controlHardwareActor(subscriber, hardwareId),
-        maybeName = hardwareActor(hardwareId).some)
+        maybeName = hardwareActor(hardwareId).some,
+      )
     })
   }
 
   def uploadHardwareSoftware(hardwareId: HardwareId, softwareId: SoftwareId): Action[AnyContent] =
-    IOActionAny { _ => {
-      implicit val timeout: Timeout = 60.seconds
-      val uploadSoftwareMessage: HardwareControlMessage = UploadSoftwareRequest(softwareId)
+    IOActionAny { _ =>
+      {
+        implicit val timeout: Timeout = 60.seconds
+        val uploadSoftwareMessage: HardwareControlMessage = UploadSoftwareRequest(softwareId)
 
-      val result: EitherT[IO, String, Any] =
-        for {
-          hardwareRef <- EitherT(IO.fromFuture(IO(actorSystem
-            .actorSelection(s"/user/${hardwareActor(hardwareId)}")
-            .resolveOne()))
-            .redeem(_ =>
-              Left.apply("Hardware not online"),
-              Right.apply))
-          result <- EitherT(QueryActor.query(
-            hardwareRef,
-            actorRef => {
-              Promise(actorRef, uploadSoftwareMessage)
-            },
-            immediate = false))
-            .bimap(
-              error => s"Failed to receive answer from hardware: ${error}",
-              identity
+        val result: EitherT[IO, String, Unit] =
+          for {
+            hardwareRef <- EitherT(
+              IO.fromFuture(
+                  IO(
+                    actorSystem
+                      .actorSelection(s"/user/${hardwareActor(hardwareId)}")
+                      .resolveOne(),
+                  ),
+                )
+                .redeem(_ => Left.apply("Hardware not online"), Right.apply),
             )
-          uploadResult <- (result match {
-            case r: UploadSoftwareResult => Right(r)
-            case _ => Left("Hardware responded with an invalid response")
-          }).toEitherT[IO]
-        } yield uploadResult
+            result <- EitherT(
+              QueryActor.query(
+                hardwareRef,
+                actorRef => {
+                  Promise(actorRef, uploadSoftwareMessage)
+                },
+                immediate = false,
+              ),
+            ).bimap(
+              error => s"Failed to receive answer from hardware: ${error}",
+              identity,
+            )
+            uploadResult <- (result match {
+                case UploadSoftwareResult(None)    => Right(())
+                case UploadSoftwareResult(Some(e)) => Left(e)
+                case _                             => Left("Hardware responded with an invalid response")
+              }).toEitherT[IO]
+          } yield uploadResult
 
         result.bimap(
           errorMessage => Failure(errorMessage).withHttpStatus(BAD_REQUEST),
           result => Success(result.toString).withHttpStatus(OK),
         )
-    }}
+      }
+    }
 
 }

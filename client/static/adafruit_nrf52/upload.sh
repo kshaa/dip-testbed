@@ -69,7 +69,16 @@ tmpdir="$(mktemp -d)"
 dfupackage="${tmpdir}/firmware-package.zip"
 firmwarehextmp="${firmwarehex}.hex"
 cp -rf "${firmwarehex}" "${firmwarehextmp}"
-adafruit-nrfutil dfu genpkg --dev-type 0x0052 --application "${firmwarehextmp}" "${dfupackage}"
+echo "Uploading '${firmwarehextmp}'"
+if adafruit-nrfutil dfu genpkg --dev-type 0x0052 --application "${firmwarehextmp}" "${dfupackage}"; then
+  echo "Converted hex file to uploadable archive"
+else
+  echo "Upload failed, the firmware was likely not a valid program"
+  rm -rf "${tmpdir}"
+  rm -rf "${firmwarehextmp}"
+  rm -rf "${dfupackage}"
+  exit 1
+fi
 adafruit-nrfutil dfu serial --package "${dfupackage}" -p "${device}" -b "${baudrate}" | tee $tmplog
 rm -rf "${tmpdir}"
 rm -rf "${firmwarehextmp}"
@@ -78,9 +87,11 @@ rm -rf "${dfupackage}"
 # Double check if nrfutil failed
 if grep -q "Traceback" $tmplog; then
     rm -rf "${tmplog}"
+    echo "Upload failed, was the firmware was a valid program?"
     exit 1
 else
     rm -rf "${tmplog}"
+    echo "Upload succeeded!"
     exit 0
 fi
 

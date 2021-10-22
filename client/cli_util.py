@@ -29,10 +29,25 @@ HARDWARE_ID_OPTION = click.option(
     help='UUID for the hardware to be managed. '
     'E.g. 5400636e-2d91-11ec-9628-8fb2659e451f'
 )
+SOFTWARE_ID_OPTION = click.option(
+    '--software-id', '-i', "software_id_str", show_envvar=True,
+    type=str, envvar="DIP_SOFTWARE_ID", required=True,
+    help='Software id (e.g. \'16db6c30-3328-11ec-ae41-ff1d66202dcc\''
+)
 JSON_OUTPUT_OPTION = click.option(
     "--json-output", '-j', "json_output", show_envvar=True, default=False,
     type=bool, envvar="DIP_CLIENT_JSON_OUTPUT", required=False,
     help='Print client output as JSON when appropriate'
+)
+USERNAME_OPTION = click.option(
+    '--username', '-u', "username", show_envvar=True,
+    type=str, envvar="DIP_USER_USERNAME", required=True,
+    help='User username (e.g. \'johndoe\').'
+)
+PASSWORD_OPTION = click.option(
+    '--password', '-p', "password", show_envvar=True,
+    type=str, envvar="DIP_USER_PASSWORD", required=True,
+    help='User password (e.g. \'12345\').'
 )
 
 
