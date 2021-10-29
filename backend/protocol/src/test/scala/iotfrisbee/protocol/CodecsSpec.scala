@@ -4,6 +4,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.freespec.AnyFreeSpec
 import io.circe.parser._
 import io.circe.syntax._
+import iotfrisbee.domain.HardwareControlMessage.BaudrateState
 import iotfrisbee.domain.{DomainTimeZoneId, HardwareControlMessage, SoftwareId}
 import iotfrisbee.protocol.WebResult._
 import iotfrisbee.protocol.Codecs._
@@ -55,5 +56,24 @@ class CodecsSpec extends AnyFreeSpec with Matchers {
     val unserialized: HardwareControlMessage = HardwareControlMessage.UploadSoftwareResult(None)
     unserialized.asJson.noSpaces.shouldEqual(serialized)
     decode[HardwareControlMessage](serialized).shouldEqual(Right(unserialized))
+  }
+
+  "hardware monitor result messages should encode and decode" in {
+    // {"command":"serialMonitorResult","payload":{"baudrateOrError":{"baudrate":115200,"isNew":false}}}
+    val serialized1 =
+      "{\"command\":\"serialMonitorResult\",\"payload\":{\"baudrateOrError\":{\"baudrate\":115200,\"isNew\":false}}}"
+    val unserialized1: HardwareControlMessage =
+      HardwareControlMessage.SerialMonitorResult(Right(BaudrateState(115200, isNew = false)))
+
+    unserialized1.asJson.noSpaces.shouldEqual(serialized1)
+    decode[HardwareControlMessage](serialized1).shouldEqual(Right(unserialized1))
+
+    // {"command":"serialMonitorResult","payload":{"baudrateOrError":"lp0 on fire"}}
+    val serialized2 = "{\"command\":\"serialMonitorResult\",\"payload\":{\"baudrateOrError\":\"lp0 on fire\"}}"
+    val unserialized2: HardwareControlMessage =
+      HardwareControlMessage.SerialMonitorResult(Left("lp0 on fire"))
+
+    unserialized2.asJson.noSpaces.shouldEqual(serialized2)
+    decode[HardwareControlMessage](serialized2).shouldEqual(Right(unserialized2))
   }
 }

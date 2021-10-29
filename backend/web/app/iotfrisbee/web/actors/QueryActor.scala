@@ -3,6 +3,7 @@ package iotfrisbee.web.actors
 import akka.actor.{Actor, ActorRef, ActorSystem, PoisonPill, Props}
 import akka.pattern.{AskTimeoutException, ask}
 import akka.util.Timeout
+import cats.data.EitherT
 import cats.effect.{Deferred, IO}
 import cats.effect.unsafe.IORuntime
 import iotfrisbee.web.actors.QueryActor.failableFutureIO
@@ -10,23 +11,23 @@ import iotfrisbee.web.actors.QueryActor.failableFutureIO
 import scala.concurrent.Future
 
 /**
- * This class couldn't be any dumber.
- * Essentially the ask pattern doesn't work properly in one of my controllers.
- * For some reason the inquired actor receives its own actor path instead,
- * so the controller ask doesn't get a response and times out.
- * So I've created this actor just to be a proxy for an ask query.
- *
- * immediate = true :: Ask by use of pattern `?`
- * immediate = false :: Ask by expecting a received message
- */
+  * This class couldn't be any dumber.
+  * Essentially the ask pattern doesn't work properly in one of my controllers.
+  * For some reason the inquired actor receives its own actor path instead,
+  * so the controller ask doesn't get a response and times out.
+  * So I've created this actor just to be a proxy for an ask query.
+  *
+  * immediate = true :: Ask by use of pattern `?`
+  * immediate = false :: Ask by expecting a received message
+  */
 class QueryActor[O](
   destination: ActorRef,
   message: ActorRef => O,
   signal: Deferred[IO, Either[Throwable, Any]],
-  immediate: Boolean
+  immediate: Boolean,
 )(implicit
   iort: IORuntime,
-  timeout: Timeout
+  timeout: Timeout,
 ) extends Actor {
   val builtMessage: O = message(self)
   def resolveQuery(result: Either[Throwable, Any]): IO[Unit] =
@@ -49,15 +50,16 @@ class QueryActor[O](
         _ <- IO(destination ! builtMessage)
         // [!immediate] Fail if we time out
         _ <- (IO.sleep(timeout.duration) *>
-          resolveQuery(Left(new AskTimeoutException(s"Message timed out in ${timeout.duration}")))).start
+            resolveQuery(Left(new AskTimeoutException(s"Message timed out in ${timeout.duration}")))).start
       } yield ()
 
   query.unsafeRunSync()
 
-  def receive: Receive = message => {
-    // [!immediate] Resolve when receiving message
-    resolveQuery(Right(message)).unsafeRunSync()
-  }
+  def receive: Receive =
+    message => {
+      // [!immediate] Resolve when receiving message
+      resolveQuery(Right(message)).unsafeRunSync()
+    }
 }
 
 object QueryActor {
@@ -68,17 +70,17 @@ object QueryActor {
     immediate: Boolean,
   )(implicit
     iort: IORuntime,
-    timeout: Timeout
+    timeout: Timeout,
   ): Props = Props(new QueryActor(destination, message, signal, immediate))
 
   def query[O](
     destination: ActorRef,
     message: ActorRef => O,
-    immediate: Boolean = true
+    immediate: Boolean = true,
   )(implicit
     actorSystem: ActorSystem,
     iort: IORuntime,
-    timeout: Timeout
+    timeout: Timeout,
   ): IO[Either[Throwable, Any]] =
     for {
       signal <- Deferred[IO, Either[Throwable, Any]]
@@ -86,6 +88,23 @@ object QueryActor {
       _ <- IO(actorSystem.actorOf(actor))
       result <- signal.get
     } yield result
+
+  def queryActorT[O](
+    actorRef: ActorRef,
+    message: ActorRef => O,
+    immediate: Boolean,
+  )(implicit actorSystem: ActorSystem, iort: IORuntime, t: Timeout): EitherT[IO, String, Any] = {
+    EitherT(
+      QueryActor.query(
+        actorRef,
+        message,
+        immediate,
+      ),
+    ).bimap(
+      error => s"Failed to receive answer from hardware: ${error}",
+      identity,
+    )
+  }
 
   def futureIO[T](value: Future[T]): IO[T] =
     IO.fromFuture(IO(value))

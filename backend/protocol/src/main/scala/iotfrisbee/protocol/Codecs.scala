@@ -7,7 +7,10 @@ import io.circe.syntax._
 import cats.implicits._
 import iotfrisbee.domain._
 import iotfrisbee.domain.HardwareControlMessage._
+import iotfrisbee.domain.HardwareSerialMonitorMessage._
 import iotfrisbee.protocol.WebResult._
+
+import scala.annotation.unused
 
 object Codecs {
   implicit val domainTimeZoneIdCodec: Codec[DomainTimeZoneId] = Codec.from(
@@ -25,13 +28,43 @@ object Codecs {
 
   implicit val NamedMessageCodec: Codec[NamedMessage] = deriveCodec[NamedMessage]
 
+  @unused private implicit val baudrateStateCodec: Codec[BaudrateState] = deriveCodec[BaudrateState]
+
+  private implicit val serialMessageCodec: Codec[SerialMessage] = deriveCodec[SerialMessage]
+  private implicit val monitorUnavailableCodec: Codec[MonitorUnavailable] = deriveCodec[MonitorUnavailable]
+  private implicit val baudrateSetCodec: Codec[BaudrateSet] = deriveCodec[BaudrateSet]
+  private implicit val baudrateChangedCodec: Codec[BaudrateChanged] = deriveCodec[BaudrateChanged]
+
   private implicit val uploadSoftwareRequestCodec: Codec[UploadSoftwareRequest] = deriveCodec[UploadSoftwareRequest]
   private implicit val uploadSoftwareResultCodec: Codec[UploadSoftwareResult] = deriveCodec[UploadSoftwareResult]
+
+  implicit def eitherEncoder[A, B](implicit a: Encoder[A], b: Encoder[B]): Encoder[Either[A, B]] = {
+    Encoder.instance {
+      case Left(x)  => a.apply(x)
+      case Right(x) => b.apply(x)
+    }
+  }
+  implicit def eitherDecoder[A, B](implicit a: Decoder[A], b: Decoder[B]): Decoder[Either[A, B]] = {
+    val left: Decoder[Either[A, B]] = a.map(Left.apply)
+    val right: Decoder[Either[A, B]] = b.map(Right.apply)
+    left or right
+  }
+
+  private implicit val SerialMonitorRequestCodec: Codec[SerialMonitorRequest] = deriveCodec[SerialMonitorRequest]
+  private implicit val SerialMonitorResultCodec: Codec[SerialMonitorResult] = deriveCodec[SerialMonitorResult]
+  private implicit val SerialMonitorMessageCodec: Codec[SerialMonitorMessage] = deriveCodec[SerialMonitorMessage]
+
   private implicit val pingCodec: Codec[Ping] = deriveCodec[Ping]
+
   implicit val hardwareControlMessageEncoder: Encoder[HardwareControlMessage] = Encoder.instance {
     case c: UploadSoftwareRequest => NamedMessage("uploadSoftwareRequest", c.asJson).asJson
     case c: UploadSoftwareResult  => NamedMessage("uploadSoftwareResult", c.asJson).asJson
-    case c: Ping                  => NamedMessage("ping", c.asJson).asJson
+
+    case c: SerialMonitorRequest => NamedMessage("serialMonitorRequest", c.asJson).asJson
+    case c: SerialMonitorResult  => NamedMessage("serialMonitorResult", c.asJson).asJson
+    case c: SerialMonitorMessage => NamedMessage("serialMonitorMessage", c.asJson).asJson
+
+    case c: Ping => NamedMessage("ping", c.asJson).asJson
   }
   implicit val hardwareControlMessageDecoder: Decoder[HardwareControlMessage] =
     Decoder[NamedMessage].emap { m =>
@@ -39,8 +72,33 @@ object Codecs {
         val codec: Option[Decoder[HardwareControlMessage]] = m.command match {
           case "uploadSoftwareRequest" => Decoder[UploadSoftwareRequest].widen[HardwareControlMessage].some
           case "uploadSoftwareResult"  => Decoder[UploadSoftwareResult].widen[HardwareControlMessage].some
-          case "ping"                  => Decoder[Ping].widen[HardwareControlMessage].some
-          case _                       => None
+
+          case "serialMonitorRequest" => Decoder[SerialMonitorRequest].widen[HardwareControlMessage].some
+          case "serialMonitorResult"  => Decoder[SerialMonitorResult].widen[HardwareControlMessage].some
+          case "serialMonitorMessage" => Decoder[SerialMonitorMessage].widen[HardwareControlMessage].some
+
+          case "ping" => Decoder[Ping].widen[HardwareControlMessage].some
+          case _      => None
+        }
+        codec.toRight("Unknown command").flatMap(_.decodeJson(m.payload).leftMap(_.message))
+      }
+    }
+
+  implicit val hardwareSerialMonitorMessageEncoder: Encoder[HardwareSerialMonitorMessage] = Encoder.instance {
+    case c: BaudrateSet        => NamedMessage("baudrateSet", c.asJson).asJson
+    case c: BaudrateChanged    => NamedMessage("baudrateChanged", c.asJson).asJson
+    case c: MonitorUnavailable => NamedMessage("monitorUnavailable", c.asJson).asJson
+    case c: SerialMessage      => NamedMessage("serialMessage", c.asJson).asJson
+  }
+  implicit val hardwareSerialMonitorMessageDecoder: Decoder[HardwareSerialMonitorMessage] =
+    Decoder[NamedMessage].emap { m =>
+      {
+        val codec: Option[Decoder[HardwareSerialMonitorMessage]] = m.command match {
+          case "baudrateSet"        => Decoder[BaudrateSet].widen[HardwareSerialMonitorMessage].some
+          case "baudrateChanged"    => Decoder[BaudrateChanged].widen[HardwareSerialMonitorMessage].some
+          case "monitorUnavailable" => Decoder[MonitorUnavailable].widen[HardwareSerialMonitorMessage].some
+          case "serialMessage"      => Decoder[SerialMessage].widen[HardwareSerialMonitorMessage].some
+          case _                    => None
         }
         codec.toRight("Unknown command").flatMap(_.decodeJson(m.payload).leftMap(_.message))
       }
