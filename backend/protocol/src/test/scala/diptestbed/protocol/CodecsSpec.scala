@@ -1,11 +1,17 @@
 package diptestbed.protocol
 
+import diptestbed.domain.HardwareSerialMonitorMessage.{MonitorUnavailable, SerialMessageToAgent, SerialMessageToClient}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.freespec.AnyFreeSpec
 import io.circe.parser._
 import io.circe.syntax._
-import diptestbed.domain.HardwareControlMessage.BaudrateState
-import diptestbed.domain.{DomainTimeZoneId, HardwareControlMessage, SoftwareId}
+import diptestbed.domain.{
+  DomainTimeZoneId,
+  HardwareControlMessage,
+  HardwareSerialMonitorMessage,
+  SerialConfig,
+  SoftwareId,
+}
 import diptestbed.protocol.WebResult._
 import diptestbed.protocol.Codecs._
 
@@ -58,22 +64,60 @@ class CodecsSpec extends AnyFreeSpec with Matchers {
     decode[HardwareControlMessage](serialized).shouldEqual(Right(unserialized))
   }
 
-  "hardware monitor result messages should encode and decode" in {
-    // {"command":"serialMonitorResult","payload":{"baudrateOrError":{"baudrate":115200,"isNew":false}}}
-    val serialized1 =
-      "{\"command\":\"serialMonitorResult\",\"payload\":{\"baudrateOrError\":{\"baudrate\":115200,\"isNew\":false}}}"
-    val unserialized1: HardwareControlMessage =
-      HardwareControlMessage.SerialMonitorResult(Right(BaudrateState(115200, isNew = false)))
+  "hardware monitor request messages should encode and decode" in {
+    // {"command":"serialMonitorRequest","payload":{"serialConfig":null}}
+    // {"command":"serialMonitorRequest","payload":{"serialConfig":{"receiveSize":115200,"baudrate":1,"timeout":0.3}}}
+    val serialized = "{" +
+      "\"command\":\"serialMonitorRequest\"," +
+      "\"payload\":{" +
+      "\"serialConfig\":" +
+      "{\"receiveSize\":115200,\"baudrate\":1,\"timeout\":0.3" +
+      "}" +
+      "}" +
+      "}"
+    val unserialized: HardwareControlMessage =
+      HardwareControlMessage.SerialMonitorRequest(Some(SerialConfig(115200, 1, 0.3f)))
 
-    unserialized1.asJson.noSpaces.shouldEqual(serialized1)
-    decode[HardwareControlMessage](serialized1).shouldEqual(Right(unserialized1))
-
-    // {"command":"serialMonitorResult","payload":{"baudrateOrError":"lp0 on fire"}}
-    val serialized2 = "{\"command\":\"serialMonitorResult\",\"payload\":{\"baudrateOrError\":\"lp0 on fire\"}}"
-    val unserialized2: HardwareControlMessage =
-      HardwareControlMessage.SerialMonitorResult(Left("lp0 on fire"))
-
-    unserialized2.asJson.noSpaces.shouldEqual(serialized2)
-    decode[HardwareControlMessage](serialized2).shouldEqual(Right(unserialized2))
+    unserialized.asJson.noSpaces.shouldEqual(serialized)
+    decode[HardwareControlMessage](serialized).shouldEqual(Right(unserialized))
   }
+
+  "hardware monitor result messages should encode and decode" in {
+    // {"command":"serialMonitorResult","payload":{"error":null}}
+    // {"command":"serialMonitorResult","payload":{"error":"lp0 on fire"}}
+    val serialized = "{\"command\":\"serialMonitorResult\",\"payload\":{\"error\":null}}"
+    val unserialized: HardwareControlMessage = HardwareControlMessage.SerialMonitorResult(None)
+
+    unserialized.asJson.noSpaces.shouldEqual(serialized)
+    decode[HardwareControlMessage](serialized).shouldEqual(Right(unserialized))
+  }
+
+  "hardware monitor message to client should encode and decode" in {
+    // {"command":"serialMonitorMessageToClient","payload":{"message":{"base64Bytes":""}}}
+    val serialized = "{\"command\":\"serialMonitorMessageToClient\",\"payload\":{\"message\":{\"base64Bytes\":\"\"}}}"
+    val unserialized: HardwareControlMessage =
+      HardwareControlMessage.SerialMonitorMessageToClient(SerialMessageToClient(""))
+
+    unserialized.asJson.noSpaces.shouldEqual(serialized)
+    decode[HardwareControlMessage](serialized).shouldEqual(Right(unserialized))
+  }
+
+  "hardware monitor message to agent should encode and decode" in {
+    // {"command":"serialMonitorMessageToAgent","payload":{"message":{"base64Bytes":""}}}
+    val serialized = "{\"command\":\"serialMonitorMessageToAgent\",\"payload\":{\"message\":{\"base64Bytes\":\"\"}}}"
+    val unserialized: HardwareControlMessage =
+      HardwareControlMessage.SerialMonitorMessageToAgent(SerialMessageToAgent(""))
+
+    unserialized.asJson.noSpaces.shouldEqual(serialized)
+    decode[HardwareControlMessage](serialized).shouldEqual(Right(unserialized))
+  }
+
+  "hardware control monitor unavailable messages should encode and decode" in {
+    // {"command":"monitorUnavailable","payload":{"reason":"lp0 on fire"}}
+    val serialized = "{\"command\":\"monitorUnavailable\",\"payload\":{\"reason\":\"lp0 on fire\"}}"
+    val unserialized: HardwareSerialMonitorMessage = MonitorUnavailable("lp0 on fire")
+    unserialized.asJson.noSpaces.shouldEqual(serialized)
+    decode[HardwareSerialMonitorMessage](serialized).shouldEqual(Right(unserialized))
+  }
+
 }

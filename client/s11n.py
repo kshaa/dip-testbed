@@ -7,6 +7,7 @@ from result import Result, Err, Ok
 from codec import Encoder, Decoder, Codec, CodecParseException
 import protocol
 import backend_domain
+from serial_util import SerialConfig
 
 NO_WHITESPACE_SEPERATORS = (',', ':')
 
@@ -291,7 +292,7 @@ def success_message_decode(
 
 
 def success_message_decoder(
-        content_decoder: Callable[[str], Result[SUCCESS_GENERIC, CodecParseException]]
+    content_decoder: Callable[[str], Result[SUCCESS_GENERIC, CodecParseException]]
 ) -> Callable[[str], Result[protocol.SuccessMessage[SUCCESS_GENERIC], CodecParseException]]:
     """Create a success message decoder function instance"""
     def decode(value: str):
@@ -334,12 +335,250 @@ def failure_message_decoder(
     return decode
 
 
+# protocol.SerialMonitorRequest
+def serial_monitor_request_encode(value: protocol.SerialMonitorRequest) -> str:
+    """Serialize SerialMonitorRequest to JSON"""
+    message = {
+        "command": "serialMonitorRequest",
+        "payload": {
+            "serialConfig": {
+                "receiveSize": value.config.receive_size,
+                "baudrate": value.config.baudrate,
+                "timeout": value.config.timeout
+            }
+        }
+    }
+    return json.dumps(message, separators=NO_WHITESPACE_SEPERATORS)
+
+
+def serial_monitor_request_decode(value: str) -> Result[protocol.SerialMonitorRequest, CodecParseException]:
+    """Un-serialize UploadMessage from JSON"""
+    json_result = json_decode(value)
+    if isinstance(json_result, Err):
+        return Err(json_result.value)
+    command_result = named_message_extract("serialMonitorRequest", json_result.value)
+    if isinstance(command_result, Err):
+        return Err(command_result.value)
+    result = command_result.value
+
+    if not isinstance(result, dict):
+        return Err(CodecParseException("SerialMonitorRequest must be an object"))
+
+    serial_config = result.get("serialConfig")
+    if serial_config is None:
+        return Ok(protocol.SerialMonitorRequest(None))
+    elif not isinstance(serial_config, dict):
+        return Err(CodecParseException("SerialMonitorRequest .serialConfig must be null or object"))
+
+    receive_size = serial_config.get("receiveSize")
+    if not isinstance(receive_size, int):
+        return Err(CodecParseException("SerialMonitorRequest .receiveSize must be integer"))
+
+    baudrate = serial_config.get("baudrate")
+    if not isinstance(baudrate, int):
+        return Err(CodecParseException("SerialMonitorRequest .baudrate must be integer"))
+
+    timeout = serial_config.get("timeout")
+    if not isinstance(timeout, int):
+        return Err(CodecParseException("SerialMonitorRequest .timeout must be integer"))
+
+    return Ok(protocol.SerialMonitorRequest(SerialConfig(receive_size, baudrate, timeout)))
+
+
+SERIAL_MONITOR_REQUEST_ENCODER: Encoder[protocol.SerialMonitorRequest] = Encoder(serial_monitor_request_encode)
+SERIAL_MONITOR_REQUEST_DECODER: Decoder[protocol.SerialMonitorRequest] = Decoder(serial_monitor_request_decode)
+SERIAL_MONITOR_REQUEST_CODEC: Codec[protocol.SerialMonitorRequest] = \
+    Codec(SERIAL_MONITOR_REQUEST_DECODER, SERIAL_MONITOR_REQUEST_ENCODER)
+
+
+# protocol.SerialMonitorResult
+def serial_monitor_result_encode(value: protocol.SerialMonitorResult) -> str:
+    """Serialize SerialMonitorResult to JSON"""
+    message = {
+        "command": "serialMonitorResult",
+        "payload": {
+            "error": value.error
+        }
+    }
+    return json.dumps(message, separators=NO_WHITESPACE_SEPERATORS)
+
+
+def serial_monitor_result_decode(value: str) -> Result[protocol.SerialMonitorResult, CodecParseException]:
+    """Un-serialize SerialMonitorRequest from JSON"""
+    json_result = json_decode(value)
+    if isinstance(json_result, Err):
+        return Err(json_result.value)
+    command_result = named_message_extract("serialMonitorResult", json_result.value)
+    if isinstance(command_result, Err):
+        return Err(command_result.value)
+    result = command_result.value
+
+    if isinstance(result, dict):
+        error = result.get("error")
+        if isinstance(error, str) or error is None:
+            return Ok(protocol.SerialMonitorResult(error))
+        else:
+            return Err(CodecParseException("SerialMonitorRequest must have .error as null or string"))
+    else:
+        return Err(CodecParseException("SerialMonitorRequest must be an object"))
+
+
+SERIAL_MONITOR_RESULT_ENCODER: Encoder[protocol.SerialMonitorResult] = \
+    Encoder(serial_monitor_result_encode)
+SERIAL_MONITOR_RESULT_DECODER: Decoder[protocol.SerialMonitorResult] = \
+    Decoder(serial_monitor_result_decode)
+SERIAL_MONITOR_RESULT_CODEC: Codec[protocol.SerialMonitorResult] = \
+    Codec(SERIAL_MONITOR_RESULT_DECODER, SERIAL_MONITOR_RESULT_ENCODER)
+
+
+# protocol.SerialMonitorMessageToAgent
+def serial_monitor_message_to_agent_encode(value: protocol.SerialMonitorMessageToAgent) -> str:
+    """Serialize SerialMonitorMessageToAgent to JSON"""
+    message = {
+        "command": "serialMonitorMessageToAgent",
+        "payload": {
+            "message": {
+                "base64Bytes": value.base64Bytes
+            }
+        }
+    }
+    return json.dumps(message, separators=NO_WHITESPACE_SEPERATORS)
+
+
+def serial_monitor_message_to_agent_decode(
+    value: str
+) -> Result[protocol.SerialMonitorMessageToAgent, CodecParseException]:
+    """Un-serialize SerialMonitorRequest from JSON"""
+    json_result = json_decode(value)
+    if isinstance(json_result, Err):
+        return Err(json_result.value)
+    command_result = named_message_extract("serialMonitorMessageToAgent", json_result.value)
+    if isinstance(command_result, Err):
+        return Err(command_result.value)
+    result = command_result.value
+
+    if not isinstance(result, dict):
+        return Err(CodecParseException("SerialMonitorMessageToAgent must be an object"))
+
+    message = result.get("message")
+    if not isinstance(message, dict):
+        return Err(CodecParseException("SerialMonitorMessageToAgent must have .message as object"))
+
+    base64_bytes = message.get("base64Bytes")
+    if not isinstance(base64_bytes, str):
+        return Err(CodecParseException("SerialMonitorMessageToAgent must have .base64Bytes as string"))
+
+    return Ok(protocol.SerialMonitorMessageToAgent(base64_bytes))
+
+
+SERIAL_MONITOR_MESSAGE_TO_AGENT_ENCODER: Encoder[protocol.SerialMonitorMessageToAgent] = \
+    Encoder(serial_monitor_message_to_agent_encode)
+SERIAL_MONITOR_MESSAGE_TO_AGENT_DECODER: Decoder[protocol.SerialMonitorMessageToAgent] = \
+    Decoder(serial_monitor_message_to_agent_decode)
+SERIAL_MONITOR_MESSAGE_TO_AGENT_CODEC: Codec[protocol.SerialMonitorMessageToAgent] = \
+    Codec(SERIAL_MONITOR_MESSAGE_TO_AGENT_DECODER, SERIAL_MONITOR_MESSAGE_TO_AGENT_ENCODER)
+
+
+# protocol.SerialMonitorMessageToClient
+def serial_monitor_message_to_client_encode(value: protocol.SerialMonitorMessageToClient) -> str:
+    """Serialize SerialMonitorMessageToClient to JSON"""
+    message = {
+        "command": "serialMonitorMessageToClient",
+        "payload": {
+            "message": {
+                "base64Bytes": value.base64Bytes
+            }
+        }
+    }
+    return json.dumps(message, separators=NO_WHITESPACE_SEPERATORS)
+
+
+def serial_monitor_message_to_client_decode(
+    value: str
+) -> Result[protocol.SerialMonitorMessageToClient, CodecParseException]:
+    """Un-serialize SerialMonitorMessageToClient from JSON"""
+    json_result = json_decode(value)
+    if isinstance(json_result, Err):
+        return Err(json_result.value)
+    command_result = named_message_extract("serialMonitorMessageToClient", json_result.value)
+    if isinstance(command_result, Err):
+        return Err(command_result.value)
+    result = command_result.value
+
+    if not isinstance(result, dict):
+        return Err(CodecParseException("SerialMonitorMessageToClient must be an object"))
+
+    message = result.get("message")
+    if not isinstance(message, dict):
+        return Err(CodecParseException("SerialMonitorMessageToClient must have .message as object"))
+
+    base64_bytes = message.get("base64Bytes")
+    if not isinstance(base64_bytes, str):
+        return Err(CodecParseException("SerialMonitorMessageToClient must have .base64Bytes as string"))
+
+    return Ok(protocol.SerialMonitorMessageToClient(base64_bytes))
+
+
+SERIAL_MONITOR_MESSAGE_TO_CLIENT_ENCODER: Encoder[protocol.SerialMonitorMessageToClient] = \
+    Encoder(serial_monitor_message_to_client_encode)
+SERIAL_MONITOR_MESSAGE_TO_CLIENT_DECODER: Decoder[protocol.SerialMonitorMessageToClient] = \
+    Decoder(serial_monitor_message_to_client_decode)
+SERIAL_MONITOR_MESSAGE_TO_CLIENT_CODEC: Codec[protocol.SerialMonitorMessageToClient] = \
+    Codec(SERIAL_MONITOR_MESSAGE_TO_CLIENT_DECODER, SERIAL_MONITOR_MESSAGE_TO_CLIENT_ENCODER)
+
+
+# protocol.MonitorUnavailable
+def monitor_unavailable_encode(value: protocol.MonitorUnavailable) -> str:
+    """Serialize MonitorUnavailable to JSON"""
+    message = {
+        "command": "monitorUnavailable",
+        "payload": {
+            "reason": value.reason
+        }
+    }
+    return json.dumps(message, separators=NO_WHITESPACE_SEPERATORS)
+
+
+def monitor_unavailable_decode(
+    value: str
+) -> Result[protocol.MonitorUnavailable, CodecParseException]:
+    """Un-serialize MonitorUnavailable from JSON"""
+    json_result = json_decode(value)
+    if isinstance(json_result, Err):
+        return Err(json_result.value)
+    command_result = named_message_extract("monitorUnavailable", json_result.value)
+    if isinstance(command_result, Err):
+        return Err(command_result.value)
+    result = command_result.value
+
+    if not isinstance(result, dict):
+        return Err(CodecParseException("MonitorUnavailable must be an object"))
+
+    reason = result.get("reason")
+    if not isinstance(reason, str):
+        return Err(CodecParseException("MonitorUnavailable must have .reason as string"))
+
+    return Ok(protocol.MonitorUnavailable(reason))
+
+
+MONITOR_UNAVAILABLE_ENCODER: Encoder[protocol.MonitorUnavailable] = \
+    Encoder(monitor_unavailable_encode)
+MONITOR_UNAVAILABLE_DECODER: Decoder[protocol.MonitorUnavailable] = \
+    Decoder(monitor_unavailable_decode)
+MONITOR_UNAVAILABLE_CODEC: Codec[protocol.MonitorUnavailable] = \
+    Codec(MONITOR_UNAVAILABLE_DECODER, MONITOR_UNAVAILABLE_ENCODER)
+
+
 # protocol.CommonIncomingMessage
 COMMON_INCOMING_MESSAGE_ENCODER = union_encoder({
-    protocol.UploadMessage: UPLOAD_MESSAGE_ENCODER
+    protocol.UploadMessage: UPLOAD_MESSAGE_ENCODER,
+    protocol.SerialMonitorRequest: SERIAL_MONITOR_REQUEST_ENCODER,
+    protocol.SerialMonitorMessageToAgent: SERIAL_MONITOR_MESSAGE_TO_AGENT_ENCODER
 })
 COMMON_INCOMING_MESSAGE_DECODER = union_decoder({
-    protocol.UploadMessage: UPLOAD_MESSAGE_DECODER
+    protocol.UploadMessage: UPLOAD_MESSAGE_DECODER,
+    protocol.SerialMonitorRequest: SERIAL_MONITOR_REQUEST_DECODER,
+    protocol.SerialMonitorMessageToAgent: SERIAL_MONITOR_MESSAGE_TO_AGENT_DECODER
 })
 COMMON_INCOMING_MESSAGE_CODEC = Codec(
     COMMON_INCOMING_MESSAGE_DECODER,
@@ -348,15 +587,43 @@ COMMON_INCOMING_MESSAGE_CODEC = Codec(
 # protocol.CommonOutgoingMessage
 COMMON_OUTGOING_MESSAGE_ENCODER = union_encoder({
     protocol.UploadResultMessage: UPLOAD_RESULT_MESSAGE_ENCODER,
-    protocol.PingMessage: PING_MESSAGE_ENCODER
+    protocol.PingMessage: PING_MESSAGE_ENCODER,
+    protocol.SerialMonitorResult: SERIAL_MONITOR_RESULT_ENCODER,
+    protocol.SerialMonitorMessageToClient: SERIAL_MONITOR_MESSAGE_TO_CLIENT_ENCODER
 })
 COMMON_OUTGOING_MESSAGE_DECODER = union_decoder({
     protocol.UploadResultMessage: UPLOAD_RESULT_MESSAGE_DECODER,
-    protocol.PingMessage: PING_MESSAGE_DECODER
+    protocol.PingMessage: PING_MESSAGE_DECODER,
+    protocol.SerialMonitorResult: SERIAL_MONITOR_RESULT_DECODER,
+    protocol.SerialMonitorMessageToClient: SERIAL_MONITOR_MESSAGE_TO_CLIENT_DECODER
 })
 COMMON_OUTGOING_MESSAGE_CODEC = Codec(
     COMMON_OUTGOING_MESSAGE_DECODER,
     COMMON_OUTGOING_MESSAGE_ENCODER)
+
+# protocol.MonitorListenerIncomingMessage
+MONITOR_LISTENER_INCOMING_MESSAGE_ENCODER = union_encoder({
+    protocol.MonitorUnavailable: MONITOR_UNAVAILABLE_ENCODER,
+    protocol.SerialMonitorMessageToClient: SERIAL_MONITOR_MESSAGE_TO_CLIENT_ENCODER
+})
+MONITOR_LISTENER_INCOMING_MESSAGE_DECODER = union_decoder({
+    protocol.MonitorUnavailable: MONITOR_UNAVAILABLE_DECODER,
+    protocol.SerialMonitorMessageToClient: SERIAL_MONITOR_MESSAGE_TO_CLIENT_DECODER
+})
+MONITOR_LISTENER_INCOMING_MESSAGE_CODEC = Codec(
+    MONITOR_LISTENER_INCOMING_MESSAGE_DECODER,
+    MONITOR_LISTENER_INCOMING_MESSAGE_ENCODER)
+
+# protocol.MonitorListenerOutgoingMessage
+MONITOR_LISTENER_OUTGOING_MESSAGE_ENCODER = union_encoder({
+    protocol.SerialMonitorMessageToAgent: SERIAL_MONITOR_MESSAGE_TO_AGENT_ENCODER
+})
+MONITOR_LISTENER_OUTGOING_MESSAGE_DECODER = union_decoder({
+    protocol.SerialMonitorMessageToAgent: SERIAL_MONITOR_MESSAGE_TO_AGENT_DECODER
+})
+MONITOR_LISTENER_OUTGOING_MESSAGE_CODEC = Codec(
+    MONITOR_LISTENER_OUTGOING_MESSAGE_DECODER,
+    MONITOR_LISTENER_OUTGOING_MESSAGE_ENCODER)
 
 
 # backend_domain.User

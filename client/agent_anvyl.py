@@ -1,15 +1,18 @@
 #!/usr/bin/env python
 """Anvyl FPGA client functionality."""
 
-import asyncio
 from typing import Sequence, Tuple, Any
 from result import Result, Err
 from engine import Engine, EngineConfig
-from protocol import CommonOutgoingMessage, CommonIncomingMessage, UploadMessage
+from protocol import \
+    CommonOutgoingMessage, \
+    CommonIncomingMessage, \
+    UploadMessage, \
+    SerialMonitorRequest, \
+    SerialMonitorMessageToAgent
 from sh import root_relative_path, outcome_sh
 from agent_util import AgentConfig
 import log
-from ws import WebSocket
 
 LOGGER = log.timed_named_logger("anvyl")
 FIRMWARE_UPLOAD_PATH = 'static/digilent_anvyl/upload.sh'
@@ -35,11 +38,13 @@ def firmware_upload_args(
 class EngineAnvylConfig(EngineConfig):
     """Anvyl engine configuration options"""
     device_name: str
+    device_path: str
     scan_chain_index: int
 
-    def __init__(self, agent: AgentConfig, device_name: str, scan_chain_index: int):
+    def __init__(self, agent: AgentConfig, device_name: str, device_path: str, scan_chain_index: int):
         super().__init__(agent)
         self.device_name = device_name
+        self.device_path = device_path
         self.scan_chain_index = scan_chain_index
 
 
@@ -60,7 +65,11 @@ class EngineAnvyl(Engine[CommonIncomingMessage, Any]):
         message: CommonIncomingMessage
     ) -> Result[CommonOutgoingMessage, Exception]:
         """Consume server-sent message and react accordingly"""
-        message_type = type(message)
-        if message_type == UploadMessage:
+        if isinstance(message, UploadMessage):
             return self.process_upload_message_sh(message, self.firmware_upload)
-        return Err(NotImplementedError())
+        elif isinstance(message, SerialMonitorRequest):
+            return self.process_serial_monitor(self.config.device_path, message)
+        elif isinstance(message, SerialMonitorMessageToAgent):
+            return self.process_serial_monitor_to_agent(message)
+        else:
+            return Err(NotImplementedError())

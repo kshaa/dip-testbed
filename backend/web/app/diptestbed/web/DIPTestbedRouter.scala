@@ -31,8 +31,6 @@ class DIPTestbedRouter(
       hardwareController.uploadHardwareSoftware(HardwareId(hardwareId), SoftwareId(softwareId))
     case GET(p"/hardware/${uuid(hardwareId)}/monitor/serial") =>
       hardwareController.listenHardwareSerialMonitor(HardwareId(hardwareId), None)
-    case GET(p"/hardware/${uuid(hardwareId)}/monitor/serial/${int(baudrate)}") =>
-      hardwareController.listenHardwareSerialMonitor(HardwareId(hardwareId), Some(baudrate))
 
     // Software
     case POST(p"/software")                             => softwareController.createSoftware

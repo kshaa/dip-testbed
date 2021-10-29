@@ -1,7 +1,7 @@
 package diptestbed.web.actors
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
-import diptestbed.domain.{HardwareId, SoftwareId, HardwareControlMessage => Control}
+import diptestbed.domain.{HardwareId, SerialConfig, SoftwareId, HardwareControlMessage => Control}
 import play.api.http.websocket.{CloseCodes, CloseMessage, WebSocketCloseException}
 import play.api.mvc.WebSocket.MessageFlowTransformer
 import io.circe.parser.decode
@@ -17,7 +17,6 @@ import cats.data.EitherT
 import cats.implicits.toTraverseOps
 import scala.annotation.unused
 import com.typesafe.scalalogging.LazyLogging
-import diptestbed.domain.HardwareSerialMonitorMessage.BaudrateChanged
 import diptestbed.web.actors.HardwareControlState.{ConfiguringMonitor, Initial, Uploading}
 import diptestbed.web.actors.QueryActor.Promise
 
@@ -95,26 +94,27 @@ class HardwareControlActor(
   def receive: Receive = {
     case controlMessage: Control =>
       isNonPingMessage(controlMessage).foreach(message =>
-        logger.info(s"Receiving non-ping control message: ${message}"),
+        logger.debug(s"Receiving non-ping control message: ${message}"),
       )
       controlHandler(None, controlMessage).unsafeRunSync()
 
     case Promise(inquirer, controlMessage: Control) =>
-      logger.info(s"Inquirer '${inquirer}' sent control message: ${controlMessage}")
+      logger.debug(s"Inquirer '${inquirer}' sent control message: ${controlMessage}")
       controlHandler(Some(inquirer), controlMessage).unsafeRunSync()
 
     case message =>
-      logger.info(s"Receiving and ignoring unknown message: ${message.toString}")
+      logger.debug(s"Receiving and ignoring unknown message: ${message.toString}")
   }
 
   def controlHandler(inquirer: Option[ActorRef], message: Control): IO[Unit] =
     message match {
-      case m: UploadSoftwareRequest => handleUploadSoftwareRequest(inquirer, m)
-      case m: UploadSoftwareResult  => handleUploadSoftwareResult(m)
-      case m: SerialMonitorRequest  => handleSerialMonitorRequest(inquirer, m)
-      case m: SerialMonitorResult   => handleSerialMonitorResult(m)
-      case m: SerialMonitorMessage  => handleSerialMonitorMessage(m)
-      case _: Ping                  => IO(())
+      case m: UploadSoftwareRequest        => handleUploadSoftwareRequest(inquirer, m)
+      case m: UploadSoftwareResult         => handleUploadSoftwareResult(m)
+      case m: SerialMonitorRequest         => handleSerialMonitorRequest(inquirer, m)
+      case m: SerialMonitorResult          => handleSerialMonitorResult(m)
+      case m: SerialMonitorMessageToClient => handleSerialMonitorMessageToClient(m)
+      case m: SerialMonitorMessageToAgent  => handleSerialMonitorMessageToAgent(m)
+      case _: Ping                         => IO(())
     }
 
   def handleUploadSoftwareRequest(inquirer: Option[ActorRef], message: UploadSoftwareRequest): IO[Unit] =
@@ -149,19 +149,15 @@ class HardwareControlActor(
     for {
       // Forward response if monitor is observed
       _ <- isMonitorObserved.traverse(sendToRequester(_, message))
-      // Broadcast conditional baudrate change
-      _ <- isBaudrateChangeMessage(message).traverse(baudrate =>
-        IO(pubSubMediator ! Publish(serialMonitorTopic, BaudrateChanged(baudrate))),
-      )
       // Reset state if upload happened
       _ <- IO.whenA(isMonitoring)(IO(setInitialState()))
     } yield ()
 
-  def handleSerialMonitorMessage(message: SerialMonitorMessage): IO[Unit] =
-    for {
-      // Broadcast monitor message
-      _ <- IO(pubSubMediator ! Publish(serialMonitorTopic, message.message))
-    } yield ()
+  def handleSerialMonitorMessageToClient(message: SerialMonitorMessageToClient): IO[Unit] =
+    IO(pubSubMediator ! Publish(serialMonitorTopic, message))
+
+  def handleSerialMonitorMessageToAgent(message: SerialMonitorMessageToAgent): IO[Unit] =
+    sendToAgent(message)
 
 }
 
@@ -187,20 +183,29 @@ object HardwareControlActor extends ActorHelper {
 
   def requestSerialMonitor(
     hardwareId: HardwareId,
-    baudrate: Option[Baudrate],
-  )(implicit actorSystem: ActorSystem, t: Timeout, iort: IORuntime): EitherT[IO, String, BaudrateState] =
+    serialConfig: Option[SerialConfig],
+  )(implicit actorSystem: ActorSystem, t: Timeout, iort: IORuntime): EitherT[IO, String, Unit] =
     for {
       hardwareRef <- resolveActorRef(userActorPath(hardwareActor(hardwareId)))(actorSystem, implicitly)
       result <- QueryActor.queryActorT(
         hardwareRef,
-        actorRef => Promise(actorRef, SerialMonitorRequest(baudrate)),
+        actorRef => Promise(actorRef, SerialMonitorRequest(serialConfig)),
         immediate = false,
       )
       monitorResult <- EitherT.fromEither[IO](result match {
-        case SerialMonitorResult(result) => result
+        case SerialMonitorResult(result) => result.toLeft(())
         case _                           => Left("Hardware responded with an invalid response")
       })
     } yield monitorResult
+
+  def sendSerialMessageToAgent(
+    hardwareId: HardwareId,
+    serialMessage: SerialMonitorMessageToAgent,
+  )(implicit actorSystem: ActorSystem, t: Timeout): EitherT[IO, String, Unit] =
+    for {
+      hardwareRef <- resolveActorRef(userActorPath(hardwareActor(hardwareId)))(actorSystem, implicitly)
+      _ <- EitherT.liftF(IO(hardwareRef ! serialMessage))
+    } yield ()
 
   def requestSoftwareUpload(
     hardwareId: HardwareId,

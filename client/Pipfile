@@ -12,6 +12,7 @@ result = "*"
 click = "*"
 requests = "*"
 rich = "*"
+pyserial = "*"
 
 [dev-packages]
 pyinstaller = "*"

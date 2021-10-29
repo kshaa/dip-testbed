@@ -2,7 +2,9 @@
 
 from typing import TypeVar, Generic, Union, Optional
 from uuid import UUID
+import base64
 from dataclasses import dataclass
+from serial_util import SerialConfig
 
 T = TypeVar('T')
 
@@ -23,6 +25,54 @@ class UploadResultMessage:
 
     def __eq__(self, other) -> bool:
         return self.error == other.error
+
+
+@dataclass(frozen=True, eq=False)
+class SerialMonitorRequest:
+    """Message to request serial monitor for a given microcontroller"""
+    config: Optional[SerialConfig]
+
+
+@dataclass(frozen=True, eq=False)
+class SerialMonitorResult:
+    """Message regarding result of a hardware serial monitor request"""
+    error: Optional[str]
+
+
+@dataclass(frozen=True, eq=False)
+class SerialMonitorMessageToAgent:
+    """Message from client to hardware serial monitor"""
+    base64Bytes: str
+
+    @staticmethod
+    def from_bytes(content: bytes):
+        """Construct message from bytes"""
+        return SerialMonitorMessageToAgent(base64.b64encode(content).decode("utf-8"))
+
+    def to_bytes(self):
+        """Construct bytes from message"""
+        return base64.b64decode(self.base64Bytes)
+
+
+@dataclass(frozen=True, eq=False)
+class SerialMonitorMessageToClient:
+    """Message from hardware serial monitor to client"""
+    base64Bytes: str
+
+    @staticmethod
+    def from_bytes(content: bytes):
+        """Construct message from bytes"""
+        return SerialMonitorMessageToClient(base64.b64encode(content).decode("utf-8"))
+
+    def to_bytes(self) -> bytes:
+        """Construct bytes from message"""
+        return base64.b64decode(self.base64Bytes)
+
+
+@dataclass(frozen=True, eq=False)
+class MonitorUnavailable:
+    """Message regarding hardware monitor unavailability"""
+    reason: str
 
 
 @dataclass(frozen=True, eq=False)
@@ -62,5 +112,8 @@ class PingMessage(Generic[T]):
     """Message for sending heartbeats to server"""
 
 
-CommonIncomingMessage = Union[UploadMessage]
-CommonOutgoingMessage = Union[UploadResultMessage, PingMessage]
+CommonIncomingMessage = Union[UploadMessage, SerialMonitorRequest, SerialMonitorMessageToAgent]
+CommonOutgoingMessage = Union[UploadResultMessage, PingMessage, SerialMonitorResult, SerialMonitorMessageToClient]
+
+MonitorListenerIncomingMessage = Union[MonitorUnavailable, SerialMonitorMessageToClient]
+MonitorListenerOutgoingMessage = Union[SerialMonitorMessageToAgent]

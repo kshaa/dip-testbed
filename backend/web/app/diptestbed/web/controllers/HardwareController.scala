@@ -10,8 +10,7 @@ import cats.effect.IO
 import cats.effect.unsafe.IORuntime
 import cats.implicits._
 import diptestbed.database.services.{HardwareService, UserService}
-import diptestbed.domain.HardwareControlMessage._
-import diptestbed.domain.{HardwareControlMessage, HardwareId, SoftwareId}
+import diptestbed.domain.{HardwareControlMessage, HardwareId, SerialConfig, SoftwareId}
 import diptestbed.protocol._
 import diptestbed.protocol.Codecs._
 import diptestbed.protocol.WebResult._
@@ -97,11 +96,11 @@ class HardwareController(
       }
     }
 
-  def listenHardwareSerialMonitor(hardwareId: HardwareId, baudrate: Option[Baudrate]): WebSocket =
+  def listenHardwareSerialMonitor(hardwareId: HardwareId, serialConfig: Option[SerialConfig]): WebSocket =
     WebSocket.accept[WebsocketMessage, WebsocketMessage](_ => {
       implicit val timeout: Timeout = 60.seconds
       BetterActorFlow.actorRef(subscriber =>
-        HardwareSerialMonitorListenerActor.props(pubSubMediator, subscriber, hardwareId, baudrate),
+        HardwareSerialMonitorListenerActor.props(pubSubMediator, subscriber, hardwareId, serialConfig),
       )
     })
 

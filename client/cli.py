@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Command line interface definition for agent"""
 
+import asyncio
 import os
 import sys
 import shutil
@@ -42,7 +43,7 @@ def cli_client():
 @cli_util.STATIC_SERVER_OPTION
 @cli_util.HEARTBEAT_SECONDS_OPTION
 @click.option(
-    '--device', '-d', "device_str",
+    '--device-path', '-f', "device_path_str",
     type=str, envvar="DIP_NRF52_DEVICE",
     required=True, show_envvar=True,
     help='Serial device file path for NRF52 microcontroller serial port communications. '
@@ -55,15 +56,15 @@ def cli_client():
     help='Baudrate for NRF52 microcontroller serial port communications. '
          'E.g. baud rate of 115200'
 )
-def agent_nrf52_upload(
+def agent_nrf52(
         hardware_id_str: str,
         control_server_str: str,
         static_server_str: str,
         heartbeat_seconds: int,
-        device_str: str,
+        device_path_str: str,
         baudrate: int
 ):
-    """[Linux] NRF52 microcontroller upload agent"""
+    """[Linux] NRF52 microcontroller agent"""
     # Agent config constructor
     agent_config_result = cli_util.agent_config(
         hardware_id_str,
@@ -76,8 +77,8 @@ def agent_nrf52_upload(
     agent_config = agent_config_result.value
 
     # Validate device
-    if not os.path.exists(device_str):
-        print_error(f"Device path '{device_str}' does not exist")
+    if not os.path.exists(device_path_str):
+        print_error(f"Device path '{device_path_str}' does not exist")
         sys.exit(1)
 
     # Validate baudrate
@@ -100,7 +101,7 @@ def agent_nrf52_upload(
         sys.exit(1)
 
     # Construct engine
-    engine_config = EngineNRF52Config(agent_config, device_str, baudrate)
+    engine_config = EngineNRF52Config(agent_config, device_path_str, baudrate)
     agent_entrypoints.supervise_agent_nrf52(agent_config, engine_config)
 
 
@@ -109,21 +110,31 @@ def agent_nrf52_upload(
 @cli_util.CONTROL_SERVER_OPTION
 @cli_util.STATIC_SERVER_OPTION
 @cli_util.HEARTBEAT_SECONDS_OPTION
-@click.option('--device', '-d', "device_str", show_envvar=True,
-              type=str, envvar="DIP_ANVYL_DEVICE", required=True,
-              help='Device user name (e.g. Anvyl).')
-@click.option('--scanchainindex', '-s', "scan_chain_index", show_envvar=True,
-              type=int, envvar="DIP_ANVYL_SCAN_CHAIN_IDEX", required=True,
-              help='Scan chain index of target JTAG device (e.g. 0)')
-def agent_anvyl_upload(
-        hardware_id_str: str,
-        control_server_str: str,
-        static_server_str: str,
-        heartbeat_seconds: int,
-        device_str: str,
-        scan_chain_index: int
+@click.option(
+    '--device-name', '-n', "device_name_str", show_envvar=True,
+    type=str, envvar="DIP_ANVYL_DEVICE_NAME", required=True,
+    help='Device user name (e.g. Anvyl), used for upload')
+@click.option(
+    '--scanchainindex', '-s', "scan_chain_index", show_envvar=True,
+    type=int, envvar="DIP_ANVYL_SCAN_CHAIN_IDEX", required=True,
+    help='Scan chain index of target JTAG device (e.g. 0), used for upload')
+@click.option(
+    '--device-path', '-f', "device_path_str",
+    type=str, envvar="DIP_ANVYL_DEVICE_PATH",
+    required=True, show_envvar=True,
+    help='Serial device file path for Anvyl microcontroller serial port communications. '
+         'E.g. /dev/ttyUSB0. Used for monitoring.'
+)
+def agent_anvyl(
+    hardware_id_str: str,
+    control_server_str: str,
+    static_server_str: str,
+    heartbeat_seconds: int,
+    device_name_str: str,
+    scan_chain_index: int,
+    device_path_str: str
 ):
-    """[Linux] Anvyl FPGA upload agent"""
+    """[Linux] Anvyl FPGA agent"""
     # Agent config constructor
     agent_config_result = cli_util.agent_config(
         hardware_id_str,
@@ -140,6 +151,11 @@ def agent_anvyl_upload(
         print_error("Scan chain index must be a non-negative number")
         sys.exit(1)
 
+    # Validate device
+    if not os.path.exists(device_path_str):
+        print_error(f"Device path '{device_path_str}' does not exist")
+        sys.exit(1)
+
     # Validate dependencies
     if shutil.which("djtgcfg") is None:
         print_error("'djtgcfg' must be installed")
@@ -149,7 +165,7 @@ def agent_anvyl_upload(
         sys.exit(1)
 
     # Construct engine
-    engine_config = EngineAnvylConfig(agent_config, device_str, scan_chain_index)
+    engine_config = EngineAnvylConfig(agent_config, device_name_str, device_path_str, scan_chain_index)
     agent_entrypoints.supervise_agent_anvyl(agent_config, engine_config)
 
 
@@ -404,7 +420,7 @@ def hardware_software_upload(
     hardware_id_str: str,
     software_id_str: str
 ):
-    """Download existing software"""
+    """Upload software to hardware"""
     # Backend config constructor
     backend_config_result = cli_util.backend_config(None, static_server_str)
     if isinstance(backend_config_result, Err):
@@ -435,3 +451,36 @@ def hardware_software_upload(
         sys.exit(1)
     else:
         print_success(f"Uploaded software to hardware!")
+
+
+@cli_client.command()
+@cli_util.CONTROL_SERVER_OPTION
+@cli_util.HARDWARE_ID_OPTION
+def hardware_serial_monitor(
+    control_server_str: str,
+    hardware_id_str: str
+):
+    """Monitor hardware's serial port"""
+    # Backend config constructor
+    backend_config_result = cli_util.backend_config(control_server_str, None)
+    if isinstance(backend_config_result, Err):
+        print_error(f"Failed to construct backend config: {backend_config_result.value}")
+        sys.exit(1)
+    backend_config = backend_config_result.value
+
+    # Hardware id validation
+    try:
+        hardware_id = UUID(hardware_id_str)
+    except Exception as e:
+        print_error(f"Invalid hardware id: {e}")
+        sys.exit(1)
+
+    # Monitor hardware
+    monitor_result = asyncio.run(backend_config.hardware_serial_monitor(hardware_id))
+    if isinstance(monitor_result, Err):
+        print()
+        print_error(f"Failed to monitor hardware: {monitor_result.value}")
+        sys.exit(1)
+    else:
+        print()
+        print_success(f"Finished monitoring hardware!")

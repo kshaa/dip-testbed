@@ -1,7 +1,12 @@
 package diptestbed.web.actors
 
 import akka.actor.{Actor, ActorRef, ActorSystem, PoisonPill, Props}
-import diptestbed.domain.HardwareId
+import diptestbed.domain.{
+  HardwareControlMessage,
+  HardwareId,
+  SerialConfig,
+  HardwareSerialMonitorMessage => MonitorMessage,
+}
 import io.circe.syntax.EncoderOps
 import diptestbed.protocol.Codecs._
 import akka.cluster.pubsub.DistributedPubSubMediator.{Subscribe, SubscribeAck}
@@ -13,15 +18,18 @@ import akka.util.Timeout
 
 import scala.annotation.unused
 import com.typesafe.scalalogging.LazyLogging
-import diptestbed.domain.HardwareSerialMonitorMessage.{BaudrateChanged, MonitorUnavailable}
-import diptestbed.domain.{HardwareSerialMonitorMessage => MonitorMessage}
+import diptestbed.domain.HardwareSerialMonitorMessage.MonitorUnavailable
+import io.circe.Encoder
 import play.api.http.websocket._
+
+import scala.concurrent.duration.DurationInt
+import io.circe.parser.decode
 
 class HardwareSerialMonitorListenerActor(
   pubSubMediator: ActorRef,
   out: ActorRef,
   hardwareId: HardwareId,
-  baudrate: Option[Baudrate],
+  serialConfig: Option[SerialConfig],
 )(implicit
   actorSystem: ActorSystem,
   iort: IORuntime,
@@ -31,41 +39,46 @@ class HardwareSerialMonitorListenerActor(
   logger.info(s"Serial monitor listener for hardware #${hardwareId} spawned")
 
   // Send monitor actor request for listening w/ a given baudrate and react accordingly
-  requestSerialMonitor(hardwareId, baudrate).value
+  requestSerialMonitor(hardwareId, serialConfig).value
     .flatMap {
-      case Right(baudrateState) =>
-        // Send baudrate to listener
-        sendToListener(MonitorMessage.BaudrateSet(baudrateState.baudrate)) >>
-          // Start listening to serial monitor topic
-          IO(pubSubMediator ! Subscribe(hardwareSerialMonitorTopic(hardwareId), self))
+      case Right(_) =>
+        // Start listening to serial monitor topic
+        IO(pubSubMediator ! Subscribe(hardwareSerialMonitorTopic(hardwareId), self))
       case Left(error) =>
         // Send error to listener
-        sendToListener(MonitorMessage.MonitorUnavailable(error)) >>
+        val message: MonitorMessage = MonitorMessage.MonitorUnavailable(error)
+        sendToListener(message) >>
           // Stop this listener
           killListener("Monitor unavailable")
     }
     .void
     .unsafeRunAsync(_ => ())
 
-  def sendToListener(message: MonitorMessage): IO[Unit] =
+  def sendToListener[A: Encoder](message: A): IO[Unit] =
     IO(out ! TextMessage(message.asJson.noSpaces))
 
   def killListener(reason: String): IO[Unit] = {
     // Stop websocket listener
-    IO(out ! CloseMessage(0, reason)) >>
+    IO.sleep(5.seconds) >>
+      IO(out ! CloseMessage(0, reason)) >>
       // Stop this actor
       IO(self ! PoisonPill)
   }
 
   def receive: Receive = {
-    case badMessage: BaudrateChanged =>
-      (sendToListener(badMessage) >> killListener("Monitor not valid anymore"))
-        .unsafeRunAsync(_ => ())
     case badMessage: MonitorUnavailable =>
-      (sendToListener(badMessage) >> killListener("Monitor not valid anymore"))
+      val message: MonitorMessage = badMessage
+      (sendToListener(message) >> killListener("Monitor not valid anymore"))
         .unsafeRunAsync(_ => ())
-    case monitorMessage: MonitorMessage =>
-      sendToListener(monitorMessage).unsafeRunAsync(_ => ())
+    case serialMessage: SerialMonitorMessageToClient =>
+      val message: HardwareControlMessage = serialMessage
+      sendToListener(message).unsafeRunAsync(_ => ())
+    case text: TextMessage =>
+      decode[HardwareControlMessage](text.data).toOption.foreach {
+        case serialMessage: SerialMonitorMessageToAgent =>
+          sendSerialMessageToAgent(hardwareId, serialMessage).value.unsafeRunAsync(_ => ())
+        case _ => ()
+      }
     case _: SubscribeAck =>
       logger.info(s"Serial monitor listener for hardware #${hardwareId} subscribed")
     case _ => ()
@@ -77,10 +90,10 @@ object HardwareSerialMonitorListenerActor {
     pubSubMediator: ActorRef,
     out: ActorRef,
     hardwareId: HardwareId,
-    baudrate: Option[Baudrate],
+    serialConfig: Option[SerialConfig],
   )(implicit
     iort: IORuntime,
     timeout: Timeout,
     actorSystem: ActorSystem,
-  ): Props = Props(new HardwareSerialMonitorListenerActor(pubSubMediator, out, hardwareId, baudrate))
+  ): Props = Props(new HardwareSerialMonitorListenerActor(pubSubMediator, out, hardwareId, serialConfig))
 }

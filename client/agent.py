@@ -46,6 +46,7 @@ async def agent(
         "Connected to control server, listening for commands, running start hook")
     engine.on_start(websocket)
     while True:
+        LOGGER.debug("Waiting for new message")
         incoming_result = await websocket.rx()
         if isinstance(incoming_result, Err) \
                 and isinstance(incoming_result.value, ConnectionClosedError):
@@ -62,11 +63,13 @@ async def agent(
             return 1
         else:
             incoming_message = incoming_result.value
-            LOGGER.info("Message received: %s", pformat(incoming_message, indent=4))
+            LOGGER.debug("Message received: %s", pformat(incoming_message, indent=4))
             LOGGER.debug("Message processing started")
             outgoing_result = engine.process(incoming_message)
             LOGGER.debug("Message processing stopped")
-            if isinstance(outgoing_result, Err) \
+            if outgoing_result is None:
+                pass
+            elif isinstance(outgoing_result, Err) \
                     and isinstance(outgoing_result.value, NotImplementedError):
                 LOGGER.error("Command known, but processor not implemented, ignoring")
             elif isinstance(outgoing_result, Err):
@@ -88,6 +91,6 @@ async def agent(
                     await websocket.disconnect()
                     return 1
                 else:
-                    LOGGER.info(
+                    LOGGER.debug(
                         "Message transmitted: %s",
                         pformat(outgoing_message, indent=4))

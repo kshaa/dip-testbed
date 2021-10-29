@@ -10,8 +10,6 @@ import diptestbed.domain.HardwareControlMessage._
 import diptestbed.domain.HardwareSerialMonitorMessage._
 import diptestbed.protocol.WebResult._
 
-import scala.annotation.unused
-
 object Codecs {
   implicit val domainTimeZoneIdCodec: Codec[DomainTimeZoneId] = Codec.from(
     _.as[String].flatMap(DomainTimeZoneId.fromString(_).leftMap(x => DecodingFailure(x.getMessage, List.empty))),
@@ -24,33 +22,23 @@ object Codecs {
   implicit val softwareIdCodec: Codec[SoftwareId] = deriveUnwrappedCodec[SoftwareId]
   implicit val softwareMetaCodec: Codec[SoftwareMeta] = deriveCodec[SoftwareMeta]
 
-  implicit val NamedMessageCodec: Codec[NamedMessage] = deriveCodec[NamedMessage]
+  implicit val namedMessageCodec: Codec[NamedMessage] = deriveCodec[NamedMessage]
 
-  @unused private implicit val baudrateStateCodec: Codec[BaudrateState] = deriveCodec[BaudrateState]
+  implicit val serialConfigCodec: Codec[SerialConfig] = deriveCodec[SerialConfig]
 
-  private implicit val serialMessageCodec: Codec[SerialMessage] = deriveCodec[SerialMessage]
   private implicit val monitorUnavailableCodec: Codec[MonitorUnavailable] = deriveCodec[MonitorUnavailable]
-  private implicit val baudrateSetCodec: Codec[BaudrateSet] = deriveCodec[BaudrateSet]
-  private implicit val baudrateChangedCodec: Codec[BaudrateChanged] = deriveCodec[BaudrateChanged]
+  private implicit val serialMessageToAgentCodec: Codec[SerialMessageToAgent] = deriveCodec[SerialMessageToAgent]
+  private implicit val serialMessageToClientCodec: Codec[SerialMessageToClient] = deriveCodec[SerialMessageToClient]
 
   private implicit val uploadSoftwareRequestCodec: Codec[UploadSoftwareRequest] = deriveCodec[UploadSoftwareRequest]
   private implicit val uploadSoftwareResultCodec: Codec[UploadSoftwareResult] = deriveCodec[UploadSoftwareResult]
 
-  implicit def eitherEncoder[A, B](implicit a: Encoder[A], b: Encoder[B]): Encoder[Either[A, B]] = {
-    Encoder.instance {
-      case Left(x)  => a.apply(x)
-      case Right(x) => b.apply(x)
-    }
-  }
-  implicit def eitherDecoder[A, B](implicit a: Decoder[A], b: Decoder[B]): Decoder[Either[A, B]] = {
-    val left: Decoder[Either[A, B]] = a.map(Left.apply)
-    val right: Decoder[Either[A, B]] = b.map(Right.apply)
-    left or right
-  }
-
   private implicit val SerialMonitorRequestCodec: Codec[SerialMonitorRequest] = deriveCodec[SerialMonitorRequest]
   private implicit val SerialMonitorResultCodec: Codec[SerialMonitorResult] = deriveCodec[SerialMonitorResult]
-  private implicit val SerialMonitorMessageCodec: Codec[SerialMonitorMessage] = deriveCodec[SerialMonitorMessage]
+  private implicit val SerialMonitorMessageToAgentCodec: Codec[SerialMonitorMessageToAgent] =
+    deriveCodec[SerialMonitorMessageToAgent]
+  private implicit val SerialMonitorMessageToClientCodec: Codec[SerialMonitorMessageToClient] =
+    deriveCodec[SerialMonitorMessageToClient]
 
   private implicit val pingCodec: Codec[Ping] = deriveCodec[Ping]
 
@@ -58,9 +46,10 @@ object Codecs {
     case c: UploadSoftwareRequest => NamedMessage("uploadSoftwareRequest", c.asJson).asJson
     case c: UploadSoftwareResult  => NamedMessage("uploadSoftwareResult", c.asJson).asJson
 
-    case c: SerialMonitorRequest => NamedMessage("serialMonitorRequest", c.asJson).asJson
-    case c: SerialMonitorResult  => NamedMessage("serialMonitorResult", c.asJson).asJson
-    case c: SerialMonitorMessage => NamedMessage("serialMonitorMessage", c.asJson).asJson
+    case c: SerialMonitorRequest         => NamedMessage("serialMonitorRequest", c.asJson).asJson
+    case c: SerialMonitorResult          => NamedMessage("serialMonitorResult", c.asJson).asJson
+    case c: SerialMonitorMessageToAgent  => NamedMessage("serialMonitorMessageToAgent", c.asJson).asJson
+    case c: SerialMonitorMessageToClient => NamedMessage("serialMonitorMessageToClient", c.asJson).asJson
 
     case c: Ping => NamedMessage("ping", c.asJson).asJson
   }
@@ -71,9 +60,11 @@ object Codecs {
           case "uploadSoftwareRequest" => Decoder[UploadSoftwareRequest].widen[HardwareControlMessage].some
           case "uploadSoftwareResult"  => Decoder[UploadSoftwareResult].widen[HardwareControlMessage].some
 
-          case "serialMonitorRequest" => Decoder[SerialMonitorRequest].widen[HardwareControlMessage].some
-          case "serialMonitorResult"  => Decoder[SerialMonitorResult].widen[HardwareControlMessage].some
-          case "serialMonitorMessage" => Decoder[SerialMonitorMessage].widen[HardwareControlMessage].some
+          case "serialMonitorRequest"        => Decoder[SerialMonitorRequest].widen[HardwareControlMessage].some
+          case "serialMonitorResult"         => Decoder[SerialMonitorResult].widen[HardwareControlMessage].some
+          case "serialMonitorMessageToAgent" => Decoder[SerialMonitorMessageToAgent].widen[HardwareControlMessage].some
+          case "serialMonitorMessageToClient" =>
+            Decoder[SerialMonitorMessageToClient].widen[HardwareControlMessage].some
 
           case "ping" => Decoder[Ping].widen[HardwareControlMessage].some
           case _      => None
@@ -83,20 +74,18 @@ object Codecs {
     }
 
   implicit val hardwareSerialMonitorMessageEncoder: Encoder[HardwareSerialMonitorMessage] = Encoder.instance {
-    case c: BaudrateSet        => NamedMessage("baudrateSet", c.asJson).asJson
-    case c: BaudrateChanged    => NamedMessage("baudrateChanged", c.asJson).asJson
-    case c: MonitorUnavailable => NamedMessage("monitorUnavailable", c.asJson).asJson
-    case c: SerialMessage      => NamedMessage("serialMessage", c.asJson).asJson
+    case c: MonitorUnavailable    => NamedMessage("monitorUnavailable", c.asJson).asJson
+    case c: SerialMessageToAgent  => NamedMessage("serialMessageToAgent", c.asJson).asJson
+    case c: SerialMessageToClient => NamedMessage("serialMessageToClient", c.asJson).asJson
   }
   implicit val hardwareSerialMonitorMessageDecoder: Decoder[HardwareSerialMonitorMessage] =
     Decoder[NamedMessage].emap { m =>
       {
         val codec: Option[Decoder[HardwareSerialMonitorMessage]] = m.command match {
-          case "baudrateSet"        => Decoder[BaudrateSet].widen[HardwareSerialMonitorMessage].some
-          case "baudrateChanged"    => Decoder[BaudrateChanged].widen[HardwareSerialMonitorMessage].some
-          case "monitorUnavailable" => Decoder[MonitorUnavailable].widen[HardwareSerialMonitorMessage].some
-          case "serialMessage"      => Decoder[SerialMessage].widen[HardwareSerialMonitorMessage].some
-          case _                    => None
+          case "monitorUnavailable"    => Decoder[MonitorUnavailable].widen[HardwareSerialMonitorMessage].some
+          case "serialMessageToAgent"  => Decoder[SerialMessageToAgent].widen[HardwareSerialMonitorMessage].some
+          case "serialMessageToClient" => Decoder[SerialMessageToClient].widen[HardwareSerialMonitorMessage].some
+          case _                       => None
         }
         codec.toRight("Unknown command").flatMap(_.decodeJson(m.payload).leftMap(_.message))
       }

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Engine which reacts to server commands and supervises microcontroller"""
 
-from typing import TypeVar, Generic, Callable, Tuple, Any
+from typing import TypeVar, Generic, Callable, Tuple, Any, Optional
 import asyncio
 import os
 from result import Result, Err, Ok
@@ -13,8 +13,14 @@ from protocol import \
     UploadMessage, \
     UploadResultMessage, \
     CommonIncomingMessage, \
-    CommonOutgoingMessage
+    CommonOutgoingMessage, \
+    SerialMonitorRequest, \
+    SerialMonitorResult, \
+    SerialMonitorMessageToAgent, \
+    SerialMonitorMessageToClient
 from ws import WebSocket
+from serial import Serial
+from serial_util import SerialConfig, monitor_serial
 
 LOGGER = log.timed_named_logger("engine")
 PI = TypeVar('PI')
@@ -31,14 +37,24 @@ class EngineConfig:
 
 class Engine(Generic[PI, PO]):
     """Implementation of generic microcontroller agent engine"""
+    # Generic state
     config: EngineConfig
-    ping_enabled: bool = True
     engine_on: bool = True
-    active_ping_task: Any
+    socket: Optional[WebSocket[CommonIncomingMessage, CommonOutgoingMessage]] = None
 
+    # Ping state
+    ping_enabled: bool = True
+    ping_task: Optional[Any] = None
+
+    # Serial monitor state
+    serial: Optional[Tuple[Serial, SerialConfig]] = None
+    serial_receive_task: Optional[Any] = None
+
+    # Constructor
     def __init__(self, config):
         self.config = config
 
+    # Ping methods
     async def keep_pinging(
         self,
         socket: WebSocket[CommonIncomingMessage, CommonOutgoingMessage]
@@ -51,29 +67,69 @@ class Engine(Generic[PI, PO]):
     def start_ping(self, socket: WebSocket):
         """Start sending regular heartbeat to server"""
         loop = asyncio.get_event_loop()
-        self.active_ping_task = loop.create_task(self.keep_pinging(socket))
+        self.ping_task = loop.create_task(self.keep_pinging(socket))
 
     def stop_ping(self):
         """Stop sending regular heartbeat to server"""
-        self.active_ping_task.cancel()
+        if self.ping_task is not None:
+            self.ping_task.cancel()
+            self.ping_task = None
 
+    # Monitoring methods
+    async def monitor_to_server(self, sendable: Optional[bytes]):
+        """Send monitoring data to server"""
+        if self.socket is not None and sendable is not None:
+            message = SerialMonitorMessageToClient.from_bytes(sendable)
+            await self.socket.tx(message)
+
+    async def keep_monitoring(self):
+        """Keep receiving messages and enact on them"""
+        while self.engine_on and self.serial is not None:
+            (serial, serialConfig) = self.serial
+            received_bytes = serial.read(serialConfig.receive_size)
+            if received_bytes is not None and len(received_bytes) > 0:
+                await self.monitor_to_server(received_bytes)
+            await asyncio.sleep(2)
+
+    def start_monitor(self, serial: Serial, serial_config: SerialConfig):
+        """Start serial monitoring"""
+        loop = asyncio.get_event_loop()
+        self.serial = (serial, serial_config)
+        self.serial_receive_task = loop.create_task(self.keep_monitoring())
+
+    def stop_monitor(self):
+        """Stop sending regular heartbeat to server"""
+        if self.serial_receive_task is not None:
+            self.serial_receive_task.cancel()
+            self.serial_receive_task = None
+
+        if self.serial is not None:
+            (serial, _) = self.serial
+            serial.close()
+
+    # Socket lifecycle methods
     def on_start(self, socket: WebSocket):
         """Engine start hook"""
         self.engine_on = True
+        self.socket = socket
         self.start_ping(socket)
 
     def on_end(self):
         """Engine end hook"""
         self.engine_on = False
+        self.socket = None
         self.stop_ping()
+        self.stop_monitor()
 
+    # Message handler entrypoint
     # W0613: ignore unused message, because this class is abstract
     # R0201: ignore no-self-use, because I want this method here regardless
     # pylint: disable=W0613,R0201
-    def process(self, message: PI) -> Result[PO, Exception]:
+    def process(self, message: PI) -> Optional[Result[PO, Exception]]:
         """Consume server-sent message and react accordingly"""
         return Err(NotImplementedError())
 
+    # Generic shell script upload handler
     def process_upload_message_sh(
         self,
         message: UploadMessage,
@@ -110,3 +166,38 @@ class Engine(Generic[PI, PO]):
         else:
             LOGGER.info("%s", pformat(outcome_message, indent=4))
             return Ok(UploadResultMessage(None))
+
+    # Generic serial port monitor handler
+    def process_serial_monitor(
+        self,
+        device: str,
+        message: SerialMonitorRequest
+    ) -> Result[CommonOutgoingMessage, Exception]:
+        """Configure and start serial monitoring"""
+        # Stop old monitor
+        self.stop_monitor()
+
+        # Connect to serial device w/ the given configurations
+        if message.config is None:
+            serial_config = SerialConfig.empty()
+        else:
+            serial_config = message.config
+        serial_result = monitor_serial(device, serial_config)
+        if isinstance(serial_result, Err):
+            outcome_message = f"Failed setting up monitor: {pformat(serial_result.value, indent=4)}"
+            LOGGER.error("%s", outcome_message)
+            return Ok(SerialMonitorResult(outcome_message))
+
+        # Initiate monitoring
+        self.start_monitor(serial_result.value, serial_config)
+
+        return Ok(SerialMonitorResult(None))
+
+    def process_serial_monitor_to_agent(
+        self,
+        message: SerialMonitorMessageToAgent
+    ):
+        if self.serial is not None:
+            (serial, serialConfig) = self.serial
+            serial.write(message.to_bytes())
+        return None
