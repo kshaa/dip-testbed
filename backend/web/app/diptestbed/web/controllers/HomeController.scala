@@ -18,7 +18,7 @@ class HomeController(
   val cc: ControllerComponents,
   val userService: UserService[IO],
   val hardwareService: HardwareService[IO],
-  val hardwareMessageService: HardwareMessageService[IO],
+  val softwareService: SoftwareService[IO],
 )(implicit
   @unused ec: ExecutionContext,
   @unused iort: IORuntime,
@@ -33,11 +33,11 @@ class HomeController(
       (for {
         userCount <- EitherT(userService.countUsers())
         hardwareCount <- EitherT(hardwareService.countHardware())
-        hardwareMessageCount <- EitherT(hardwareMessageService.countHardwareMessage())
+        softwareCount <- EitherT(softwareService.countSoftware())
         status = ServiceStatus(
           userCount,
           hardwareCount,
-          hardwareMessageCount,
+          softwareCount,
         )
       } yield status)
         .bimap(

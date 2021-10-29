@@ -21,8 +21,6 @@ object Codecs {
   implicit val userCodec: Codec[User] = deriveCodec[User]
   implicit val hardwareIdCodec: Codec[HardwareId] = deriveUnwrappedCodec[HardwareId]
   implicit val hardwareCodec: Codec[Hardware] = deriveCodec[Hardware]
-  implicit val hardwareMessageIdCodec: Codec[HardwareMessageId] = deriveUnwrappedCodec[HardwareMessageId]
-  implicit val hardwareMessageCodec: Codec[HardwareMessage] = deriveCodec[HardwareMessage]
   implicit val softwareIdCodec: Codec[SoftwareId] = deriveUnwrappedCodec[SoftwareId]
   implicit val softwareMetaCodec: Codec[SoftwareMeta] = deriveCodec[SoftwareMeta]
 
@@ -125,5 +123,4 @@ object Codecs {
   implicit val serviceStatusCodec: Codec[ServiceStatus] = deriveCodec[ServiceStatus]
   implicit val createUserCodec: Codec[CreateUser] = deriveCodec[CreateUser]
   implicit val createHardwareCodec: Codec[CreateHardware] = deriveCodec[CreateHardware]
-  implicit val createHardwareMessageCodec: Codec[CreateHardwareMessage] = deriveCodec[CreateHardwareMessage]
 }

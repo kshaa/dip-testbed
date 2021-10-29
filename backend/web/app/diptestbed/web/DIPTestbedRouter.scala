@@ -11,7 +11,6 @@ class DIPTestbedRouter(
   homeController: HomeController,
   userController: UserController,
   hardwareController: HardwareController,
-  hardwareMessageController: HardwareMessageController,
   softwareController: SoftwareController,
 ) extends SimpleRouter {
   def routes: Routes = {
@@ -34,16 +33,6 @@ class DIPTestbedRouter(
       hardwareController.listenHardwareSerialMonitor(HardwareId(hardwareId), None)
     case GET(p"/hardware/${uuid(hardwareId)}/monitor/serial/${int(baudrate)}") =>
       hardwareController.listenHardwareSerialMonitor(HardwareId(hardwareId), Some(baudrate))
-
-    // Hardware message
-    case POST(p"/hardware-message") => hardwareMessageController.createHardwareMessage
-    case GET(p"/hardware-message")  => hardwareMessageController.getHardwareMessages(None)
-    case GET(p"/hardware-message/${uuid(hardwareMessageId)}") =>
-      hardwareMessageController.getHardwareMessage(HardwareMessageId(hardwareMessageId))
-    case GET(p"/hardware/${uuid(hardwareId)}/message") =>
-      hardwareMessageController.getHardwareMessages(Some(HardwareId(hardwareId)))
-    case GET(p"/hardware/${uuid(hardwareId)}/message/subscribe") =>
-      hardwareMessageController.subscribeHardwareMessages(HardwareId(hardwareId))
 
     // Software
     case POST(p"/software")                             => softwareController.createSoftware
