@@ -73,10 +73,12 @@ class HardwareSerialMonitorListenerActor(
     case serialMessage: SerialMonitorMessageToClient =>
       val message: HardwareControlMessage = serialMessage
       sendToListener(message).unsafeRunAsync(_ => ())
+    case _: SerialMonitorListenersHeartbeatPing =>
+      sendToHardwareActor(hardwareId, SerialMonitorListenersHeartbeatPong()).value.unsafeRunAsync(_ => ())
     case text: TextMessage =>
       decode[HardwareControlMessage](text.data).toOption.foreach {
         case serialMessage: SerialMonitorMessageToAgent =>
-          sendSerialMessageToAgent(hardwareId, serialMessage).value.unsafeRunAsync(_ => ())
+          sendToHardwareActor(hardwareId, serialMessage).value.unsafeRunAsync(_ => ())
         case _ => ()
       }
     case _: SubscribeAck =>

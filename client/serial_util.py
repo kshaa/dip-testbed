@@ -21,9 +21,9 @@ class SerialConfig:
     def empty():
         """Create empty serial config"""
         return SerialConfig(
-            receive_size=1,
+            receive_size=8,
             baudrate=115200,
-            timeout=0.5
+            timeout=0.05
         )
 
 
@@ -36,9 +36,9 @@ def monitor_serial(
         # Define serial interface
         serial = Serial(
             device,
-            baudrate=config.baudrate,
-            timeout=config.timeout
+            baudrate=config.baudrate
         )
+        serial.timeout = config.timeout
 
         # Log success
         LOGGER.info(

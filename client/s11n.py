@@ -391,6 +391,40 @@ SERIAL_MONITOR_REQUEST_CODEC: Codec[protocol.SerialMonitorRequest] = \
     Codec(SERIAL_MONITOR_REQUEST_DECODER, SERIAL_MONITOR_REQUEST_ENCODER)
 
 
+# protocol.SerialMonitorRequestStop
+def serial_monitor_request_stop_encode(_: protocol.SerialMonitorRequestStop) -> str:
+    """Serialize SerialMonitorRequestStop to JSON"""
+    message = {
+        "command": "serialMonitorRequestStop",
+        "payload": {}
+    }
+    return json.dumps(message, separators=NO_WHITESPACE_SEPERATORS)
+
+
+def serial_monitor_request_stop_decode(value: str) -> Result[protocol.SerialMonitorRequestStop, CodecParseException]:
+    """Un-serialize SerialMonitorRequestStop from JSON"""
+    json_result = json_decode(value)
+    if isinstance(json_result, Err):
+        return Err(json_result.value)
+    command_result = named_message_extract("serialMonitorRequestStop", json_result.value)
+    if isinstance(command_result, Err):
+        return Err(command_result.value)
+    result = command_result.value
+
+    if not isinstance(result, dict):
+        return Err(CodecParseException("SerialMonitorRequestStop must have payload as object"))
+
+    return Ok(protocol.SerialMonitorRequestStop())
+
+
+SERIAL_MONITOR_REQUEST_STOP_ENCODER: Encoder[protocol.SerialMonitorRequestStop] = \
+    Encoder(serial_monitor_request_stop_encode)
+SERIAL_MONITOR_REQUEST_STOP_DECODER: Decoder[protocol.SerialMonitorRequestStop] = \
+    Decoder(serial_monitor_request_stop_decode)
+SERIAL_MONITOR_REQUEST_STOP_CODEC: Codec[protocol.SerialMonitorRequestStop] = \
+    Codec(SERIAL_MONITOR_REQUEST_STOP_DECODER, SERIAL_MONITOR_REQUEST_STOP_ENCODER)
+
+
 # protocol.SerialMonitorResult
 def serial_monitor_result_encode(value: protocol.SerialMonitorResult) -> str:
     """Serialize SerialMonitorResult to JSON"""
@@ -573,11 +607,13 @@ MONITOR_UNAVAILABLE_CODEC: Codec[protocol.MonitorUnavailable] = \
 COMMON_INCOMING_MESSAGE_ENCODER = union_encoder({
     protocol.UploadMessage: UPLOAD_MESSAGE_ENCODER,
     protocol.SerialMonitorRequest: SERIAL_MONITOR_REQUEST_ENCODER,
+    protocol.SerialMonitorRequestStop: SERIAL_MONITOR_REQUEST_STOP_ENCODER,
     protocol.SerialMonitorMessageToAgent: SERIAL_MONITOR_MESSAGE_TO_AGENT_ENCODER
 })
 COMMON_INCOMING_MESSAGE_DECODER = union_decoder({
     protocol.UploadMessage: UPLOAD_MESSAGE_DECODER,
     protocol.SerialMonitorRequest: SERIAL_MONITOR_REQUEST_DECODER,
+    protocol.SerialMonitorRequestStop: SERIAL_MONITOR_REQUEST_STOP_DECODER,
     protocol.SerialMonitorMessageToAgent: SERIAL_MONITOR_MESSAGE_TO_AGENT_DECODER
 })
 COMMON_INCOMING_MESSAGE_CODEC = Codec(

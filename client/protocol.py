@@ -28,6 +28,12 @@ class UploadResultMessage:
 
 
 @dataclass(frozen=True, eq=False)
+class SerialMonitorRequestStop:
+    """Message to request serial monitor stopping"""
+    pass
+
+
+@dataclass(frozen=True, eq=False)
 class SerialMonitorRequest:
     """Message to request serial monitor for a given microcontroller"""
     config: Optional[SerialConfig]
@@ -112,7 +118,11 @@ class PingMessage(Generic[T]):
     """Message for sending heartbeats to server"""
 
 
-CommonIncomingMessage = Union[UploadMessage, SerialMonitorRequest, SerialMonitorMessageToAgent]
+CommonIncomingMessage = Union[
+    UploadMessage,
+    SerialMonitorRequest,
+    SerialMonitorRequestStop,
+    SerialMonitorMessageToAgent]
 CommonOutgoingMessage = Union[UploadResultMessage, PingMessage, SerialMonitorResult, SerialMonitorMessageToClient]
 
 MonitorListenerIncomingMessage = Union[MonitorUnavailable, SerialMonitorMessageToClient]

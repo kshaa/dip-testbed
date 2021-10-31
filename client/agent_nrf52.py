@@ -9,7 +9,8 @@ from protocol import \
     CommonIncomingMessage, \
     UploadMessage, \
     SerialMonitorRequest, \
-    SerialMonitorMessageToAgent
+    SerialMonitorMessageToAgent, \
+    SerialMonitorRequestStop
 from sh import root_relative_path, outcome_sh
 from agent_util import AgentConfig
 import log
@@ -68,7 +69,9 @@ class EngineNRF52(Engine[CommonIncomingMessage, Any]):
         if isinstance(message, UploadMessage):
             return self.process_upload_message_sh(message, self.firmware_upload)
         elif isinstance(message, SerialMonitorRequest):
-            return self.process_serial_monitor(self.config.device_path, message)
+            return self.process_serial_monitor(self.config.device, message)
+        elif isinstance(message, SerialMonitorRequestStop):
+            return self.process_serial_monitor_stop()
         elif isinstance(message, SerialMonitorMessageToAgent):
             return self.process_serial_monitor_to_agent(message)
         else:

@@ -7,9 +7,14 @@ object HardwareControlMessage {
   case class UploadSoftwareRequest(softwareId: SoftwareId) extends HardwareControlMessage
   case class UploadSoftwareResult(error: Option[String]) extends HardwareControlMessage
   case class SerialMonitorRequest(serialConfig: Option[SerialConfig]) extends HardwareControlMessage
+  case class SerialMonitorRequestStop() extends HardwareControlMessage
   case class SerialMonitorResult(error: Option[String]) extends HardwareControlMessage
   case class SerialMonitorMessageToAgent(message: SerialMessageToAgent) extends HardwareControlMessage
   case class SerialMonitorMessageToClient(message: SerialMessageToClient) extends HardwareControlMessage
+  case class SerialMonitorListenersHeartbeatStart() extends HardwareControlMessage
+  case class SerialMonitorListenersHeartbeatPing() extends HardwareControlMessage
+  case class SerialMonitorListenersHeartbeatPong() extends HardwareControlMessage
+  case class SerialMonitorListenersHeartbeatFinish() extends HardwareControlMessage
   case class Ping() extends HardwareControlMessage
 
   val uploadUnavailableMessage: UploadSoftwareResult =

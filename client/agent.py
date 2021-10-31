@@ -11,7 +11,7 @@ from codec import CodecParseException, Encoder, Decoder
 from engine import Engine
 from agent_util import AgentConfig
 
-LOGGER = log.timed_named_logger("client")
+LOGGER = log.timed_named_logger("agent")
 PI = TypeVar('PI')
 PO = TypeVar('PO')
 

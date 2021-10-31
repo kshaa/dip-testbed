@@ -33,12 +33,22 @@ object Codecs {
   private implicit val uploadSoftwareRequestCodec: Codec[UploadSoftwareRequest] = deriveCodec[UploadSoftwareRequest]
   private implicit val uploadSoftwareResultCodec: Codec[UploadSoftwareResult] = deriveCodec[UploadSoftwareResult]
 
-  private implicit val SerialMonitorRequestCodec: Codec[SerialMonitorRequest] = deriveCodec[SerialMonitorRequest]
-  private implicit val SerialMonitorResultCodec: Codec[SerialMonitorResult] = deriveCodec[SerialMonitorResult]
-  private implicit val SerialMonitorMessageToAgentCodec: Codec[SerialMonitorMessageToAgent] =
+  private implicit val serialMonitorRequestCodec: Codec[SerialMonitorRequest] = deriveCodec[SerialMonitorRequest]
+  private implicit val serialMonitorRequestStopCodec: Codec[SerialMonitorRequestStop] =
+    deriveCodec[SerialMonitorRequestStop]
+  private implicit val serialMonitorResultCodec: Codec[SerialMonitorResult] = deriveCodec[SerialMonitorResult]
+  private implicit val serialMonitorMessageToAgentCodec: Codec[SerialMonitorMessageToAgent] =
     deriveCodec[SerialMonitorMessageToAgent]
-  private implicit val SerialMonitorMessageToClientCodec: Codec[SerialMonitorMessageToClient] =
+  private implicit val serialMonitorMessageToClientCodec: Codec[SerialMonitorMessageToClient] =
     deriveCodec[SerialMonitorMessageToClient]
+  private implicit val serialMonitorListenersHeartbeatStartCodec: Codec[SerialMonitorListenersHeartbeatStart] =
+    deriveCodec[SerialMonitorListenersHeartbeatStart]
+  private implicit val serialMonitorListenersHeartbeatPingCodec: Codec[SerialMonitorListenersHeartbeatPing] =
+    deriveCodec[SerialMonitorListenersHeartbeatPing]
+  private implicit val serialMonitorListenersHeartbeatPongCodec: Codec[SerialMonitorListenersHeartbeatPong] =
+    deriveCodec[SerialMonitorListenersHeartbeatPong]
+  private implicit val serialMonitorListenersHeartbeatFinishCodec: Codec[SerialMonitorListenersHeartbeatFinish] =
+    deriveCodec[SerialMonitorListenersHeartbeatFinish]
 
   private implicit val pingCodec: Codec[Ping] = deriveCodec[Ping]
 
@@ -47,9 +57,16 @@ object Codecs {
     case c: UploadSoftwareResult  => NamedMessage("uploadSoftwareResult", c.asJson).asJson
 
     case c: SerialMonitorRequest         => NamedMessage("serialMonitorRequest", c.asJson).asJson
+    case c: SerialMonitorRequestStop     => NamedMessage("serialMonitorRequestStop", c.asJson).asJson
     case c: SerialMonitorResult          => NamedMessage("serialMonitorResult", c.asJson).asJson
     case c: SerialMonitorMessageToAgent  => NamedMessage("serialMonitorMessageToAgent", c.asJson).asJson
     case c: SerialMonitorMessageToClient => NamedMessage("serialMonitorMessageToClient", c.asJson).asJson
+    case c: SerialMonitorListenersHeartbeatStart =>
+      NamedMessage("serialMonitorListenersHeartbeatStart", c.asJson).asJson
+    case c: SerialMonitorListenersHeartbeatPing => NamedMessage("serialMonitorListenersHeartbeatPing", c.asJson).asJson
+    case c: SerialMonitorListenersHeartbeatPong => NamedMessage("SerialMonitorListenersHeartbeatPong", c.asJson).asJson
+    case c: SerialMonitorListenersHeartbeatFinish =>
+      NamedMessage("SerialMonitorListenersHeartbeatFinish", c.asJson).asJson
 
     case c: Ping => NamedMessage("ping", c.asJson).asJson
   }
@@ -61,10 +78,19 @@ object Codecs {
           case "uploadSoftwareResult"  => Decoder[UploadSoftwareResult].widen[HardwareControlMessage].some
 
           case "serialMonitorRequest"        => Decoder[SerialMonitorRequest].widen[HardwareControlMessage].some
+          case "serialMonitorRequestStop"    => Decoder[SerialMonitorRequestStop].widen[HardwareControlMessage].some
           case "serialMonitorResult"         => Decoder[SerialMonitorResult].widen[HardwareControlMessage].some
           case "serialMonitorMessageToAgent" => Decoder[SerialMonitorMessageToAgent].widen[HardwareControlMessage].some
           case "serialMonitorMessageToClient" =>
             Decoder[SerialMonitorMessageToClient].widen[HardwareControlMessage].some
+          case "serialMonitorListenersHeartbeatStart" =>
+            Decoder[SerialMonitorListenersHeartbeatStart].widen[HardwareControlMessage].some
+          case "serialMonitorListenersHeartbeatPing" =>
+            Decoder[SerialMonitorListenersHeartbeatPing].widen[HardwareControlMessage].some
+          case "serialMonitorListenersHeartbeatPong" =>
+            Decoder[SerialMonitorListenersHeartbeatPong].widen[HardwareControlMessage].some
+          case "serialMonitorListenersHeartbeatFinish" =>
+            Decoder[SerialMonitorListenersHeartbeatFinish].widen[HardwareControlMessage].some
 
           case "ping" => Decoder[Ping].widen[HardwareControlMessage].some
           case _      => None

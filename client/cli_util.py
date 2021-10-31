@@ -36,7 +36,7 @@ SOFTWARE_ID_OPTION = click.option(
 )
 HEARTBEAT_SECONDS_OPTION = click.option(
     '--heartbeat-seconds', '-r', "heartbeat_seconds", show_envvar=True,
-    type=int, envvar="DIP_HEARTBEAT_SECONDS", required=True, default=30,
+    type=int, envvar="DIP_HEARTBEAT_SECONDS", required=True, default=25,
     help='Regular interval in which to ping the server'
 )
 JSON_OUTPUT_OPTION = click.option(

@@ -15,10 +15,10 @@ import diptestbed.domain.HardwareControlMessage._
 import akka.util.Timeout
 import cats.data.EitherT
 import cats.implicits.toTraverseOps
-import scala.annotation.unused
 import com.typesafe.scalalogging.LazyLogging
 import diptestbed.web.actors.HardwareControlState.{ConfiguringMonitor, Initial, Uploading}
 import diptestbed.web.actors.QueryActor.Promise
+import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
 sealed trait HardwareControlState {}
 object HardwareControlState {
@@ -77,7 +77,6 @@ class HardwareControlActor(
   hardwareId: HardwareId,
 )(implicit
   iort: IORuntime,
-  @unused timeout: Timeout,
 ) extends Actor
     with LazyLogging
     with HardwareControlStateActions {
@@ -85,6 +84,19 @@ class HardwareControlActor(
 
   val serialMonitorTopic: String = hardwareSerialMonitorTopic(hardwareId)
   var state: HardwareControlState = Initial
+
+  var listenerHeartbeatsReceived: Int = 0
+  val listenerHeartbeatInterval: FiniteDuration = 5.seconds
+  val listenerHeartbeatWaitTime: FiniteDuration = 2.seconds // Should be less than the interval
+
+  def scheduleHeartbeatTest(): IO[Unit] = {
+    val laterTest = IO.sleep(listenerHeartbeatInterval) >>
+      IO(self ! SerialMonitorListenersHeartbeatStart())
+
+    laterTest.start.void
+  }
+
+  scheduleHeartbeatTest().unsafeRunAsync(_ => ())
 
   def sendToAgent(message: Control): IO[Unit] =
     IO(out ! message.asJson.noSpaces)
@@ -108,13 +120,18 @@ class HardwareControlActor(
 
   def controlHandler(inquirer: Option[ActorRef], message: Control): IO[Unit] =
     message match {
-      case m: UploadSoftwareRequest        => handleUploadSoftwareRequest(inquirer, m)
-      case m: UploadSoftwareResult         => handleUploadSoftwareResult(m)
-      case m: SerialMonitorRequest         => handleSerialMonitorRequest(inquirer, m)
-      case m: SerialMonitorResult          => handleSerialMonitorResult(m)
-      case m: SerialMonitorMessageToClient => handleSerialMonitorMessageToClient(m)
-      case m: SerialMonitorMessageToAgent  => handleSerialMonitorMessageToAgent(m)
-      case _: Ping                         => IO(())
+      case m: UploadSoftwareRequest                 => handleUploadSoftwareRequest(inquirer, m)
+      case m: UploadSoftwareResult                  => handleUploadSoftwareResult(m)
+      case m: SerialMonitorRequest                  => handleSerialMonitorRequest(inquirer, m)
+      case m: SerialMonitorRequestStop              => handleSerialMonitorRequestStop(m)
+      case m: SerialMonitorResult                   => handleSerialMonitorResult(m)
+      case m: SerialMonitorMessageToClient          => handleSerialMonitorMessageToClient(m)
+      case m: SerialMonitorMessageToAgent           => handleSerialMonitorMessageToAgent(m)
+      case _: SerialMonitorListenersHeartbeatStart  => handleSerialMonitorListenersHeartbeatStart()
+      case _: SerialMonitorListenersHeartbeatPing   => IO(())
+      case _: SerialMonitorListenersHeartbeatPong   => handleSerialMonitorListenersHeartbeatPong()
+      case _: SerialMonitorListenersHeartbeatFinish => handleSerialMonitorListenersHeartbeatFinish()
+      case _: Ping                                  => IO(())
     }
 
   def handleUploadSoftwareRequest(inquirer: Option[ActorRef], message: UploadSoftwareRequest): IO[Unit] =
@@ -134,6 +151,9 @@ class HardwareControlActor(
       // Reset state if upload happened
       _ <- IO.whenA(isUploading)(IO(setInitialState()))
     } yield ()
+
+  def handleSerialMonitorRequestStop(message: SerialMonitorRequestStop): IO[Unit] =
+    sendToAgent(message)
 
   def handleSerialMonitorRequest(inquirer: Option[ActorRef], message: SerialMonitorRequest): IO[Unit] =
     for {
@@ -159,6 +179,22 @@ class HardwareControlActor(
   def handleSerialMonitorMessageToAgent(message: SerialMonitorMessageToAgent): IO[Unit] =
     sendToAgent(message)
 
+  def handleSerialMonitorListenersHeartbeatStart(): IO[Unit] = {
+    val startAndLaterFinish = IO { listenerHeartbeatsReceived = 0 } >>
+      IO(pubSubMediator ! Publish(serialMonitorTopic, SerialMonitorListenersHeartbeatPing())) >>
+      IO.sleep(listenerHeartbeatWaitTime) >>
+      IO(self ! SerialMonitorListenersHeartbeatFinish())
+
+    startAndLaterFinish.start.void
+  }
+
+  def handleSerialMonitorListenersHeartbeatPong(): IO[Unit] =
+    IO { listenerHeartbeatsReceived += 1 }
+
+  def handleSerialMonitorListenersHeartbeatFinish(): IO[Unit] =
+    (if (listenerHeartbeatsReceived == 0) sendToAgent(SerialMonitorRequestStop())
+     else sendToAgent(SerialMonitorRequest(None))) >>
+      scheduleHeartbeatTest()
 }
 
 object HardwareControlActor extends ActorHelper {
@@ -171,7 +207,6 @@ object HardwareControlActor extends ActorHelper {
     hardwareId: HardwareId,
   )(implicit
     iort: IORuntime,
-    timeout: Timeout,
   ): Props = Props(new HardwareControlActor(pubSubMediator, out, hardwareId))
 
   implicit val transformer: MessageFlowTransformer[Control, String] =
@@ -198,9 +233,9 @@ object HardwareControlActor extends ActorHelper {
       })
     } yield monitorResult
 
-  def sendSerialMessageToAgent(
+  def sendToHardwareActor(
     hardwareId: HardwareId,
-    serialMessage: SerialMonitorMessageToAgent,
+    serialMessage: Control,
   )(implicit actorSystem: ActorSystem, t: Timeout): EitherT[IO, String, Unit] =
     for {
       hardwareRef <- resolveActorRef(userActorPath(hardwareActor(hardwareId)))(actorSystem, implicitly)

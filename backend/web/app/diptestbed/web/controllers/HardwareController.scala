@@ -75,7 +75,6 @@ class HardwareController(
 
   def controlHardware(hardwareId: HardwareId): WebSocket = {
     WebSocket.accept[HardwareControlMessage, String](_ => {
-      implicit val timeout: Timeout = 60.seconds
       BetterActorFlow.actorRef(
         subscriber => HardwareControlActor.props(pubSubMediator, subscriber, hardwareId),
         maybeName = hardwareActor(hardwareId).some,

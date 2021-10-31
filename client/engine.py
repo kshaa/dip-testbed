@@ -88,8 +88,12 @@ class Engine(Generic[PI, PO]):
             (serial, serialConfig) = self.serial
             received_bytes = serial.read(serialConfig.receive_size)
             if received_bytes is not None and len(received_bytes) > 0:
-                await self.monitor_to_server(received_bytes)
-            await asyncio.sleep(2)
+                # Send to server immediately, don't wait for request to finish
+                loop = asyncio.get_event_loop()
+                loop.create_task(self.monitor_to_server(received_bytes))
+            # Python is trash, sleep for a bit to allow other
+            # async coroutines to execute
+            await asyncio.sleep(serialConfig.timeout)
 
     def start_monitor(self, serial: Serial, serial_config: SerialConfig):
         """Start serial monitoring"""
@@ -106,6 +110,7 @@ class Engine(Generic[PI, PO]):
         if self.serial is not None:
             (serial, _) = self.serial
             serial.close()
+            self.serial = None
 
     # Socket lifecycle methods
     def on_start(self, socket: WebSocket):
@@ -177,11 +182,20 @@ class Engine(Generic[PI, PO]):
         # Stop old monitor
         self.stop_monitor()
 
-        # Connect to serial device w/ the given configurations
+        # Define a strictly non-empty configuration
         if message.config is None:
             serial_config = SerialConfig.empty()
         else:
             serial_config = message.config
+
+        # Avoid changes to monitoring if configuration doesn't change
+        if self.serial is not None:
+            (_, old_serial_config) = self.serial
+            if old_serial_config == serial_config:
+                LOGGER.debug("Skipping monitor request with unchanged config")
+                return Ok(SerialMonitorResult(None))
+
+        # Connect to serial device w/ the given configurations
         serial_result = monitor_serial(device, serial_config)
         if isinstance(serial_result, Err):
             outcome_message = f"Failed setting up monitor: {pformat(serial_result.value, indent=4)}"
@@ -192,6 +206,10 @@ class Engine(Generic[PI, PO]):
         self.start_monitor(serial_result.value, serial_config)
 
         return Ok(SerialMonitorResult(None))
+
+    def process_serial_monitor_stop(self):
+        """Stop serial monitoring"""
+        self.stop_monitor()
 
     def process_serial_monitor_to_agent(
         self,
