@@ -18,7 +18,7 @@ def hardware_table(hardwares: List[Hardware]) -> Table:
     """Create a table of hardware"""
     table = Table("Id", "Name", "Owner id", title="Hardware list")
     for hardware in hardwares:
-        table.add_row(str(hardware.id), hardware.name, str(hardware.owner_uuid))
+        table.add_row(str(hardware.id), hardware.name, str(hardware.owner_id))
     return table
 
 
@@ -26,5 +26,5 @@ def software_table(softwares: List[Software]) -> Table:
     """Create a table of software"""
     table = Table("Id", "Name", "Owner id", title="Software list")
     for software in softwares:
-        table.add_row(str(software.id), software.name, str(software.owner_uuid))
+        table.add_row(str(software.id), software.name, str(software.owner_id))
     return table

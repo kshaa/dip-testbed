@@ -5,10 +5,11 @@ import asyncio
 import os
 import sys
 import shutil
-from dataclasses import asdict
 from uuid import UUID
 import click
+from typing import List
 from result import Err
+import backend_domain
 from rich import print as richprint
 from rich_util import print_error, print_success, print_json
 from agent import AgentConfig
@@ -18,6 +19,9 @@ import agent_entrypoints
 import log
 import cli_util
 from rich_tables import user_table, hardware_table, software_table
+from codec_json import EncoderJSON
+import s11n_json_protocol
+import s11n_util
 
 LOGGER = log.timed_named_logger("cli")
 PASS_AGENT_CONFIG = click.make_pass_decorator(AgentConfig)
@@ -190,7 +194,9 @@ def user_list(json_output: bool, static_server_str: str):
 
     # Print output
     if json_output:
-        print_json(list(map(asdict, users)))
+        users_encoder: EncoderJSON[List[backend_domain.User]] = \
+            s11n_util.list_encoder(s11n_json_protocol.USER_ENCODER_JSON)
+        print_json(users_encoder.encode(users))
     else:
         table = user_table(users)
         richprint(table)
@@ -219,7 +225,7 @@ def user_create(json_output: bool, static_server_str: str, username: str, passwo
 
     # Print output
     if json_output:
-        print_json(asdict(user_created))
+        print_json(s11n_json_protocol.USER_ENCODER_JSON.encode(user_created))
     else:
         table = user_table([user_created])
         richprint(table)
@@ -246,7 +252,9 @@ def hardware_list(json_output: bool, static_server_str: str):
 
     # Print output
     if json_output:
-        print_json(list(map(asdict, hardwares)))
+        hardwares_encoder: EncoderJSON[List[backend_domain.Hardware]] = \
+            s11n_util.list_encoder(s11n_json_protocol.HARDWARE_ENCODER_JSON)
+        print_json(hardwares_encoder.encode(hardwares))
     else:
         table = hardware_table(hardwares)
         richprint(table)
@@ -285,7 +293,7 @@ def hardware_create(
 
     # Print output
     if json_output:
-        print_json(asdict(hardware_created))
+        print_json(s11n_json_protocol.HARDWARE_ENCODER_JSON.encode(hardware_created))
     else:
         table = hardware_table([hardware_created])
         richprint(table)
@@ -312,7 +320,9 @@ def software_list(json_output: bool, static_server_str: str):
 
     # Print output
     if json_output:
-        print_json(list(map(asdict, softwares)))
+        softwares_encoder: EncoderJSON[List[backend_domain.Software]] = \
+            s11n_util.list_encoder(s11n_json_protocol.SOFTWARE_ENCODER_JSON)
+        print_json(softwares_encoder.encode(softwares))
     else:
         table = software_table(softwares)
         richprint(table)
@@ -362,7 +372,7 @@ def software_upload(
 
     # Print output
     if json_output:
-        print_json(asdict(software_created))
+        print_json(s11n_json_protocol.SOFTWARE_ENCODER_JSON.encode(software_created))
     else:
         table = software_table([software_created])
         richprint(table)

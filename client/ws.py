@@ -1,7 +1,7 @@
 """Typed, auto-coded websocket client definition"""
 
 from pprint import pformat
-from typing import TypeVar, Generic, Any, Optional
+from typing import TypeVar, Generic, Any, Optional, Union
 import websockets.client
 import websockets
 from websockets.exceptions import ConnectionClosedError
@@ -10,18 +10,24 @@ from codec import Decoder, Encoder
 import log
 
 LOGGER = log.timed_named_logger("websocket")
+SERIALIZABLE = TypeVar('SERIALIZABLE')
 PI = TypeVar('PI')
 PO = TypeVar('PO')
 
 
-class WebSocket(Generic[PI, PO]):
+class WebSocket(Generic[SERIALIZABLE, PI, PO]):
     """Typed, auto-coded websocket client"""
     url: str
-    decoder: Decoder[PI]
-    encoder: Encoder[PO]
+    decoder: Decoder[Union[str, bytes], SERIALIZABLE, PI]
+    encoder: Encoder[Union[str, bytes], SERIALIZABLE, PO]
     socket: Optional[Any] = None
 
-    def __init__(self, url: str, decoder: Decoder[PI], encoder: Encoder[PO]):
+    def __init__(
+        self,
+        url: str,
+        decoder: Decoder[Union[str, bytes], SERIALIZABLE, PI],
+        encoder: Encoder[Union[str, bytes], SERIALIZABLE, PO]
+    ):
         self.url = url
         self.encoder = encoder
         self.decoder = decoder
@@ -52,11 +58,11 @@ class WebSocket(Generic[PI, PO]):
         if self.socket is None:
             return Err(Exception("Not connected"))
         try:
-            data = await self.socket.recv()
+            data: Union[str, bytes] = await self.socket.recv()
             LOGGER.debug("Received message: %s", pformat(data, indent=4))
             # This returns CodecParseException, which mypy doesn't recognize
             # as a type of Exception, which is weird, but lets suppress this
-            return self.decoder.transform(data)  # type: ignore
+            return self.decoder.raw_decode(data)  # type: ignore
         except ConnectionClosedError as e:
             self.socket = None
             return Err(e)
@@ -69,7 +75,7 @@ class WebSocket(Generic[PI, PO]):
             return Exception("Not connected")
         try:
             LOGGER.debug("Sending message: %s", pformat(data, indent=4))
-            message = self.encoder.transform(data)
+            message: Union[str, bytes] = self.encoder.raw_encode(data)
             await self.socket.send(message)
             return None
         except Exception as e:

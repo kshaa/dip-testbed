@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Anvyl FPGA client functionality."""
 
-from typing import Sequence, Tuple, Any
+from typing import Sequence, Tuple, Any, TypeVar
 from result import Result, Err
 from engine import Engine, EngineConfig
 from protocol import \
@@ -17,6 +17,7 @@ import log
 
 LOGGER = log.timed_named_logger("anvyl")
 FIRMWARE_UPLOAD_PATH = 'static/digilent_anvyl/upload.sh'
+SERIALIZABLE = TypeVar('SERIALIZABLE')
 
 
 def firmware_upload_args(
@@ -49,7 +50,7 @@ class EngineAnvylConfig(EngineConfig):
         self.scan_chain_index = scan_chain_index
 
 
-class EngineAnvyl(Engine[CommonIncomingMessage, Any]):
+class EngineAnvyl(Engine[SERIALIZABLE, CommonIncomingMessage, Any]):
     """Engine for Anvyl microcontroller"""
     config: EngineAnvylConfig
 

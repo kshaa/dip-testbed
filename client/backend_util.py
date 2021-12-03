@@ -16,7 +16,9 @@ from websockets.exceptions import ConnectionClosedError
 from requests import Response
 import requests
 import protocol
-import s11n
+import s11n_util
+import s11n_json_protocol
+from s11n_json_protocol import EncoderJSON, DecoderJSON
 from url import url_with_path_str, download_file, download_temp_file, response_log_text
 import log
 from backend_domain import User, Hardware, Software
@@ -52,25 +54,26 @@ class BackendConfig:
 
     # Generic responses
     SUCCESS_CONTENT = TypeVar('SUCCESS_CONTENT')
+    FAILURE_CONTENT = TypeVar('FAILURE_CONTENT')
 
     @staticmethod
     def response_to_result(
         response: Response,
-        success_decode: Callable[[str], Result[SUCCESS_CONTENT, CodecParseException]],
+        success_decoder: DecoderJSON[SUCCESS_CONTENT],
         empty_success: bool = False
-    ) -> Result[FailureMessage, SuccessMessage]:
+    ) -> Result[SUCCESS_CONTENT, FailureMessage[str]]:
         """Attempt to parse request response as a JSON failure or success"""
         # Handle failure
         if not response.ok:
-            failure_decode = s11n.failure_message_decoder(s11n.string_decode)
-            failure_result = failure_decode(response.text)
+            failure_decoder = s11n_json_protocol.STRING_DECODER_JSON
+            failure_result = failure_decoder.raw_decode(response.text)
             if isinstance(failure_result, Err):
                 return Err(FailureMessage(f"HTTP error reason: {response.reason}"))
             else:
-                return Err(failure_result.value)
+                return Err(FailureMessage(failure_result.value))
 
         # Handle success
-        success_result = success_decode(response.text)
+        success_result = success_decoder.raw_decode(response.text)
         if isinstance(success_result, Err):
             if empty_success:
                 return Ok(None)
@@ -95,10 +98,11 @@ class BackendConfig:
             return Err(f"Request failure: {user_list_response.reason}")
 
         # Handle result
-        result = self.response_to_result(
+        # type: ignore
+        users_decoder: DecoderJSON[List[User]] = s11n_util.list_decoder(s11n_json_protocol.USER_DECODER_JSON)
+        result: Result[SuccessMessage[List[User]], FailureMessage[str]] = self.response_to_result(
             user_list_response,
-            s11n.success_message_decoder(s11n.list_decoder(s11n.user_decode))
-        )
+            s11n_json_protocol.success_message_decoder_json(users_decoder))
         if isinstance(result, Err):
             return Err(result.value.value)
         else:
@@ -114,15 +118,18 @@ class BackendConfig:
 
         # Send request
         payload = protocol.CreateUserMessage(username, password)
-        payload_serialized = s11n.CREATE_USER_MESSAGE_ENCODER.transform(payload)
+        payload_serialized = s11n_json_protocol.CREATE_USER_MESSAGE_ENCODER_JSON.encode(payload)
         user_create_response = requests.post(
-            user_create_url, payload_serialized, headers=self.json_headers)
+            user_create_url,
+            EncoderJSON.serializable_as_raw(payload_serialized),
+            headers=self.json_headers)
         LOGGER.debug(response_log_text(user_create_response))
 
         # Handle result
         result = self.response_to_result(
             user_create_response,
-            s11n.success_message_decoder(s11n.user_decode))
+            s11n_json_protocol.success_message_decoder_json(
+                s11n_json_protocol.USER_DECODER_JSON))
         if isinstance(result, Err):
             return Err(result.value.value)
         else:
@@ -144,9 +151,12 @@ class BackendConfig:
             return Err(f"Request failure: {hardware_list_response.reason}")
 
         # Handle result
+        # type: ignore
+        hardwares_decoder: DecoderJSON[List[Hardware]] = \
+            s11n_util.list_decoder(s11n_json_protocol.HARDWARE_DECODER_JSON)
         result = self.response_to_result(
             hardware_list_response,
-            s11n.success_message_decoder(s11n.list_decoder(s11n.hardware_decode))
+            s11n_json_protocol.success_message_decoder_json(hardwares_decoder)
         )
         if isinstance(result, Err):
             return Err(result.value.value)
@@ -163,18 +173,19 @@ class BackendConfig:
 
         # Send request
         payload = protocol.CreateHardwareMessage(hardware_name)
-        payload_serialized = s11n.CREATE_HARDWARE_MESSAGE_ENCODER.transform(payload)
+        payload_serialized = s11n_json_protocol.CREATE_HARDWARE_MESSAGE_ENCODER_JSON.encode(payload)
         request_headers = dict(self.json_headers, **self.auth_headers(username, password))
         hardware_create_response = requests.post(
             hardware_create_url,
-            payload_serialized,
+            EncoderJSON.serializable_as_raw(payload_serialized),
             headers=request_headers)
         LOGGER.debug(response_log_text(hardware_create_response))
 
         # Handle result
         result = self.response_to_result(
             hardware_create_response,
-            s11n.success_message_decoder(s11n.hardware_decode))
+            s11n_json_protocol.success_message_decoder_json(
+                s11n_json_protocol.HARDWARE_DECODER_JSON))
         if isinstance(result, Err):
             return Err(result.value.value)
         else:
@@ -202,7 +213,7 @@ class BackendConfig:
             self.static_server,
             f"{self.api_prefix}/hardware/{hardware_id}/upload/software/{software_id}")
         if isinstance(hardware_software_upload_url_result, Err):
-            return Err("Hardware softwareu upload URL build failed: %s")
+            return Err("Hardware software upload URL build failed: %s")
         hardware_software_upload_url = hardware_software_upload_url_result.value
 
         # Send request
@@ -212,7 +223,8 @@ class BackendConfig:
         # Handle result
         result = self.response_to_result(
             hardware_create_response,
-            s11n.success_message_decoder(s11n.hardware_decode),
+            s11n_json_protocol.success_message_decoder_json(
+                s11n_json_protocol.HARDWARE_DECODER_JSON),
             empty_success=True)
         if isinstance(result, Err):
             return Err(result.value.value)
@@ -235,10 +247,11 @@ class BackendConfig:
             return Err(f"Request failure: {software_list_response.reason}")
 
         # Handle result
+        # type: ignore
+        softwares_decoder: DecoderJSON[List[Software]] = s11n_util.list_decoder(s11n_json_protocol.SOFTWARE_DECODER_JSON)
         result = self.response_to_result(
             software_list_response,
-            s11n.success_message_decoder(s11n.list_decoder(s11n.software_decode))
-        )
+            s11n_json_protocol.success_message_decoder_json(softwares_decoder))
         if isinstance(result, Err):
             return Err(result.value.value)
         else:
@@ -269,7 +282,7 @@ class BackendConfig:
         # Handle result
         result = self.response_to_result(
             software_upload_response,
-            s11n.success_message_decoder(s11n.software_decode))
+            s11n_json_protocol.success_message_decoder_json(s11n_json_protocol.SOFTWARE_DECODER_JSON))
         if isinstance(result, Err):
             return Err(result.value.value)
         else:
@@ -322,8 +335,8 @@ class BackendConfig:
         monitor_url = monitor_url_result.value
 
         # Connect to hardware listener in backend control
-        decoder = s11n.MONITOR_LISTENER_INCOMING_MESSAGE_DECODER
-        encoder = s11n.MONITOR_LISTENER_OUTGOING_MESSAGE_ENCODER
+        decoder = s11n_json_protocol.MONITOR_LISTENER_INCOMING_MESSAGE_DECODER_JSON
+        encoder = s11n_json_protocol.MONITOR_LISTENER_OUTGOING_MESSAGE_ENCODER_JSON
         websocket = WebSocket(monitor_url, decoder, encoder)
         LOGGER.debug("Connecting connect to control server: %s", monitor_url)
         error = await websocket.connect()

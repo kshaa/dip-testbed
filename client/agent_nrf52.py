@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """NRF52 micro-controller client functionality."""
 
-from typing import Sequence, Tuple, Any
+from typing import Sequence, Tuple, Any, TypeVar
 from result import Result, Err
 from engine import Engine, EngineConfig
 from protocol import \
@@ -17,6 +17,7 @@ import log
 
 LOGGER = log.timed_named_logger("nrf52")
 FIRMWARE_UPLOAD_PATH = 'static/adafruit_nrf52/upload.sh'
+SERIALIZABLE = TypeVar('SERIALIZABLE')
 
 
 def firmware_upload_args(
@@ -47,7 +48,7 @@ class EngineNRF52Config(EngineConfig):
         self.baudrate = baudrate
 
 
-class EngineNRF52(Engine[CommonIncomingMessage, Any]):
+class EngineNRF52(Engine[SERIALIZABLE, CommonIncomingMessage, Any]):
     """Engine for NRF52 microcontroller"""
     config: EngineNRF52Config
 

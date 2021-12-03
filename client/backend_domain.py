@@ -16,7 +16,7 @@ class Hardware:
     """Class containing hardware information"""
     id: UUID
     name: str
-    owner_uuid: str
+    owner_id: UUID
 
 
 @dataclass(frozen=True, eq=False)
@@ -24,4 +24,4 @@ class Software:
     """Class containing software information"""
     id: UUID
     name: str
-    owner_uuid: str
+    owner_id: UUID
