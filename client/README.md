@@ -14,3 +14,17 @@
 
 ### Built client
 - Run `./dist/dip_client --help` to print built client CLI usage definition
+
+### File tree
+- `dip_client.py` is just an entrypoint for the CLI interface from `cli.py`
+- `cli.py` defines a CLI interface for all possible DIP client commands:
+    - Generic one-off client commands are defined in `backend_util.py`
+    - Microcontroller agent commands are defined in `agent_entrypoints.py`
+- `agent_entrypoints.py` prepare and run a configured agent `agent.py`
+- `agent.py` runs using an `AgentConfig`, `Engine`, serialization `Encoder`/`Decoder`
+- `agent_util.py` defines a base `AgentConfig`
+- `engine.py` defines a base `Engine`
+- `agent_*.py` define custom `Engine`s and `AgentConfig`s
+- Agents use `ws.py` to exchange WebSocket messages
+- Agents use `s11n_*.py` to serialize messages
+- Agents use `Engine` for stateful actions & resulting messages

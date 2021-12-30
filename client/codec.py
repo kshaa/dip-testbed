@@ -25,19 +25,6 @@ class Decoder(Generic[R, S, D]):
 
     def raw_decode(self, value: R) -> Result[D, CodecParseException]:
         """Decode raw directly to domain"""
-        serializable = self.raw_as_serializable(value)
-        if isinstance(serializable, Err):
-            return serializable
-        return self.decode(serializable.value)
-
-    @staticmethod
-    def raw_as_serializable(raw: R) -> Result[S, CodecParseException]:
-        """Unserialize raw type into a serializable type"""
-        pass
-
-    @staticmethod
-    def identity() -> Decoder[R, S, S]:
-        """Decoder where domain is same as serializable"""
         pass
 
 
@@ -49,17 +36,6 @@ class Encoder(Generic[R, S, D]):
 
     def raw_encode(self, value: D) -> R:
         """Serialize domain directly to raw"""
-        serializable = self.encode(value)
-        return self.serializable_as_raw(serializable)
-
-    @staticmethod
-    def serializable_as_raw(serializable: S) -> R:
-        """Serialize serializable type into a raw type"""
-        pass
-
-    @staticmethod
-    def identity() -> Encoder[R, S, S]:
-        """Encoder where domain is same as serializable"""
         pass
 
 
@@ -71,8 +47,3 @@ class Codec(Generic[R, S, D]):
     def __init__(self, decoder: Decoder[R, S, D], encoder: Encoder[R, S, D]):
         self.decoder = decoder
         self.encoder = encoder
-
-    @staticmethod
-    def serializable_as_raw(self, serializable: S) -> R:
-        """Serialize raw type into a serializable type"""
-        pass

@@ -76,7 +76,12 @@ class WebSocket(Generic[SERIALIZABLE, PI, PO]):
         try:
             LOGGER.debug("Sending message: %s", pformat(data, indent=4))
             message: Union[str, bytes] = self.encoder.raw_encode(data)
-            await self.socket.send(message)
+            if isinstance(message, bytes):
+                await self.socket.send_binary(message)
+            elif isinstance(message, str):
+                await self.socket.send(message)
+            else:
+                return Exception("Unknown message type")
             return None
         except Exception as e:
             return e

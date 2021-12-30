@@ -351,72 +351,6 @@ SERIAL_MONITOR_RESULT_CODEC_JSON: CodecJSON[protocol.SerialMonitorResult] = \
     CodecJSON(SERIAL_MONITOR_RESULT_DECODER_JSON, SERIAL_MONITOR_RESULT_ENCODER_JSON)
 
 
-# protocol.SerialMonitorMessageToAgent
-def serial_monitor_message_to_agent_encode_json(value: protocol.SerialMonitorMessageToAgent) -> JSON:
-    """Serialize SerialMonitorMessageToAgent to JSON"""
-    return {
-        "message": {
-            "base64Bytes": value.base64Bytes
-        }
-    }
-
-
-def serial_monitor_message_to_agent_decode_json(
-    value: JSON
-) -> Result[protocol.SerialMonitorMessageToAgent, CodecParseException]:
-    """Un-serialize SerialMonitorRequest from JSON"""
-    if not isinstance(value, dict):
-        return Err(CodecParseException("SerialMonitorMessageToAgent must be an object"))
-    message = value.get("message")
-    if not isinstance(message, dict):
-        return Err(CodecParseException("SerialMonitorMessageToAgent must have .message as object"))
-    base64_bytes = message.get("base64Bytes")
-    if not isinstance(base64_bytes, str):
-        return Err(CodecParseException("SerialMonitorMessageToAgent must have .base64Bytes as string"))
-    return Ok(protocol.SerialMonitorMessageToAgent(base64_bytes))
-
-
-SERIAL_MONITOR_MESSAGE_TO_AGENT_ENCODER_JSON: EncoderJSON[protocol.SerialMonitorMessageToAgent] = \
-    EncoderJSON(serial_monitor_message_to_agent_encode_json)
-SERIAL_MONITOR_MESSAGE_TO_AGENT_DECODER_JSON: DecoderJSON[protocol.SerialMonitorMessageToAgent] = \
-    DecoderJSON(serial_monitor_message_to_agent_decode_json)
-SERIAL_MONITOR_MESSAGE_TO_AGENT_CODEC_JSON: CodecJSON[protocol.SerialMonitorMessageToAgent] = \
-    CodecJSON(SERIAL_MONITOR_MESSAGE_TO_AGENT_DECODER_JSON, SERIAL_MONITOR_MESSAGE_TO_AGENT_ENCODER_JSON)
-
-
-# protocol.SerialMonitorMessageToClient
-def serial_monitor_message_to_client_encode_json(value: protocol.SerialMonitorMessageToClient) -> JSON:
-    """Serialize SerialMonitorMessageToClient to JSON"""
-    return {
-        "message": {
-            "base64Bytes": value.base64Bytes
-        }
-    }
-
-
-def serial_monitor_message_to_client_decode_json(
-    value: JSON
-) -> Result[protocol.SerialMonitorMessageToClient, CodecParseException]:
-    """Un-serialize SerialMonitorMessageToClient from JSON"""
-    if not isinstance(value, dict):
-        return Err(CodecParseException("SerialMonitorMessageToClient must be an object"))
-    message = value.get("message")
-    if not isinstance(message, dict):
-        return Err(CodecParseException("SerialMonitorMessageToClient must have .message as object"))
-    base64_bytes = message.get("base64Bytes")
-    if not isinstance(base64_bytes, str):
-        return Err(CodecParseException("SerialMonitorMessageToClient must have .base64Bytes as string"))
-    return Ok(protocol.SerialMonitorMessageToClient(base64_bytes))
-
-
-SERIAL_MONITOR_MESSAGE_TO_CLIENT_ENCODER_JSON: EncoderJSON[protocol.SerialMonitorMessageToClient] = \
-    EncoderJSON(serial_monitor_message_to_client_encode_json)
-SERIAL_MONITOR_MESSAGE_TO_CLIENT_DECODER_JSON: DecoderJSON[protocol.SerialMonitorMessageToClient] = \
-    DecoderJSON(serial_monitor_message_to_client_decode_json)
-SERIAL_MONITOR_MESSAGE_TO_CLIENT_CODEC_JSON: CodecJSON[protocol.SerialMonitorMessageToClient] = \
-    CodecJSON(SERIAL_MONITOR_MESSAGE_TO_CLIENT_DECODER_JSON, SERIAL_MONITOR_MESSAGE_TO_CLIENT_ENCODER_JSON)
-
-
 # protocol.MonitorUnavailable
 def monitor_unavailable_encode_json(value: protocol.MonitorUnavailable) -> JSON:
     """Serialize MonitorUnavailable to JSON"""
@@ -444,19 +378,16 @@ MONITOR_UNAVAILABLE_DECODER_JSON: DecoderJSON[protocol.MonitorUnavailable] = \
 MONITOR_UNAVAILABLE_CODEC_JSON: CodecJSON[protocol.MonitorUnavailable] = \
     CodecJSON(MONITOR_UNAVAILABLE_DECODER_JSON, MONITOR_UNAVAILABLE_ENCODER_JSON)
 
-
 # protocol.CommonIncomingMessage
 COMMON_INCOMING_MESSAGE_ENCODER_JSON = named_message_union_encoder_json({
     protocol.UploadMessage: ("uploadSoftwareRequest", UPLOAD_MESSAGE_ENCODER_JSON),
     protocol.SerialMonitorRequest: ("serialMonitorRequest", SERIAL_MONITOR_REQUEST_ENCODER_JSON),
     protocol.SerialMonitorRequestStop: ("serialMonitorRequestStop", SERIAL_MONITOR_REQUEST_STOP_ENCODER_JSON),
-    protocol.SerialMonitorMessageToAgent: ("serialMonitorRequestToAgent", SERIAL_MONITOR_MESSAGE_TO_AGENT_ENCODER_JSON)
 })
 COMMON_INCOMING_MESSAGE_DECODER_JSON = named_message_union_decoder_json({
     protocol.UploadMessage: ("uploadSoftwareRequest", UPLOAD_MESSAGE_DECODER_JSON),
     protocol.SerialMonitorRequest: ("serialMonitorRequest", SERIAL_MONITOR_REQUEST_DECODER_JSON),
-    protocol.SerialMonitorRequestStop: ("serialMonitorRequestStop", SERIAL_MONITOR_REQUEST_STOP_DECODER_JSON),
-    protocol.SerialMonitorMessageToAgent: ("serialMonitorRequestToAgent", SERIAL_MONITOR_MESSAGE_TO_AGENT_DECODER_JSON)
+    protocol.SerialMonitorRequestStop: ("serialMonitorRequestStop", SERIAL_MONITOR_REQUEST_STOP_DECODER_JSON)
 })
 COMMON_INCOMING_MESSAGE_CODEC_JSON = CodecJSON(
     COMMON_INCOMING_MESSAGE_DECODER_JSON,
@@ -467,13 +398,11 @@ COMMON_OUTGOING_MESSAGE_ENCODER_JSON = named_message_union_encoder_json({
     protocol.UploadResultMessage: ("uploadSoftwareRequest", UPLOAD_RESULT_MESSAGE_ENCODER_JSON),
     protocol.PingMessage: ("ping", PING_MESSAGE_ENCODER_JSON),
     protocol.SerialMonitorResult: ("serialMonitorResult", SERIAL_MONITOR_RESULT_ENCODER_JSON),
-    protocol.SerialMonitorMessageToClient: ("serialMonitorMessageToClient", SERIAL_MONITOR_MESSAGE_TO_CLIENT_ENCODER_JSON)
 })
 COMMON_OUTGOING_MESSAGE_DECODER_JSON = named_message_union_decoder_json({
     protocol.UploadResultMessage: ("uploadSoftwareRequest", UPLOAD_RESULT_MESSAGE_DECODER_JSON),
     protocol.PingMessage: ("ping", PING_MESSAGE_DECODER_JSON),
     protocol.SerialMonitorResult: ("serialMonitorResult", SERIAL_MONITOR_RESULT_DECODER_JSON),
-    protocol.SerialMonitorMessageToClient: ("serialMonitorMessageToClient", SERIAL_MONITOR_MESSAGE_TO_CLIENT_DECODER_JSON)
 })
 COMMON_OUTGOING_MESSAGE_CODEC_JSON = CodecJSON(
     COMMON_OUTGOING_MESSAGE_DECODER_JSON,
@@ -482,27 +411,13 @@ COMMON_OUTGOING_MESSAGE_CODEC_JSON = CodecJSON(
 # protocol.MonitorListenerIncomingMessage
 MONITOR_LISTENER_INCOMING_MESSAGE_ENCODER_JSON = named_message_union_encoder_json({
     protocol.MonitorUnavailable: ("monitorUnavailable", MONITOR_UNAVAILABLE_ENCODER_JSON),
-    protocol.SerialMonitorMessageToClient: ("serialMessageToClient", SERIAL_MONITOR_MESSAGE_TO_CLIENT_ENCODER_JSON)
 })
 MONITOR_LISTENER_INCOMING_MESSAGE_DECODER_JSON = named_message_union_decoder_json({
     protocol.MonitorUnavailable: ("monitorUnavailable", MONITOR_UNAVAILABLE_DECODER_JSON),
-    protocol.SerialMonitorMessageToClient: ("serialMessageToClient", SERIAL_MONITOR_MESSAGE_TO_CLIENT_DECODER_JSON)
 })
 MONITOR_LISTENER_INCOMING_MESSAGE_CODEC_JSON = CodecJSON(
     MONITOR_LISTENER_INCOMING_MESSAGE_DECODER_JSON,
     MONITOR_LISTENER_INCOMING_MESSAGE_ENCODER_JSON)
-
-# protocol.MonitorListenerOutgoingMessage
-MONITOR_LISTENER_OUTGOING_MESSAGE_ENCODER_JSON = named_message_union_encoder_json({
-    protocol.SerialMonitorMessageToAgent: ("serialMessageToAgent", SERIAL_MONITOR_MESSAGE_TO_AGENT_ENCODER_JSON)
-})
-MONITOR_LISTENER_OUTGOING_MESSAGE_DECODER_JSON = named_message_union_decoder_json({
-    protocol.SerialMonitorMessageToAgent: ("serialMessageToAgent", SERIAL_MONITOR_MESSAGE_TO_AGENT_DECODER_JSON)
-})
-MONITOR_LISTENER_OUTGOING_MESSAGE_CODEC_JSON = CodecJSON(
-    MONITOR_LISTENER_OUTGOING_MESSAGE_DECODER_JSON,
-    MONITOR_LISTENER_OUTGOING_MESSAGE_ENCODER_JSON)
-
 
 # backend_domain.User
 def user_encode_json(value: backend_domain.User) -> JSON:

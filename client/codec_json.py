@@ -17,6 +17,13 @@ class DecoderJSON(Decoder[str, JSON, D]):
     def __init__(self, decode: Callable[[JSON], Result[D, CodecParseException]]):
         self.decode = decode
 
+    def raw_decode(self, value: str) -> Result[D, CodecParseException]:
+        """Decode raw directly to domain"""
+        serializable = self.raw_as_serializable(value)
+        if isinstance(serializable, Err):
+            return serializable
+        return self.decode(serializable.value)
+
     @staticmethod
     def raw_as_serializable(text: str) -> Result[JSON, CodecParseException]:
         """Unserialize JSON from a string"""
@@ -36,6 +43,11 @@ class EncoderJSON(Encoder[str, JSON, D]):
 
     def __init__(self, encode: Callable[[D], JSON]):
         self.encode = encode
+
+    def raw_encode(self, value: D) -> str:
+        """Serialize domain directly to raw"""
+        serializable = self.encode(value)
+        return self.serializable_as_raw(serializable)
 
     @staticmethod
     def serializable_as_raw(data: JSON) -> str:
