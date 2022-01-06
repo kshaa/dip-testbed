@@ -20,9 +20,7 @@ def hybrid_encode(
     value: HYBRID_MESSAGE
 ) -> Any:
     """Encode hybrid message"""
-    print("value", value)
     for clazz, encoder in encoders.items():
-        print("clazz", clazz)
         if isinstance(value, clazz):
             return encoder.encode(value)
     # Not very functional, if this becomes a problem, refactor Encoder result type :/
