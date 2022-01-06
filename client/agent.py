@@ -64,8 +64,8 @@ async def agent(
             await websocket.disconnect()
             return 1
         else:
+            LOGGER.debug("Message received: %s", pformat(incoming_result, indent=4))
             incoming_message = incoming_result.value
-            LOGGER.debug("Message received: %s", pformat(incoming_message, indent=4))
             LOGGER.debug("Message processing started")
             outgoing_result = engine.process(incoming_message)
             LOGGER.debug("Message processing stopped")
