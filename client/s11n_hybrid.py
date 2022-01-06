@@ -17,10 +17,12 @@ HYBRID_MESSAGE = TypeVar('HYBRID_MESSAGE')
 
 def hybrid_encode(
     encoders: Dict[Type[HYBRID_MESSAGE], Encoder[Any, Any, HYBRID_MESSAGE]],
-    value: Any
-) -> HYBRID_MESSAGE:
+    value: HYBRID_MESSAGE
+) -> Any:
     """Encode hybrid message"""
+    print("value", value)
     for clazz, encoder in encoders.items():
+        print("clazz", clazz)
         if isinstance(value, clazz):
             return encoder.encode(value)
     # Not very functional, if this becomes a problem, refactor Encoder result type :/
@@ -61,13 +63,13 @@ COMMON_INCOMING_MESSAGE_ENCODER = hybrid_encoder({
 COMMON_INCOMING_MESSAGE_DECODER = hybrid_decoder(
     s11n_binary.SERIAL_MONITOR_MESSAGE_TO_AGENT_DECODER_BINARY,
     s11n_json.COMMON_INCOMING_MESSAGE_DECODER_JSON)
-COMMON_INCOMING_MESSAGE_CODEC = Codec(COMMON_INCOMING_MESSAGE_DECODER, COMMON_INCOMING_MESSAGE_ENCODER)
+COMMON_INCOMING_MESSAGE_CODEC = CodecHybrid(COMMON_INCOMING_MESSAGE_DECODER, COMMON_INCOMING_MESSAGE_ENCODER)
 
 # protocol.CommonOutgoingMessage
 COMMON_OUTGOING_MESSAGE_ENCODER = hybrid_encoder({
     protocol.UploadResultMessage: s11n_json.COMMON_OUTGOING_MESSAGE_ENCODER_JSON,
-    protocol.PingMessage: s11n_json.COMMON_INCOMING_MESSAGE_ENCODER_JSON,
-    protocol.SerialMonitorResult: s11n_json.COMMON_INCOMING_MESSAGE_ENCODER_JSON,
+    protocol.PingMessage: s11n_json.COMMON_OUTGOING_MESSAGE_ENCODER_JSON,
+    protocol.SerialMonitorResult: s11n_json.COMMON_OUTGOING_MESSAGE_ENCODER_JSON,
     protocol.SerialMonitorMessageToClient: s11n_binary.SERIAL_MONITOR_MESSAGE_TO_CLIENT_ENCODER_BINARY
 })
 COMMON_OUTGOING_MESSAGE_DECODER = hybrid_decoder(

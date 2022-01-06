@@ -32,7 +32,7 @@ class EncoderHybrid(Encoder[Any, Any, D]):
     def __init__(self, encode: Callable[[D], Any]):
         self.encode = encode
 
-    def raw_encode(self, value: D) -> str:
+    def raw_encode(self, value: D) -> Any:
         """Serialize domain directly to raw"""
         serializable = self.encode(value)
         if isinstance(serializable, bytes):
