@@ -395,12 +395,12 @@ COMMON_INCOMING_MESSAGE_CODEC_JSON = CodecJSON(
 
 # protocol.CommonOutgoingMessage
 COMMON_OUTGOING_MESSAGE_ENCODER_JSON = named_message_union_encoder_json({
-    protocol.UploadResultMessage: ("uploadSoftwareRequest", UPLOAD_RESULT_MESSAGE_ENCODER_JSON),
+    protocol.UploadResultMessage: ("uploadSoftwareResult", UPLOAD_RESULT_MESSAGE_ENCODER_JSON),
     protocol.PingMessage: ("ping", PING_MESSAGE_ENCODER_JSON),
     protocol.SerialMonitorResult: ("serialMonitorResult", SERIAL_MONITOR_RESULT_ENCODER_JSON),
 })
 COMMON_OUTGOING_MESSAGE_DECODER_JSON = named_message_union_decoder_json({
-    protocol.UploadResultMessage: ("uploadSoftwareRequest", UPLOAD_RESULT_MESSAGE_DECODER_JSON),
+    protocol.UploadResultMessage: ("uploadSoftwareResult", UPLOAD_RESULT_MESSAGE_DECODER_JSON),
     protocol.PingMessage: ("ping", PING_MESSAGE_DECODER_JSON),
     protocol.SerialMonitorResult: ("serialMonitorResult", SERIAL_MONITOR_RESULT_DECODER_JSON),
 })
