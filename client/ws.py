@@ -59,7 +59,7 @@ class WebSocket(Generic[SERIALIZABLE, PI, PO]):
             return Err(Exception("Not connected"))
         try:
             data: Union[str, bytes] = await self.socket.recv()
-            LOGGER.debug("Received message: %s", pformat(data, indent=4))
+            LOGGER.debug("Received raw message: %s", pformat(data, indent=4))
             # This returns CodecParseException, which mypy doesn't recognize
             # as a type of Exception, which is weird, but lets suppress this
             return self.decoder.raw_decode(data)  # type: ignore
@@ -74,8 +74,9 @@ class WebSocket(Generic[SERIALIZABLE, PI, PO]):
         if self.socket is None:
             return Exception("Not connected")
         try:
-            LOGGER.debug("Sending message: %s", pformat(data, indent=4))
+            LOGGER.debug("Sending domain message: %s", pformat(data, indent=4))
             message: Union[str, bytes] = self.encoder.raw_encode(data)
+            LOGGER.debug("Sending raw message: %s", pformat(data, indent=4))
             if isinstance(message, bytes):
                 await self.socket.send_binary(message)
             elif isinstance(message, str):
