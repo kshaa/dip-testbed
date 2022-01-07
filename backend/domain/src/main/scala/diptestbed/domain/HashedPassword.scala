@@ -16,6 +16,9 @@ object Charsets {
     def fromBase64(charset: Charset = defaultCharset): Option[String] =
       Try(Base64.getDecoder.decode(value).asCharsetString(charset)).toOption
 
+    def asBase64Bytes: Array[Byte] =
+      Base64.getDecoder.decode(value)
+
     def asCharsetBytes(charset: Charset = defaultCharset): Array[Byte] =
       value.getBytes(charset)
   }
