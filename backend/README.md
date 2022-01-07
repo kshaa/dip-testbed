@@ -10,4 +10,4 @@
 - Run `sbt scalafix` to fix lint
 - Run `sbt scapegoat` to run static code analysis check 
 - Run `sbt web/run` to start the development backend web server  
-- Run `sbt web/start` to start the production backend web server  
+- Run `sbt web/dist` to build the production backend web server  
