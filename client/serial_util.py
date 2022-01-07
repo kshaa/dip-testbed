@@ -21,9 +21,9 @@ class SerialConfig:
     def empty():
         """Create empty serial config"""
         return SerialConfig(
-            receive_size=8,
+            receive_size=4096,
             baudrate=115200,
-            timeout=0.05
+            timeout=0.01
         )
 
 
