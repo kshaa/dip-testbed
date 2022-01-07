@@ -37,7 +37,7 @@ def serial_monitor_message_to_client_decode_binary(
     value: BINARY
 ) -> Result[protocol.SerialMonitorMessageToClient, CodecParseException]:
     """Un-serialize SerialMonitorMessageToClient from JSON"""
-    Ok(protocol.SerialMonitorMessageToClient.from_bytes(value))
+    return Ok(protocol.SerialMonitorMessageToClient.from_bytes(value))
 
 
 SERIAL_MONITOR_MESSAGE_TO_CLIENT_ENCODER_BINARY: EncoderBinary[protocol.SerialMonitorMessageToClient] = \
