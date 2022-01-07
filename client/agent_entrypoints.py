@@ -5,7 +5,7 @@ import asyncio
 from typing import TypeVar
 import sys
 from pprint import pformat
-import s11n
+import s11n_hybrid
 from codec import Encoder, Decoder
 from engine import Engine
 from agent import AgentConfig, agent
@@ -15,15 +15,17 @@ import log
 
 LOGGER = log.timed_named_logger("entrypoint")
 
+RAW = TypeVar('RAW')
+SERIALIZABLE = TypeVar('SERIALIZABLE')
 PI = TypeVar('PI')
 PO = TypeVar('PO')
 
 
 def supervise_agent(
         config: AgentConfig,
-        encoder: Encoder[PO],
-        decoder: Decoder[PI],
-        engine: Engine[PI, PO]):
+        encoder: Encoder[RAW, SERIALIZABLE, PO],
+        decoder: Decoder[RAW, SERIALIZABLE, PI],
+        engine: Engine[SERIALIZABLE, PI, PO]):
     """Run any given, configured async client"""
     LOGGER.debug("Configuring client: %s", pformat(config, indent=4))
     async_agent = agent(config, encoder, decoder, engine)
@@ -36,14 +38,14 @@ def supervise_agent(
 def supervise_agent_nrf52(agent_config: AgentConfig, engine_config: EngineNRF52Config):
     """Initiate NRF52 microcontroller client"""
     engine = EngineNRF52(engine_config)
-    encoder = s11n.COMMON_OUTGOING_MESSAGE_ENCODER
-    decoder = s11n.COMMON_INCOMING_MESSAGE_DECODER
+    encoder = s11n_hybrid.COMMON_OUTGOING_MESSAGE_ENCODER
+    decoder = s11n_hybrid.COMMON_INCOMING_MESSAGE_DECODER
     supervise_agent(agent_config, encoder, decoder, engine)
 
 
 def supervise_agent_anvyl(agent_config: AgentConfig, engine_config: EngineAnvylConfig):
     """Initiate Anvyl FPGA client"""
     engine = EngineAnvyl(engine_config)
-    encoder = s11n.COMMON_OUTGOING_MESSAGE_ENCODER
-    decoder = s11n.COMMON_INCOMING_MESSAGE_DECODER
+    encoder = s11n_hybrid.COMMON_OUTGOING_MESSAGE_ENCODER
+    decoder = s11n_hybrid.COMMON_INCOMING_MESSAGE_DECODER
     supervise_agent(agent_config, encoder, decoder, engine)

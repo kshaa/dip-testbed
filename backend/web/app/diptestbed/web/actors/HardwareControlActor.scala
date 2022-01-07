@@ -2,22 +2,27 @@ package diptestbed.web.actors
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import diptestbed.domain.{HardwareId, SerialConfig, SoftwareId, HardwareControlMessage => Control}
-import play.api.http.websocket.{CloseCodes, CloseMessage, WebSocketCloseException}
+import play.api.http.websocket.{BinaryMessage, CloseCodes, CloseMessage, Message, TextMessage}
 import play.api.mvc.WebSocket.MessageFlowTransformer
 import io.circe.parser.decode
 import io.circe.syntax.EncoderOps
 import diptestbed.protocol.Codecs.{hardwareControlMessageDecoder, hardwareControlMessageEncoder}
 import akka.cluster.pubsub.DistributedPubSubMediator.Publish
+import akka.stream.scaladsl.Flow
 import cats.effect.IO
 import diptestbed.web.actors.HardwareControlActor.hardwareSerialMonitorTopic
 import cats.effect.unsafe.IORuntime
 import diptestbed.domain.HardwareControlMessage._
-import akka.util.Timeout
+import akka.util.{ByteString, Timeout}
 import cats.data.EitherT
 import cats.implicits.toTraverseOps
 import com.typesafe.scalalogging.LazyLogging
+import diptestbed.domain.Charsets._
+import diptestbed.domain.HardwareSerialMonitorMessage.{SerialMessageToAgent, SerialMessageToClient}
 import diptestbed.web.actors.HardwareControlState.{ConfiguringMonitor, Initial, Uploading}
 import diptestbed.web.actors.QueryActor.Promise
+import play.api.libs.streams.AkkaStreams
+
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
 sealed trait HardwareControlState {}
@@ -99,7 +104,12 @@ class HardwareControlActor(
   scheduleHeartbeatTest().unsafeRunAsync(_ => ())
 
   def sendToAgent(message: Control): IO[Unit] =
-    IO(out ! message.asJson.noSpaces)
+    IO(out ! (message match {
+      case m: Control.SerialMonitorMessageToAgent =>
+        val dehydrated = m.message.base64Bytes.asBase64Bytes
+        BinaryMessage(ByteString.fromArray(dehydrated))
+      case m: Control => TextMessage(m.asJson.noSpaces)
+    }))
   def sendToRequester(requester: ActorRef, message: Control): IO[Unit] =
     IO(requester ! message)
 
@@ -209,12 +219,22 @@ object HardwareControlActor extends ActorHelper {
     iort: IORuntime,
   ): Props = Props(new HardwareControlActor(pubSubMediator, out, hardwareId))
 
-  implicit val transformer: MessageFlowTransformer[Control, String] =
-    MessageFlowTransformer.stringMessageFlowTransformer.map(x => {
-      decode[Control](x).toTry.getOrElse {
-        throw WebSocketCloseException(CloseMessage(Some(CloseCodes.Unacceptable), "Failed to parse message"))
-      }
-    })
+  def transformer(byteHandler: ByteString => Either[Control, Message]): MessageFlowTransformer[Control, Message] =
+    (flow: Flow[Control, Message, _]) => {
+      AkkaStreams.bypassWith[Message, Control, Message](Flow[Message].collect {
+        case TextMessage(text) => decode[Control](text).swap.map(e =>
+          CloseMessage(Some(CloseCodes.Unacceptable), e.getMessage))
+        case BinaryMessage(bytes: ByteString) => byteHandler(bytes)
+      })(flow)
+    }
+
+  val controlTransformer = transformer((bytes: ByteString) =>
+    Left(SerialMonitorMessageToClient(SerialMessageToClient(
+      bytes.toArray.asCharsetString(defaultCharset).toBase64()))))
+
+  val listenerTransformer = transformer((bytes: ByteString) =>
+    Left(SerialMonitorMessageToAgent(SerialMessageToAgent(
+      bytes.toArray.asCharsetString(defaultCharset).toBase64()))))
 
   def requestSerialMonitor(
     hardwareId: HardwareId,

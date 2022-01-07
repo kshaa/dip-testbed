@@ -1,7 +1,6 @@
 package diptestbed.web.controllers
 
 import akka.actor.{ActorRef, ActorSystem}
-
 import scala.annotation.unused
 import akka.stream.Materializer
 import akka.util.Timeout
@@ -14,11 +13,12 @@ import diptestbed.domain.{HardwareControlMessage, HardwareId, SerialConfig, Soft
 import diptestbed.protocol._
 import diptestbed.protocol.Codecs._
 import diptestbed.protocol.WebResult._
-import diptestbed.web.actors.HardwareControlActor.{hardwareActor, transformer}
+import diptestbed.web.actors.HardwareControlActor.{controlTransformer, hardwareActor}
 import diptestbed.web.actors.{BetterActorFlow, HardwareControlActor, HardwareSerialMonitorListenerActor}
 import diptestbed.web.ioControls.PipelineOps._
 import diptestbed.web.ioControls._
 import play.api.http.websocket.{Message => WebsocketMessage}
+import play.api.mvc.WebSocket.MessageFlowTransformer
 import play.api.mvc._
 import scala.concurrent.duration.DurationInt
 
@@ -74,7 +74,8 @@ class HardwareController(
     }
 
   def controlHardware(hardwareId: HardwareId): WebSocket = {
-    WebSocket.accept[HardwareControlMessage, String](_ => {
+    implicit val transformer: MessageFlowTransformer[HardwareControlMessage, WebsocketMessage] = controlTransformer
+    WebSocket.accept[HardwareControlMessage, WebsocketMessage](_ => {
       BetterActorFlow.actorRef(
         subscriber => HardwareControlActor.props(pubSubMediator, subscriber, hardwareId),
         maybeName = hardwareActor(hardwareId).some,

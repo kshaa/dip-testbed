@@ -23,6 +23,7 @@ from serial import Serial
 from serial_util import SerialConfig, monitor_serial
 
 LOGGER = log.timed_named_logger("engine")
+SERIALIZABLE = TypeVar('SERIALIZABLE')
 PI = TypeVar('PI')
 PO = TypeVar('PO')
 
@@ -35,12 +36,12 @@ class EngineConfig:
         self.agent = agent
 
 
-class Engine(Generic[PI, PO]):
+class Engine(Generic[SERIALIZABLE, PI, PO]):
     """Implementation of generic microcontroller agent engine"""
     # Generic state
     config: EngineConfig
     engine_on: bool = True
-    socket: Optional[WebSocket[CommonIncomingMessage, CommonOutgoingMessage]] = None
+    socket: Optional[WebSocket[SERIALIZABLE, CommonIncomingMessage, CommonOutgoingMessage]] = None
 
     # Ping state
     ping_enabled: bool = True
@@ -57,7 +58,7 @@ class Engine(Generic[PI, PO]):
     # Ping methods
     async def keep_pinging(
         self,
-        socket: WebSocket[CommonIncomingMessage, CommonOutgoingMessage]
+        socket: WebSocket[SERIALIZABLE, CommonIncomingMessage, CommonOutgoingMessage]
     ):
         """Keeps pinging server while engine is on"""
         while self.engine_on:

@@ -50,6 +50,9 @@ class SerialMonitorMessageToAgent:
     """Message from client to hardware serial monitor"""
     base64Bytes: str
 
+    def __eq__(self, other) -> bool:
+        return self.base64Bytes == other.base64Bytes
+
     @staticmethod
     def from_bytes(content: bytes):
         """Construct message from bytes"""

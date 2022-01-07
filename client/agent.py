@@ -12,15 +12,17 @@ from engine import Engine
 from agent_util import AgentConfig
 
 LOGGER = log.timed_named_logger("agent")
+RAW = TypeVar('RAW')
+SERIALIZABLE = TypeVar('SERIALIZABLE')
 PI = TypeVar('PI')
 PO = TypeVar('PO')
 
 
 async def agent(
         config: AgentConfig,
-        encoder: Encoder[PO],
-        decoder: Decoder[PI],
-        engine: Engine[PI, PO]) -> int:
+        encoder: Encoder[RAW, SERIALIZABLE, PO],
+        decoder: Decoder[RAW, SERIALIZABLE, PI],
+        engine: Engine[SERIALIZABLE, PI, PO]) -> int:
     """Supervising client, which connects to a websocket, listens
      to commands from server, passes them to an client-specific engine"""
 
@@ -62,8 +64,8 @@ async def agent(
             await websocket.disconnect()
             return 1
         else:
+            LOGGER.debug("Message received: %s", pformat(incoming_result, indent=4))
             incoming_message = incoming_result.value
-            LOGGER.debug("Message received: %s", pformat(incoming_message, indent=4))
             LOGGER.debug("Message processing started")
             outgoing_result = engine.process(incoming_message)
             LOGGER.debug("Message processing stopped")

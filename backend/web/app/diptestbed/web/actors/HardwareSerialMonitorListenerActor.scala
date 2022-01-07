@@ -1,12 +1,7 @@
 package diptestbed.web.actors
 
 import akka.actor.{Actor, ActorRef, ActorSystem, PoisonPill, Props}
-import diptestbed.domain.{
-  HardwareControlMessage,
-  HardwareId,
-  SerialConfig,
-  HardwareSerialMonitorMessage => MonitorMessage,
-}
+import diptestbed.domain.{HardwareControlMessage, HardwareId, SerialConfig, HardwareSerialMonitorMessage => MonitorMessage}
 import io.circe.syntax.EncoderOps
 import diptestbed.protocol.Codecs._
 import akka.cluster.pubsub.DistributedPubSubMediator.{Subscribe, SubscribeAck}
@@ -14,14 +9,12 @@ import cats.effect.IO
 import diptestbed.web.actors.HardwareControlActor._
 import cats.effect.unsafe.IORuntime
 import diptestbed.domain.HardwareControlMessage._
-import akka.util.Timeout
-
+import akka.util.{ByteString, Timeout}
 import scala.annotation.unused
 import com.typesafe.scalalogging.LazyLogging
-import diptestbed.domain.HardwareSerialMonitorMessage.MonitorUnavailable
-import io.circe.Encoder
+import diptestbed.domain.Charsets.{ByteOps, StringOps, defaultCharset}
+import diptestbed.domain.HardwareSerialMonitorMessage.{MonitorUnavailable, SerialMessageToAgent}
 import play.api.http.websocket._
-
 import scala.concurrent.duration.DurationInt
 import io.circe.parser.decode
 
@@ -54,8 +47,12 @@ class HardwareSerialMonitorListenerActor(
     .void
     .unsafeRunAsync(_ => ())
 
-  def sendToListener[A: Encoder](message: A): IO[Unit] =
-    IO(out ! TextMessage(message.asJson.noSpaces))
+  def sendToListener(message: MonitorMessage): IO[Unit] =
+    IO(out ! (message match {
+      case m: MonitorMessage.SerialMessageToClient =>
+        BinaryMessage(ByteString.fromArray(m.base64Bytes.asBase64Bytes))
+      case m => TextMessage(m.asJson.noSpaces)
+    }))
 
   def killListener(reason: String): IO[Unit] = {
     // Stop websocket listener
@@ -71,7 +68,7 @@ class HardwareSerialMonitorListenerActor(
       (sendToListener(message) >> killListener("Monitor not valid anymore"))
         .unsafeRunAsync(_ => ())
     case serialMessage: SerialMonitorMessageToClient =>
-      val message: HardwareControlMessage = serialMessage
+      val message: MonitorMessage = MonitorMessage.SerialMessageToClient(serialMessage.message.base64Bytes)
       sendToListener(message).unsafeRunAsync(_ => ())
     case _: SerialMonitorListenersHeartbeatPing =>
       sendToHardwareActor(hardwareId, SerialMonitorListenersHeartbeatPong()).value.unsafeRunAsync(_ => ())
@@ -81,6 +78,11 @@ class HardwareSerialMonitorListenerActor(
           sendToHardwareActor(hardwareId, serialMessage).value.unsafeRunAsync(_ => ())
         case _ => ()
       }
+    case binary: BinaryMessage =>
+      val hydrated = binary.data.toArray.asCharsetString(defaultCharset).toBase64()
+      val message = HardwareControlMessage.SerialMonitorMessageToAgent(
+        SerialMessageToAgent(hydrated))
+      sendToHardwareActor(hardwareId, message).value.unsafeRunAsync(_ => ())
     case _: SubscribeAck =>
       logger.info(s"Serial monitor listener for hardware #${hardwareId} subscribed")
     case _ => ()
