@@ -486,7 +486,9 @@ def hardware_serial_monitor(
         sys.exit(1)
 
     # Monitor hardware
-    monitor_result = asyncio.run(backend_config.hardware_serial_monitor(hardware_id))
+    import monitor_serial_hexbytes
+    monitor_implementation = monitor_serial_hexbytes.MonitorSerialHexbytes()
+    monitor_result = asyncio.run(backend_config.hardware_serial_monitor(hardware_id, monitor_implementation))
     if isinstance(monitor_result, Err):
         print()
         print_error(f"Failed to monitor hardware: {monitor_result.value}")

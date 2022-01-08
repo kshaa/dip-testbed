@@ -1,5 +1,9 @@
+"""Synchronization primitive for coroutine-safe process finishing"""
+
+
 class Death:
-    graceful: bool = False
+    """Coroutine-safe application death boolean"""
+    gracing: bool = False
 
     def grace(self):
-        self.graceful = True
+        self.gracing = True

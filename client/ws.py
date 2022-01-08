@@ -15,7 +15,22 @@ PI = TypeVar('PI')
 PO = TypeVar('PO')
 
 
-class WebSocket(Generic[SERIALIZABLE, PI, PO]):
+class Socketlike(Generic[SERIALIZABLE, PI, PO]):
+    """Interface for interactions w/ sockets"""
+    async def connect(self) -> Optional[Exception]:
+        pass
+
+    async def disconnect(self) -> Optional[Exception]:
+        pass
+
+    async def rx(self) -> Result[PI, Exception]:
+        pass
+
+    async def tx(self, data: PO) -> Optional[Exception]:
+        pass
+
+
+class WebSocket(Socketlike[SERIALIZABLE, PI, PO]):
     """Typed, auto-coded websocket client"""
     url: str
     decoder: Decoder[Union[str, bytes], SERIALIZABLE, PI]

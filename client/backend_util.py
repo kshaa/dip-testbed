@@ -1,18 +1,11 @@
 """Module for functionality related to backend"""
 
-import sys
-import asyncio
-from typing import Optional, List, TypeVar, Callable, Dict, Any
+from typing import Optional, List, TypeVar, Dict
 from dataclasses import dataclass
-import termios
-import tty
-import signal
 from urllib.parse import ParseResult
-from pprint import pformat
 import base64
 from uuid import UUID
 from result import Result, Ok, Err
-from websockets.exceptions import ConnectionClosedError
 from requests import Response
 import requests
 import protocol
@@ -23,10 +16,9 @@ from s11n_json import EncoderJSON, DecoderJSON
 from url import url_with_path_str, download_file, download_temp_file, response_log_text
 import log
 from backend_domain import User, Hardware, Software
-from codec import CodecParseException
 from protocol import SuccessMessage, FailureMessage
 from ws import WebSocket
-from death import Death
+from monitor_serial import MonitorSerial
 
 LOGGER = log.timed_named_logger("backend_util")
 
@@ -326,7 +318,7 @@ class BackendConfig:
             return Err(f"Failed download: {file_result.value}")
         return Ok(file_result.value)
 
-    async def hardware_serial_monitor(self, hardware_id: UUID):
+    async def hardware_serial_monitor(self, hardware_id: UUID, monitor_serial: MonitorSerial):
         # Build URL
         monitor_url_result = url_with_path_str(
             self.control_server,
@@ -344,71 +336,5 @@ class BackendConfig:
         if error is not None:
             return Err(f"Couldn't connect to control server: {error}")
 
-        # Async IO loop
-        asyncio_loop = asyncio.get_event_loop()
-
-        # Silence stdin
-        def silence_stdin() -> Any:
-            stdin = sys.stdin.fileno()
-            tattr = termios.tcgetattr(stdin)
-            tty.setcbreak(stdin, termios.TCSANOW)
-            sys.stdout.write("\x1b[6n")
-            sys.stdout.flush()
-            return tattr
-        tattr = silence_stdin()
-        def unsilence_stdin(tattr: Any):
-            stdin = sys.stdin.fileno()
-            termios.tcsetattr(stdin, termios.TCSANOW, tattr)
-
-        # Transmit stdin to agent
-        async def keep_transmitting_to_agent():
-            stdin_reader = asyncio.StreamReader()
-            stdin_protocol = asyncio.StreamReaderProtocol(stdin_reader)
-            await asyncio_loop.connect_read_pipe(lambda: stdin_protocol, sys.stdin)
-            while True:
-                read_bytes = await stdin_reader.read(1)
-                message = protocol.SerialMonitorMessageToAgent.from_bytes(read_bytes)
-                await websocket.tx(message)
-        asyncio_loop = asyncio.get_event_loop()
-        stdin_capture_task = asyncio_loop.create_task(keep_transmitting_to_agent())
-
-        # Define final handler
-        death = Death()
-        def handle_finish():
-            death.grace()
-            stdin_capture_task.cancel()
-            asyncio_loop.create_task(websocket.disconnect())
-            unsilence_stdin(tattr)
-
-        # Handle signal interrupts
-        for signame in ('SIGINT', 'SIGTERM'):
-            asyncio_loop.add_signal_handler(getattr(signal, signame), handle_finish)
-
-        # Run monitoring loop
-        while True:
-            incoming_message_result = await websocket.rx()
-
-            # Handle message failures
-            if death.graceful:
-                return Ok()
-            elif isinstance(incoming_message_result, Err) \
-                    and isinstance(incoming_message_result.value, ConnectionClosedError):
-                handle_finish()
-                return Err("Control server connection closed")
-            if isinstance(incoming_message_result, Err) \
-                    and isinstance(incoming_message_result.value, CodecParseException):
-                handle_finish()
-                return Err("Unknown command received, ignoring")
-            elif isinstance(incoming_message_result, Err):
-                handle_finish()
-                return Err(f"Failed to receive message: {pformat(incoming_message_result.value, indent=4)}")
-
-            # Handle successful message
-            incoming_message = incoming_message_result.value
-            if isinstance(incoming_message, protocol.MonitorUnavailable):
-                handle_finish()
-                return Err(f"Monitor not available anymore: {incoming_message.reason}")
-            elif isinstance(incoming_message, protocol.SerialMonitorMessageToClient):
-                incoming_bytes = incoming_message.to_bytes()
-                sys.stdout.buffer.write(incoming_bytes)
-                sys.stdout.buffer.flush()
+        # Start monitor handler
+        await monitor_serial.run(websocket)
