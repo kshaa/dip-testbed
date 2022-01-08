@@ -11,7 +11,7 @@ import click
 from typing import List, Optional, Type
 from result import Err
 import backend_domain
-from monitor_serial import MonitorSerial
+from monitor_serial import MonitorSerial, MonitorSerialHelper
 from rich import print as richprint
 from rich_util import print_error, print_success, print_json
 from agent import AgentConfig
@@ -542,7 +542,9 @@ def hardware_serial_monitor(
         sys.exit(1)
 
     # Monitor hardware
-    monitor_result = asyncio.run(backend_config.hardware_serial_monitor(hardware_id, monitor_class()))
+    monitor_result = asyncio.run(backend_config.hardware_serial_monitor(
+        hardware_id,
+        monitor_class(MonitorSerialHelper)))
     if isinstance(monitor_result, Err):
         print()
         print_error(f"Failed to monitor hardware: {monitor_result.value}")

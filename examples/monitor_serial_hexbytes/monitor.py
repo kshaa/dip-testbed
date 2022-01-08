@@ -10,23 +10,24 @@ import signal
 from pprint import pformat
 from result import Ok, Err, Result
 from websockets.exceptions import ConnectionClosedError
-from protocol import \
-    SerialMonitorMessageToAgent, \
+from functools import partial
+from mock import \
+    MonitorSerial, \
+    Socketlike, \
     MonitorListenerIncomingMessage, \
     MonitorListenerOutgoingMessage, \
-    MonitorUnavailable, \
     SerialMonitorMessageToClient
-import log
-from codec import CodecParseException
-from ws import Socketlike
-from death import Death
-from monitor_serial import MonitorSerial
-from functools import partial
-
-LOGGER = log.timed_named_logger("monitor_serial")
 
 
 # Actual monitor implementation
+class Death:
+    """Coroutine-safe application death boolean"""
+    gracing: bool = False
+
+    def grace(self):
+        self.gracing = True
+
+
 class MonitorSerialHexbytes(MonitorSerial):
     """Serial socket monitor, which sends keyboard keys as bytes & prints incoming data as hex bytes"""
 
@@ -46,8 +47,8 @@ class MonitorSerialHexbytes(MonitorSerial):
         stdin = sys.stdin.fileno()
         termios.tcsetattr(stdin, termios.TCSANOW, tattr)
 
-    @staticmethod
     async def keep_transmitting_to_agent(
+        self,
         socketlike: Socketlike[Any, MonitorListenerIncomingMessage, MonitorListenerOutgoingMessage]
     ):
         """Send keyboard data from stdin straight to serial monitor socket"""
@@ -57,7 +58,7 @@ class MonitorSerialHexbytes(MonitorSerial):
         await asyncio_loop.connect_read_pipe(lambda: stdin_protocol, sys.stdin)
         while True:
             read_bytes = await stdin_reader.read(1)
-            message = SerialMonitorMessageToAgent.from_bytes(read_bytes)
+            message = self.helper.createSerialMonitorMessageToAgent(read_bytes)
             await socketlike.tx(message)
 
     @staticmethod
@@ -80,8 +81,8 @@ class MonitorSerialHexbytes(MonitorSerial):
             sys.stdout.buffer.write(str.encode(render))
             sys.stdout.buffer.flush()
 
-    @staticmethod
     def render_message_data_or_finish(
+        self,
         death: Death,
         handle_finish: Callable,
         incoming_message_result: Result[MonitorListenerIncomingMessage, Exception]
@@ -96,7 +97,7 @@ class MonitorSerialHexbytes(MonitorSerial):
             handle_finish()
             return Err("Control server connection closed")
         if isinstance(incoming_message_result, Err) \
-                and isinstance(incoming_message_result.value, CodecParseException):
+                and self.helper.isCodecParseException(incoming_message_result.value):
             handle_finish()
             return Err("Unknown command received, ignoring")
         elif isinstance(incoming_message_result, Err):
@@ -105,10 +106,10 @@ class MonitorSerialHexbytes(MonitorSerial):
 
         # Handle successful message
         incoming_message = incoming_message_result.value
-        if isinstance(incoming_message, MonitorUnavailable):
+        if self.helper.isMonitorUnavailable(incoming_message):
             handle_finish()
             return Err(f"Monitor not available anymore: {incoming_message.reason}")
-        elif isinstance(incoming_message, SerialMonitorMessageToClient):
+        elif self.helper.isSerialMonitorMessageToClient(incoming_message):
             MonitorSerialHexbytes.render_incoming_message(incoming_message)
             return None
         else:
@@ -145,7 +146,10 @@ class MonitorSerialHexbytes(MonitorSerial):
         # Run monitoring loop
         while True:
             incoming_message_result = await socketlike.rx()
-            result = self.render_message_data_or_finish(death, handle_finish, incoming_message_result)
+            result = self.render_message_data_or_finish(
+                death,
+                handle_finish,
+                incoming_message_result)
             if result is not None:
                 return result
 
