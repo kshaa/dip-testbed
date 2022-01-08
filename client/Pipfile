@@ -13,6 +13,8 @@ click = "*"
 requests = "*"
 rich = "*"
 pyserial = "*"
+kivy = "*"
+bitstring = "*"
 
 [dev-packages]
 pyinstaller = "*"

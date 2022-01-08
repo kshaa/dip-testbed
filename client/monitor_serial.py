@@ -1,5 +1,8 @@
 """Module for functionality related to serial socket monitoring"""
 
+import asyncio
+from death import Death
+from asyncio import Task
 from typing import Any
 from protocol import \
     MonitorListenerIncomingMessage, \

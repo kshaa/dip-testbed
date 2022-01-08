@@ -1,4 +1,4 @@
-"""Module for functionality related to serial socket monitoring"""
+"""Module for functionality related to serial socket monitoring as hex byte stream"""
 
 import sys
 import asyncio
@@ -16,17 +16,13 @@ from protocol import \
     MonitorListenerOutgoingMessage, \
     MonitorUnavailable, \
     SerialMonitorMessageToClient
-import log
 from codec import CodecParseException
 from ws import Socketlike
 from death import Death
 from monitor_serial import MonitorSerial
 from functools import partial
 
-LOGGER = log.timed_named_logger("monitor_serial")
 
-
-# Actual monitor implementation
 class MonitorSerialHexbytes(MonitorSerial):
     """Serial socket monitor, which sends keyboard keys as bytes & prints incoming data as hex bytes"""
 

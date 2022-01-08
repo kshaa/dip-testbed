@@ -12,6 +12,8 @@ from typing import List, Optional, Type
 from result import Err
 import backend_domain
 from monitor_serial import MonitorSerial, MonitorSerialHelper
+from monitor_serial_button_led_bytes import MonitorSerialButtonLedBytes
+from monitor_serial_hex_bytes import MonitorSerialHexbytes
 from rich import print as richprint
 from rich_util import print_error, print_success, print_json
 from agent import AgentConfig
@@ -24,6 +26,7 @@ from rich_tables import user_table, hardware_table, software_table
 from codec_json import EncoderJSON
 import s11n_json
 import s11n_util
+import pymodules
 
 LOGGER = log.timed_named_logger("cli")
 PASS_AGENT_CONFIG = click.make_pass_decorator(AgentConfig)
@@ -469,7 +472,8 @@ def hardware_software_upload(
 class MonitorType(Enum):
     """Choices of available monitoring implementations"""
     hexbytes = 0
-    script = 1
+    buttonleds = 1
+    script = 2
 
 
 @cli_client.command()
@@ -515,8 +519,7 @@ def hardware_serial_monitor(
     # Monitor implementation resolution
     monitor_class: Optional[Type[MonitorSerial]] = None
     if monitor_type is MonitorType.hexbytes:
-        import monitor_serial_hexbytes
-        monitor_class = monitor_serial_hexbytes.MonitorSerialHexbytes
+        monitor_class = MonitorSerialHexbytes
     elif monitor_type is MonitorType.script:
         # Validate script file path
         if monitor_script_path_str is None:
@@ -525,7 +528,6 @@ def hardware_serial_monitor(
         if not os.path.exists(monitor_script_path_str):
             print_error(f"Monitor script path '{monitor_script_path_str}' does not exist")
             sys.exit(1)
-        import pymodules
         script_result = pymodules.import_path_module(monitor_script_path_str)
         if isinstance(script_result, Err):
             print_error(f"Monitor script could not be imported: {script_result.value}")
@@ -535,6 +537,8 @@ def hardware_serial_monitor(
             print_error("Monitor script does not contain attribute 'monitor'")
             sys.exit(1)
         monitor_class = script.monitor
+    elif monitor_type is MonitorType.buttonleds:
+        monitor_class = MonitorSerialButtonLedBytes
 
     # Monitor impelementation validation
     if monitor_class is None:
