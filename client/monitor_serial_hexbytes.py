@@ -194,3 +194,7 @@ class MonitorSerialHexbytes(MonitorSerial):
             result = MonitorSerialHexbytes.render_message_data_or_finish(death, handle_finish, incoming_message_result)
             if result is not None:
                 return result
+
+
+# Export class as 'monitor' for explicit importing
+monitor = MonitorSerialHexbytes

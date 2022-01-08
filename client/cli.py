@@ -4,12 +4,14 @@
 import asyncio
 import os
 import sys
+from enum import Enum, unique
 import shutil
 from uuid import UUID
 import click
-from typing import List
+from typing import List, Optional, Type
 from result import Err
 import backend_domain
+from monitor_serial import MonitorSerial
 from rich import print as richprint
 from rich_util import print_error, print_success, print_json
 from agent import AgentConfig
@@ -463,14 +465,32 @@ def hardware_software_upload(
         print_success(f"Uploaded software to hardware!")
 
 
+@unique
+class MonitorType(Enum):
+    """Choices of available monitoring implementations"""
+    hexbytes = 0
+    script = 1
+
+
 @cli_client.command()
 @cli_util.CONTROL_SERVER_OPTION
 @cli_util.HARDWARE_ID_OPTION
+@click.option(
+    "--monitor-type", "-t", "monitor_type_str", type=click.Choice([t.name for t in MonitorType]),
+    show_envvar=True, envvar="DIP_MONITOR_TYPE", required=True, default=MonitorType.hexbytes.name,
+    help="Sets the type of monitor implementation to be used")
+@click.option(
+    "--monitor-script-path", "-s", "monitor_script_path_str", type=str, default=None,
+    show_envvar=True, envvar="DIP_MONITOR_SCRIPT_PATH", required=False,
+    help="File path to the monitor implementation script e.g. './monitor-script.py'")
 def hardware_serial_monitor(
     control_server_str: str,
-    hardware_id_str: str
+    hardware_id_str: str,
+    monitor_type_str: str,
+    monitor_script_path_str: str
 ):
     """Monitor hardware's serial port"""
+
     # Backend config constructor
     backend_config_result = cli_util.backend_config(control_server_str, None)
     if isinstance(backend_config_result, Err):
@@ -485,10 +505,44 @@ def hardware_serial_monitor(
         print_error(f"Invalid hardware id: {e}")
         sys.exit(1)
 
+    # Monitor type validation
+    monitor_type_matches = [t for t in MonitorType if t.name == monitor_type_str]
+    monitor_type = next(iter(monitor_type_matches), None)
+    if monitor_type is None:
+        print_error(f"Monitor type '{monitor_type_str}' not found")
+        sys.exit(1)
+
+    # Monitor implementation resolution
+    monitor_class: Optional[Type[MonitorSerial]] = None
+    if monitor_type is MonitorType.hexbytes:
+        import monitor_serial_hexbytes
+        monitor_class = monitor_serial_hexbytes.MonitorSerialHexbytes
+    elif monitor_type is MonitorType.script:
+        # Validate script file path
+        if monitor_script_path_str is None:
+            print_error(f"Monitor script path option is required")
+            sys.exit(1)
+        if not os.path.exists(monitor_script_path_str):
+            print_error(f"Monitor script path '{monitor_script_path_str}' does not exist")
+            sys.exit(1)
+        import pymodules
+        script_result = pymodules.import_path_module(monitor_script_path_str)
+        if isinstance(script_result, Err):
+            print_error(f"Monitor script could not be imported: {script_result.value}")
+            sys.exit(1)
+        script = script_result.value
+        if not hasattr(script, 'monitor'):
+            print_error("Monitor script does not contain attribute 'monitor'")
+            sys.exit(1)
+        monitor_class = script.monitor
+
+    # Monitor impelementation validation
+    if monitor_class is None:
+        print_error(f"Monitor implementation for type '{monitor_type_str}' could not be resolved")
+        sys.exit(1)
+
     # Monitor hardware
-    import monitor_serial_hexbytes
-    monitor_implementation = monitor_serial_hexbytes.MonitorSerialHexbytes()
-    monitor_result = asyncio.run(backend_config.hardware_serial_monitor(hardware_id, monitor_implementation))
+    monitor_result = asyncio.run(backend_config.hardware_serial_monitor(hardware_id, monitor_class()))
     if isinstance(monitor_result, Err):
         print()
         print_error(f"Failed to monitor hardware: {monitor_result.value}")
