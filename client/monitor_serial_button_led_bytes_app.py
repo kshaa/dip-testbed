@@ -1,5 +1,6 @@
 """Module for functionality related to serial socket monitoring as button/led byte stream, specifically graphics/UI"""
 
+from sys import platform
 import asyncio
 from typing import Callable, Optional
 import log
@@ -51,7 +52,18 @@ class AppStateStorage:
 hacked_global_app_state_storage = AppStateStorage()
 
 
+def is_kivy_available() -> bool:
+    try:
+        import kivy
+        return True
+    except ImportError:
+        return False
+
+
 def define_app():
+    if not is_kivy_available():
+        raise Exception("Kivy graphics library not available")
+
     import kivy
     from kivy.app import App
     from kivy.uix.button import Button

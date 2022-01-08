@@ -13,7 +13,7 @@ click = "*"
 requests = "*"
 rich = "*"
 pyserial = "*"
-kivy = "*"
+kivy = { version = "*", platform_machine = "!= 'aarch64'" }
 bitstring = "*"
 
 [dev-packages]
