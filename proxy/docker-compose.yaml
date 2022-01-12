@@ -1,0 +1,15 @@
+version: "3.7"
+services:
+    proxy:
+        image: nginx
+        restart: always
+        ports:
+        - 127.0.0.1:80:80
+        volumes:
+        - ./templates:/etc/nginx/templates
+        environment:
+            API_SERVER: "127.0.0.1:9000"
+            NGINX_PORT: "80"
+            SERVER_NAME: "localhost testbed.veinbahs.lv"
+        # Workaround, should not be used
+        network_mode: host
