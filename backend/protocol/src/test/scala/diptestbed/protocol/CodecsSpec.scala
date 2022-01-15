@@ -1,19 +1,14 @@
 package diptestbed.protocol
 
-import diptestbed.domain.HardwareSerialMonitorMessage.{MonitorUnavailable, SerialMessageToAgent, SerialMessageToClient}
+import diptestbed.domain.HardwareSerialMonitorMessage.MonitorUnavailable
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.freespec.AnyFreeSpec
 import io.circe.parser._
 import io.circe.syntax._
-import diptestbed.domain.{
-  DomainTimeZoneId,
-  HardwareControlMessage,
-  HardwareSerialMonitorMessage,
-  SerialConfig,
-  SoftwareId,
-}
+import diptestbed.domain.{DomainTimeZoneId, HardwareControlMessage, HardwareSerialMonitorMessage, SerialConfig, SoftwareId}
 import diptestbed.protocol.WebResult._
 import diptestbed.protocol.Codecs._
+
 
 class CodecsSpec extends AnyFreeSpec with Matchers {
   "hello message should have recipient with hello" in {
@@ -87,26 +82,6 @@ class CodecsSpec extends AnyFreeSpec with Matchers {
     // {"command":"serialMonitorResult","payload":{"error":"lp0 on fire"}}
     val serialized = "{\"command\":\"serialMonitorResult\",\"payload\":{\"error\":null}}"
     val unserialized: HardwareControlMessage = HardwareControlMessage.SerialMonitorResult(None)
-
-    unserialized.asJson.noSpaces.shouldEqual(serialized)
-    decode[HardwareControlMessage](serialized).shouldEqual(Right(unserialized))
-  }
-
-  "hardware monitor message to client should encode and decode" in {
-    // {"command":"serialMonitorMessageToClient","payload":{"message":{"base64Bytes":""}}}
-    val serialized = "{\"command\":\"serialMonitorMessageToClient\",\"payload\":{\"message\":{\"base64Bytes\":\"\"}}}"
-    val unserialized: HardwareControlMessage =
-      HardwareControlMessage.SerialMonitorMessageToClient(SerialMessageToClient(""))
-
-    unserialized.asJson.noSpaces.shouldEqual(serialized)
-    decode[HardwareControlMessage](serialized).shouldEqual(Right(unserialized))
-  }
-
-  "hardware monitor message to agent should encode and decode" in {
-    // {"command":"serialMonitorMessageToAgent","payload":{"message":{"base64Bytes":""}}}
-    val serialized = "{\"command\":\"serialMonitorMessageToAgent\",\"payload\":{\"message\":{\"base64Bytes\":\"\"}}}"
-    val unserialized: HardwareControlMessage =
-      HardwareControlMessage.SerialMonitorMessageToAgent(SerialMessageToAgent(""))
 
     unserialized.asJson.noSpaces.shouldEqual(serialized)
     decode[HardwareControlMessage](serialized).shouldEqual(Right(unserialized))

@@ -27,8 +27,8 @@ object Codecs {
   implicit val serialConfigCodec: Codec[SerialConfig] = deriveCodec[SerialConfig]
 
   private implicit val monitorUnavailableCodec: Codec[MonitorUnavailable] = deriveCodec[MonitorUnavailable]
-  private implicit val serialMessageToAgentCodec: Codec[SerialMessageToAgent] = deriveCodec[SerialMessageToAgent]
-  private implicit val serialMessageToClientCodec: Codec[SerialMessageToClient] = deriveCodec[SerialMessageToClient]
+//  private implicit val serialMessageToAgentCodec: Codec[SerialMessageToAgent] = deriveCodec[SerialMessageToAgent]
+//  private implicit val serialMessageToClientCodec: Codec[SerialMessageToClient] = deriveCodec[SerialMessageToClient]
 
   private implicit val uploadSoftwareRequestCodec: Codec[UploadSoftwareRequest] = deriveCodec[UploadSoftwareRequest]
   private implicit val uploadSoftwareResultCodec: Codec[UploadSoftwareResult] = deriveCodec[UploadSoftwareResult]
@@ -37,10 +37,10 @@ object Codecs {
   private implicit val serialMonitorRequestStopCodec: Codec[SerialMonitorRequestStop] =
     deriveCodec[SerialMonitorRequestStop]
   private implicit val serialMonitorResultCodec: Codec[SerialMonitorResult] = deriveCodec[SerialMonitorResult]
-  private implicit val serialMonitorMessageToAgentCodec: Codec[SerialMonitorMessageToAgent] =
-    deriveCodec[SerialMonitorMessageToAgent]
-  private implicit val serialMonitorMessageToClientCodec: Codec[SerialMonitorMessageToClient] =
-    deriveCodec[SerialMonitorMessageToClient]
+//  private implicit val serialMonitorMessageToAgentCodec: Codec[SerialMonitorMessageToAgent] =
+//    deriveCodec[SerialMonitorMessageToAgent]
+//  private implicit val serialMonitorMessageToClientCodec: Codec[SerialMonitorMessageToClient] =
+//    deriveCodec[SerialMonitorMessageToClient]
   private implicit val serialMonitorListenersHeartbeatStartCodec: Codec[SerialMonitorListenersHeartbeatStart] =
     deriveCodec[SerialMonitorListenersHeartbeatStart]
   private implicit val serialMonitorListenersHeartbeatPingCodec: Codec[SerialMonitorListenersHeartbeatPing] =
@@ -59,8 +59,8 @@ object Codecs {
     case c: SerialMonitorRequest         => NamedMessage("serialMonitorRequest", c.asJson).asJson
     case c: SerialMonitorRequestStop     => NamedMessage("serialMonitorRequestStop", c.asJson).asJson
     case c: SerialMonitorResult          => NamedMessage("serialMonitorResult", c.asJson).asJson
-    case c: SerialMonitorMessageToAgent  => NamedMessage("serialMonitorMessageToAgent", c.asJson).asJson
-    case c: SerialMonitorMessageToClient => NamedMessage("serialMonitorMessageToClient", c.asJson).asJson
+    case _: SerialMonitorMessageToAgent  => ??? // Bad practice
+    case _: SerialMonitorMessageToClient => ??? // Bad practice
     case c: SerialMonitorListenersHeartbeatStart =>
       NamedMessage("serialMonitorListenersHeartbeatStart", c.asJson).asJson
     case c: SerialMonitorListenersHeartbeatPing => NamedMessage("serialMonitorListenersHeartbeatPing", c.asJson).asJson
@@ -80,9 +80,8 @@ object Codecs {
           case "serialMonitorRequest"        => Decoder[SerialMonitorRequest].widen[HardwareControlMessage].some
           case "serialMonitorRequestStop"    => Decoder[SerialMonitorRequestStop].widen[HardwareControlMessage].some
           case "serialMonitorResult"         => Decoder[SerialMonitorResult].widen[HardwareControlMessage].some
-          case "serialMonitorMessageToAgent" => Decoder[SerialMonitorMessageToAgent].widen[HardwareControlMessage].some
-          case "serialMonitorMessageToClient" =>
-            Decoder[SerialMonitorMessageToClient].widen[HardwareControlMessage].some
+          case "serialMonitorMessageToAgent" => ??? // Bad practice
+          case "serialMonitorMessageToClient" => ??? // Bad practice
           case "serialMonitorListenersHeartbeatStart" =>
             Decoder[SerialMonitorListenersHeartbeatStart].widen[HardwareControlMessage].some
           case "serialMonitorListenersHeartbeatPing" =>
@@ -101,16 +100,16 @@ object Codecs {
 
   implicit val hardwareSerialMonitorMessageEncoder: Encoder[HardwareSerialMonitorMessage] = Encoder.instance {
     case c: MonitorUnavailable    => NamedMessage("monitorUnavailable", c.asJson).asJson
-    case c: SerialMessageToAgent  => NamedMessage("serialMessageToAgent", c.asJson).asJson
-    case c: SerialMessageToClient => NamedMessage("serialMessageToClient", c.asJson).asJson
+    case _: SerialMessageToAgent  => ??? // Bad practice
+    case _: SerialMessageToClient => ??? // Bad practice
   }
   implicit val hardwareSerialMonitorMessageDecoder: Decoder[HardwareSerialMonitorMessage] =
     Decoder[NamedMessage].emap { m =>
       {
         val codec: Option[Decoder[HardwareSerialMonitorMessage]] = m.command match {
           case "monitorUnavailable"    => Decoder[MonitorUnavailable].widen[HardwareSerialMonitorMessage].some
-          case "serialMessageToAgent"  => Decoder[SerialMessageToAgent].widen[HardwareSerialMonitorMessage].some
-          case "serialMessageToClient" => Decoder[SerialMessageToClient].widen[HardwareSerialMonitorMessage].some
+//          case "serialMessageToAgent"  => Decoder[SerialMessageToAgent].widen[HardwareSerialMonitorMessage].some
+//          case "serialMessageToClient" => Decoder[SerialMessageToClient].widen[HardwareSerialMonitorMessage].some
           case _                       => None
         }
         codec.toRight("Unknown command").flatMap(_.decodeJson(m.payload).leftMap(_.message))

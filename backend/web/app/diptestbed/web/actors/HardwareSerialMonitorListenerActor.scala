@@ -12,7 +12,6 @@ import diptestbed.domain.HardwareControlMessage._
 import akka.util.{ByteString, Timeout}
 import scala.annotation.unused
 import com.typesafe.scalalogging.LazyLogging
-import diptestbed.domain.Charsets.{ByteOps, StringOps, defaultCharset}
 import diptestbed.domain.HardwareSerialMonitorMessage.{MonitorUnavailable, SerialMessageToAgent}
 import play.api.http.websocket._
 import scala.concurrent.duration.DurationInt
@@ -50,7 +49,7 @@ class HardwareSerialMonitorListenerActor(
   def sendToListener(message: MonitorMessage): IO[Unit] =
     IO(out ! (message match {
       case m: MonitorMessage.SerialMessageToClient =>
-        BinaryMessage(ByteString.fromArray(m.base64Bytes.asBase64Bytes))
+        BinaryMessage(ByteString.fromArray(m.bytes))
       case m => TextMessage(m.asJson.noSpaces)
     }))
 
@@ -68,7 +67,7 @@ class HardwareSerialMonitorListenerActor(
       (sendToListener(message) >> killListener("Monitor not valid anymore"))
         .unsafeRunAsync(_ => ())
     case serialMessage: SerialMonitorMessageToClient =>
-      val message: MonitorMessage = MonitorMessage.SerialMessageToClient(serialMessage.message.base64Bytes)
+      val message: MonitorMessage = MonitorMessage.SerialMessageToClient(serialMessage.message.bytes)
       sendToListener(message).unsafeRunAsync(_ => ())
     case _: SerialMonitorListenersHeartbeatPing =>
       sendToHardwareActor(hardwareId, SerialMonitorListenersHeartbeatPong()).value.unsafeRunAsync(_ => ())
@@ -79,9 +78,8 @@ class HardwareSerialMonitorListenerActor(
         case _ => ()
       }
     case binary: BinaryMessage =>
-      val hydrated = binary.data.toArray.asCharsetString(defaultCharset).toBase64()
       val message = HardwareControlMessage.SerialMonitorMessageToAgent(
-        SerialMessageToAgent(hydrated))
+        SerialMessageToAgent(binary.data.toArray))
       sendToHardwareActor(hardwareId, message).value.unsafeRunAsync(_ => ())
     case _: SubscribeAck =>
       logger.info(s"Serial monitor listener for hardware #${hardwareId} subscribed")

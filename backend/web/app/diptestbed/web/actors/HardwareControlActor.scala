@@ -17,12 +17,10 @@ import akka.util.{ByteString, Timeout}
 import cats.data.EitherT
 import cats.implicits.toTraverseOps
 import com.typesafe.scalalogging.LazyLogging
-import diptestbed.domain.Charsets._
 import diptestbed.domain.HardwareSerialMonitorMessage.{SerialMessageToAgent, SerialMessageToClient}
 import diptestbed.web.actors.HardwareControlState.{ConfiguringMonitor, Initial, Uploading}
 import diptestbed.web.actors.QueryActor.Promise
 import play.api.libs.streams.AkkaStreams
-
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
 sealed trait HardwareControlState {}
@@ -229,12 +227,10 @@ object HardwareControlActor extends ActorHelper {
     }
 
   val controlTransformer = transformer((bytes: ByteString) =>
-    Left(SerialMonitorMessageToClient(SerialMessageToClient(
-      bytes.toArray.asCharsetString(defaultCharset).toBase64()))))
+    Left(SerialMonitorMessageToClient(SerialMessageToClient(bytes.toArray))))
 
   val listenerTransformer = transformer((bytes: ByteString) =>
-    Left(SerialMonitorMessageToAgent(SerialMessageToAgent(
-      bytes.toArray.asCharsetString(defaultCharset).toBase64()))))
+    Left(SerialMonitorMessageToAgent(SerialMessageToAgent(bytes.toArray))))
 
   def requestSerialMonitor(
     hardwareId: HardwareId,

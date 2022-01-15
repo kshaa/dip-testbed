@@ -8,7 +8,7 @@ case class SerialConfig(
 
 sealed trait HardwareSerialMonitorMessage {}
 object HardwareSerialMonitorMessage {
-  case class SerialMessageToAgent(base64Bytes: String) extends HardwareSerialMonitorMessage
-  case class SerialMessageToClient(base64Bytes: String) extends HardwareSerialMonitorMessage
+  case class SerialMessageToAgent(bytes: Array[Byte]) extends HardwareSerialMonitorMessage
+  case class SerialMessageToClient(bytes: Array[Byte]) extends HardwareSerialMonitorMessage
   case class MonitorUnavailable(reason: String) extends HardwareSerialMonitorMessage
 }
