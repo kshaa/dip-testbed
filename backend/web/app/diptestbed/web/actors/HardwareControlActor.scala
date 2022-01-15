@@ -104,8 +104,7 @@ class HardwareControlActor(
   def sendToAgent(message: Control): IO[Unit] =
     IO(out ! (message match {
       case m: Control.SerialMonitorMessageToAgent =>
-        val dehydrated = m.message.base64Bytes.asBase64Bytes
-        BinaryMessage(ByteString.fromArray(dehydrated))
+        BinaryMessage(ByteString.fromArray(m.message.bytes))
       case m: Control => TextMessage(m.asJson.noSpaces)
     }))
   def sendToRequester(requester: ActorRef, message: Control): IO[Unit] =
