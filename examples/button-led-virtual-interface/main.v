@@ -13,7 +13,17 @@ module main #(
 	
 	// UART RX/TX pins
 	input T19,
-	output T20
+	output T20,
+
+	// Physical GPIO LEDs for debugging
+	output LD0,
+	output LD1,
+	output LD2,
+	output LD3,
+	output LD4,
+	output LD5,
+	output LD6,
+	output LD7
 );
 	// Add wires for virtual interface
 	wire [7:0] leds;
@@ -41,4 +51,13 @@ module main #(
 		.bits(leds)
 	);
 
+	// Print out state on physical LEDs for debugging
+	assign LD0 = leds[0];
+	assign LD1 = leds[1];
+	assign LD2 = leds[2];
+	assign LD3 = leds[3];
+	assign LD4 = leds[4];
+	assign LD5 = leds[5];
+	assign LD6 = leds[6];
+	assign LD7 = leds[7];
 endmodule
