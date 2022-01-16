@@ -8,10 +8,9 @@ module main_tb;
 	// Both RX and TX is simulated using 115200 baud UART
 	// 10000000 / 115200 = 87 Clocks Per Bit.
 	parameter CLOCK_PERIOD_NS = 10;
-	parameter CLKS_PER_BIT    = 868;
+	parameter CLKS_PER_BIT    = 870;
 	parameter BIT_PERIOD      = 8600;
 	parameter CLKS_PER_SYNC   = 1000;
-	parameter CLKS_BIT_SHIFT_DELAY = 8;
 	parameter SHIFTED_START_BITS = 8'b01010000;
 
 	// Clock 
@@ -51,7 +50,6 @@ module main_tb;
 	main #(
 		.CLKS_PER_BIT(CLKS_PER_BIT),
 		.CLKS_PER_SYNC(CLKS_PER_SYNC),
-		.CLKS_BIT_SHIFT_DELAY(CLKS_BIT_SHIFT_DELAY),
 		.SHIFTED_START_BITS(SHIFTED_START_BITS)
 	) uut(
 		.CLK(CLK),
@@ -73,7 +71,7 @@ module main_tb;
 		uart_write_byte(8'b00000001);
 		@(posedge CLK);
 
-		// Send a command "move right"
+		// Send a command "move left"
 		@(posedge CLK);
 		uart_write_byte(8'b00000000);
 		@(posedge CLK);
@@ -84,7 +82,7 @@ module main_tb;
 		@(posedge CLK);
 
 
-		// Send a command "move right"
+		// Send a command "move left"
 		@(posedge CLK);
 		uart_write_byte(8'b00000000);
 		@(posedge CLK);

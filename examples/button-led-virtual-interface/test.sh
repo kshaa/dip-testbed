@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -eu
+
 if [ $# -eq 0 ]; then
     echo "Testbench base filename expected as first argument"
     exit 1

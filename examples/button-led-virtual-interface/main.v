@@ -3,10 +3,9 @@
 
 // Define a UART reader/transmitter FPGA program
 module main #(
-	parameter SEND_ON_CHANGE = 0,
-	parameter CLKS_PER_BIT = 868,
+	parameter SEND_ON_CHANGE = 1'b0,
+	parameter CLKS_PER_BIT = 870,
 	parameter CLKS_PER_SYNC = 32'd1666666,
-	parameter CLKS_BIT_SHIFT_DELAY = 8,
 	parameter SHIFTED_START_BITS = 8'b01010000
 )(
 	// Clock pin
@@ -19,9 +18,6 @@ module main #(
 	// Add wires for virtual interface
 	wire [7:0] leds;
 	wire [23:0] buttons;
-	wire tx_in_progress; // not in use here
-	wire tx_is_done; // not in use here
-	wire rx_is_done;
 
 	// Instantiate virtual interfaces
 	button_led_virtual_interface #(
@@ -33,10 +29,7 @@ module main #(
 		.T19(T19),
 		.T20(T20),
 		.leds(leds),
-		.buttons(buttons),
-		.tx_in_progress(tx_in_progress),
-		.tx_is_done(tx_is_done),
-		.rx_is_done(rx_is_done)
+		.buttons(buttons)
 	);
 
 	// Example usage of virtual interfaces

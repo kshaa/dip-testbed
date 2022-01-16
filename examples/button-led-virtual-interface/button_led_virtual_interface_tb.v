@@ -8,7 +8,7 @@ module button_led_virtual_interface_tb;
 	// Testbench configured for a 10 MHz clock (based on timescale & clock sleep period)
 	// Both RX and TX is simulated using 115200 baud UART
 	// 10000000 / 115200 = 87 Clocks Per Bit.
-	parameter SEND_ON_CHANGE  = 0;
+	parameter SEND_ON_CHANGE  = 1'b0;
 	parameter CLOCK_PERIOD_NS = 100;
 	parameter CLKS_PER_BIT    = 87;
 	parameter BIT_PERIOD      = 8600;
@@ -23,10 +23,7 @@ module button_led_virtual_interface_tb;
 
 	// UUT Outputs
 	wire T20;
-	wire [23:0] buttons;
-	wire tx_in_progress;
-	wire tx_is_done;
-	wire rx_is_done;
+	wire [23:0] buttons
  
 	// Task that takes byte as input and sends it over UART
 	task uart_write_byte;
@@ -62,10 +59,7 @@ module button_led_virtual_interface_tb;
 		.T19(T19), 
 		.T20(T20), 
 		.leds(leds), 
-		.buttons(buttons),
-		.tx_in_progress(tx_in_progress),
-		.tx_is_done(tx_is_done),
-		.rx_is_done(rx_is_done)
+		.buttons(buttons)
 	);
 
 	// Keep generating a clock signal
