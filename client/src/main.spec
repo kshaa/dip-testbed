@@ -4,7 +4,7 @@
 block_cipher = None
 
 
-a = Analysis(['dip_client.py'],
+a = Analysis(['main.py'],
              pathex=[],
              binaries=[],
              datas=[('static', 'static')],
