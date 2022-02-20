@@ -141,7 +141,7 @@ class TestCommonEngine:
         engine_task = asyncio.create_task(engine.run())
 
         # Trigger upload
-        upload_message = UploadMessage(UUID("094a89b4-8d84-11ec-95ea-73630d1316d7"))
+        upload_message = UploadMessage(ManagedUUID(UUID("094a89b4-8d84-11ec-95ea-73630d1316d7")))
         await asyncio.sleep(0.05)
         await in_queue.put(upload_message)
 

@@ -7,7 +7,7 @@ from pprint import pformat
 from result import Ok, Err, Result
 from websockets.exceptions import ConnectionClosedError
 
-from src.domain.dip_client_error import DIPClientError
+from src.domain.dip_client_error import DIPClientError, GenericClientError
 from src.domain.monitor_message import MONITOR_LISTENER_INCOMING_MESSAGE, SerialMonitorMessageToClient, \
     MonitorUnavailable, SerialMonitorMessageToAgent, MONITOR_LISTENER_OUTGOING_MESSAGE
 from src.monitor.monitor_serial import MonitorSerial
@@ -48,38 +48,43 @@ class MonitorSerialButtonLedBytes(MonitorSerial):
         death: Death,
         handle_finish: Callable,
         incoming_message_result: Result[MONITOR_LISTENER_INCOMING_MESSAGE, Exception]
-    ) -> Optional[Result[type(True), str]]:
+    ) -> Optional[DIPClientError]:
         """Handle incoming serial message"""
 
         # Handle message failures
         if death.gracing:
-            return Ok()
+            return None
         elif isinstance(incoming_message_result, Err) \
                 and isinstance(incoming_message_result.value, ConnectionClosedError):
             handle_finish()
-            return Err("Control server connection closed")
+            return GenericClientError("Control server connection closed")
         if isinstance(incoming_message_result, Err) \
                 and isinstance(incoming_message_result.value, CodecParseException):
             handle_finish()
-            return Err("Unknown command received, ignoring")
+            return GenericClientError("Unknown command received, ignoring")
         elif isinstance(incoming_message_result, Err):
             handle_finish()
-            return Err(f"Failed to receive message: {pformat(incoming_message_result.value, indent=4)}")
+            return GenericClientError(f"Failed to receive message: {pformat(incoming_message_result.value, indent=4)}")
 
         # Handle successful message
         incoming_message = incoming_message_result.value
         if isinstance(incoming_message, MonitorUnavailable):
             handle_finish()
-            return Err(f"Monitor not available anymore: {incoming_message.reason}")
+            return GenericClientError(f"Monitor not available anymore: {incoming_message.reason}")
         elif isinstance(incoming_message, SerialMonitorMessageToClient):
             MonitorSerialButtonLedBytes.render_incoming_message(app_state, incoming_message)
             return None
         else:
             handle_finish()
-            return Err(f"Unknown message received: {incoming_message.reason}")
+            return GenericClientError(f"Unknown message received: {incoming_message.reason}")
 
     async def run(self) -> Optional[DIPClientError]:
         """Receive serial monitor websocket messages & implement user interfacing"""
+
+        # Start socket
+        connect_error = await self.socket.connect()
+        if connect_error is not None:
+            return GenericClientError(f"Failed connecting to control server, reason: {connect_error}")
 
         # Create UI app state
         state = AppState()
@@ -107,12 +112,18 @@ class MonitorSerialButtonLedBytes(MonitorSerial):
         run_button_led_app(state)
 
         # Run monitor loop
-        while True:
-            incoming_message_result = await self.socket.rx()
+        while not state.death.gracing:
+            # Wait for new message
+            death_or_incoming_message = await state.death.or_awaitable(self.socket.rx())
+
+            # Handle potential death
+            if isinstance(death_or_incoming_message, Err):
+                return
+
+            incoming_message_result = death_or_incoming_message.value
             result = self.render_message_data_or_finish(state, state.death, handle_finish, incoming_message_result)
             if result is not None:
                 return result
-
 
 # Export class as 'monitor' for explicit importing
 monitor = MonitorSerialButtonLedBytes

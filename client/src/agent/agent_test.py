@@ -9,6 +9,7 @@ from src.agent.agent import Agent
 from src.agent.agent_config import AgentConfig
 from src.agent.agent_error import AgentExecutionError
 from src.domain.dip_client_error import DIPClientError
+from src.domain.managed_uuid import ManagedUUID
 from src.engine.engine import Engine
 from src.engine.engine_events import COMMON_ENGINE_EVENT
 from src.engine.engine_state import EngineState, ManagedQueue, EngineBase
@@ -94,7 +95,7 @@ class TestAgent(IsolatedAsyncioTestCase):
         processed_messages = []
 
         # Let agent receive socket message
-        upload_message = UploadMessage(UUID("83678e9c-8c51-11ec-9358-073465fdea6a"))
+        upload_message = UploadMessage(ManagedUUID(UUID("83678e9c-8c51-11ec-9358-073465fdea6a")))
         await socket_incoming_queue.put(Ok(upload_message))
         await asyncio.sleep(0.05)
         self.assertEqual(processed_messages, [upload_message])

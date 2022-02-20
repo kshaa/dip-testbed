@@ -50,6 +50,7 @@ class EngineFakeUpload(EngineUpload):
 @dataclass
 class EngineFakeSerialMonitor(EngineSerialMonitor):
     time_since_read: float = 0
+    fake_bytes: bytes = b'to_client'
 
     async def connect(
         self,
@@ -61,12 +62,18 @@ class EngineFakeSerialMonitor(EngineSerialMonitor):
     async def read(self, active_serial: ManagedSerial) -> Result[bytes, DIPClientError]:
         if self.time_since_read > 1:
             self.time_since_read = 0
-            return Ok(b"to_client")
+            return Ok(self.fake_bytes)
         else:
             self.time_since_read += active_serial.config.timeout
             return Ok(b"")
 
-    async def write(self, active_serial: ManagedSerial, value: bytes) -> Result[type(None), DIPClientError]:
+    async def write(
+        self,
+        previous_state: EngineFakeState,
+        value: bytes
+    ) -> Result[type(None), DIPClientError]:
+        # Hack, a command & event should be issued instead
+        self.fake_bytes = value
         return Ok()
 
 

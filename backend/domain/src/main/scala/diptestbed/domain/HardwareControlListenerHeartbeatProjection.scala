@@ -4,6 +4,7 @@ import cats.effect.kernel.Temporal
 import cats.implicits._
 import diptestbed.domain.HardwareControlEvent._
 import diptestbed.domain.HardwareControlMessageInternal._
+import scala.concurrent.duration.FiniteDuration
 
 object HardwareControlListenerHeartbeatProjection {
 
@@ -18,8 +19,14 @@ object HardwareControlListenerHeartbeatProjection {
     previousState: HardwareControlState[A],
     publish: (PubSubTopic, HardwareControlMessage) => F[Unit],
   ): F[Unit] = {
-    publish(previousState.hardwareId.serialTopic(), SerialMonitorListenersHeartbeatPing()) >>
-      implicitly[Temporal[F]].sleep(previousState.listenerHeartbeatConfig.waitTimeout) >>
+    def sendAndWait(time: FiniteDuration) =
+      publish(previousState.hardwareId.serialTopic(), SerialMonitorListenersHeartbeatPing()) >>
+        implicitly[Temporal[F]].sleep(time)
+
+    val waitTimeout = previousState.listenerHeartbeatConfig.waitTimeout
+    sendAndWait(waitTimeout / 3) >>
+      sendAndWait(waitTimeout / 3) >>
+      sendAndWait(waitTimeout / 3) >>
       send(previousState.self, SerialMonitorListenersHeartbeatFinish())
   }
 

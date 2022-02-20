@@ -1,7 +1,8 @@
 """Module for functionality related to serial socket monitor as button/led byte stream, specifically graphics/UI"""
 
 import asyncio
-from typing import Callable, Optional
+import sys
+from typing import Callable, Optional, Any
 from src.util import log
 from src.domain.death import Death
 
@@ -177,29 +178,15 @@ def define_app():
         async def app_lifecycle():
             LOGGER.info("Starting app")
             await app.async_run()
+            app.stop()
             LOGGER.info("Stopping app")
             app_state.death.grace()
 
         asyncio_loop = asyncio.get_event_loop()
         asyncio_loop.create_task(app_lifecycle())
 
-
     return (ButtonLEDApp, run_button_led_app)
 
-
-async def waste_time_freely(app_state: AppState):
-    """This method is also run by the asyncio loop and periodically prints something."""
-    try:
-        toggle = True
-        while True:
-            toggle = not toggle
-            app_state.indexed_led_change(0, toggle)
-            await asyncio.sleep(2)
-    except asyncio.CancelledError as e:
-        print('Wasting time was canceled', e)
-    finally:
-        # when canceled, print that it finished
-        print('Done wasting time')
 
 if __name__ == '__main__':
     app_state = AppState()
@@ -207,7 +194,5 @@ if __name__ == '__main__':
     (ButtonLEDApp, _run_button_led_app) = define_app()
     app = ButtonLEDApp()
     asyncio_loop = asyncio.get_event_loop()
-    asyncio_loop.run_until_complete(asyncio.gather(
-        waste_time_freely(hacked_global_app_state_storage.state),
-        app.async_run()
-    ))
+    asyncio_loop.run_until_complete(app.async_run())
+    sys.exit(0)

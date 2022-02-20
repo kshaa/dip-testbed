@@ -4,6 +4,8 @@
 import unittest
 from uuid import UUID
 from result import Ok, Err
+
+from src.domain.managed_uuid import ManagedUUID
 from src.protocol import s11n_json
 from src.protocol.codec import CodecParseException
 from src.domain import hardware_control_message
@@ -17,7 +19,7 @@ class TestS11nJSON(unittest.TestCase):
         codec = s11n_json.UPLOAD_MESSAGE_CODEC_JSON
 
         # Test valid message scenario
-        message = hardware_control_message.UploadMessage(UUID("96b838b2-282d-11ec-ba20-478e3959b3ad"))
+        message = hardware_control_message.UploadMessage(ManagedUUID(UUID("96b838b2-282d-11ec-ba20-478e3959b3ad")))
 
         real_serialized_message = codec.encoder.json_encode(message)
         expected_serialized_message = {
@@ -40,7 +42,7 @@ class TestS11nJSON(unittest.TestCase):
         codec = s11n_json.COMMON_INCOMING_MESSAGE_CODEC_JSON
 
         # Test valid message scenario
-        message = hardware_control_message.UploadMessage(UUID("96b838b2-282d-11ec-ba20-478e3959b3ad"))
+        message = hardware_control_message.UploadMessage(ManagedUUID(UUID("96b838b2-282d-11ec-ba20-478e3959b3ad")))
 
         real_serialized_message = codec.encoder.json_encode(message)
         expected_serialized_message = {

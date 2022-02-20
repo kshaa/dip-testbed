@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import TypeVar, List, Optional
 from result import Result, Err, Ok
 from src.domain.death import Death
-from src.domain.dip_client_error import DIPClientError
+from src.domain.dip_client_error import DIPClientError, GenericClientError
 from src.domain.existing_file_path import ExistingFilePath
 from src.domain.hardware_control_message import COMMON_INCOMING_MESSAGE, SerialMonitorRequest, \
     InternalStartedSerialMonitor, InternalSerialMonitorStartFailure, SerialMonitorResult, InternalReceivedSerialBytes, \
@@ -50,13 +50,29 @@ class EngineSerialMonitor:
     ) -> Result[ManagedSerial, DIPClientError]:
         return ManagedSerial.build(device_path, config)
 
-    async def read(self, active_serial: ManagedSerial) -> Result[bytes, DIPClientError]:
+    async def read(
+        self,
+        active_serial: ManagedSerial
+    ) -> Result[bytes, DIPClientError]:
         return await active_serial.read()
 
-    async def write(self, active_serial: ManagedSerial, value: bytes) -> Result[type(None), DIPClientError]:
-        return await active_serial.write(value)
+    async def write(
+        self,
+        previous_state: EngineSerialMonitorState,
+        value: bytes
+    ) -> Result[type(None), DIPClientError]:
+        if previous_state.active_serial is None:
+            return Err(GenericClientError("Serial monitor is disconnected"))
+        return await previous_state.active_serial.write(value)
 
-    async def ping_until_death(self, in_queue: ManagedQueue, engine_death: Death, serial_death: Death, active_serial: ManagedSerial):
+    async def ping_until_death(
+        self,
+        previous_state: EngineSerialMonitorState,
+        active_serial: ManagedSerial
+    ):
+        in_queue = previous_state.base.incoming_message_queue
+        engine_death = previous_state.base.death
+        serial_death = previous_state.serial_death
         while not engine_death.gracing and not serial_death.gracing:
             # Wait for new messages
             death_or_death_or_timeout = await engine_death.or_awaitable(
@@ -136,17 +152,15 @@ class EngineSerialMonitor:
             await previous_state.base.outgoing_message_queue.put(SerialMonitorResult(event.reason.text()))
         elif isinstance(event, SerialMonitorStartSuccess):
             await previous_state.base.outgoing_message_queue.put(SerialMonitorResult(None))
-            await self.ping_until_death(
-                previous_state.base.incoming_message_queue, previous_state.base.death, previous_state.serial_death, event.serial)
+            await self.ping_until_death(previous_state, event.serial)
         elif isinstance(event, ReceivedSerialBytes):
             await previous_state.base.outgoing_message_queue.put(SerialMonitorMessageToClient(event.received_bytes))
         elif isinstance(event, SendingBoardBytes):
-            if previous_state.active_serial is not None:
-                write_result = await self.write(previous_state.active_serial, event.content_bytes)
-                if isinstance(write_result, Err):
-                    if previous_state.serial_death is not None:
-                        previous_state.serial_death.grace()
-                    await previous_state.base.incoming_message_queue.put(InternalSerialMonitorDied())
+            write_result = await self.write(previous_state, event.content_bytes)
+            if isinstance(write_result, Err):
+                if previous_state.serial_death is not None:
+                    previous_state.serial_death.grace()
+                await previous_state.base.incoming_message_queue.put(InternalSerialMonitorDied())
         elif isinstance(event, StoppingSerialMonitor):
             if previous_state.active_serial is not None:
                 await previous_state.active_serial.close()
