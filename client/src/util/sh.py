@@ -8,12 +8,13 @@ from result import Result, Err, Ok
 from ..util import log
 
 LOGGER = log.timed_named_logger("sh")
-SH_SCRIPT_DIR = os.path.dirname(__file__)
+UTIL_DIR = os.path.dirname(__file__)
+SRC_DIR = os.path.dirname(UTIL_DIR)
 
 
 def src_relative_path(relative_path: str) -> str:
     """Convert a path relative to the project root into an absolute path"""
-    return os.path.join(SH_SCRIPT_DIR, "../", relative_path)
+    return os.path.join(SRC_DIR, relative_path)
 
 
 def outcome_sh(
