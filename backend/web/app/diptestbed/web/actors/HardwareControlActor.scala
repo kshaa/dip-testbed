@@ -1,213 +1,76 @@
 package diptestbed.web.actors
 
-import akka.actor.{Actor, ActorRef, ActorSystem, Props}
-import diptestbed.domain.{HardwareId, SerialConfig, SoftwareId, HardwareControlMessage => Control}
-import play.api.http.websocket.{BinaryMessage, CloseCodes, CloseMessage, Message, TextMessage}
+import akka.actor._
+import akka.cluster.pubsub.DistributedPubSubMediator.Publish
+import diptestbed.domain._
+import play.api.http.websocket._
 import play.api.mvc.WebSocket.MessageFlowTransformer
 import io.circe.parser.decode
-import io.circe.syntax.EncoderOps
-import diptestbed.protocol.Codecs.{hardwareControlMessageDecoder, hardwareControlMessageEncoder}
-import akka.cluster.pubsub.DistributedPubSubMediator.Publish
-import akka.stream.scaladsl.Flow
 import cats.effect.IO
-import diptestbed.web.actors.HardwareControlActor.hardwareSerialMonitorTopic
+import cats.implicits._
 import cats.effect.unsafe.IORuntime
-import diptestbed.domain.HardwareControlMessage._
 import akka.util.{ByteString, Timeout}
 import cats.data.EitherT
-import cats.implicits.toTraverseOps
 import com.typesafe.scalalogging.LazyLogging
-import diptestbed.domain.HardwareSerialMonitorMessage.{SerialMessageToAgent, SerialMessageToClient}
-import diptestbed.web.actors.HardwareControlState.{ConfiguringMonitor, Initial, Uploading}
+import diptestbed.domain.EventEngine.MessageResult
+import diptestbed.domain.HardwareControlMessageExternalBinary._
+import diptestbed.domain.HardwareControlMessageExternalNonBinary._
+import diptestbed.domain.HardwareControlMessageInternal._
+import diptestbed.domain.HardwareSerialMonitorMessageBinary._
+import diptestbed.protocol.Codecs._
+import diptestbed.web.actors.ActorHelper._
 import diptestbed.web.actors.QueryActor.Promise
-import play.api.libs.streams.AkkaStreams
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
-
-sealed trait HardwareControlState {}
-object HardwareControlState {
-  case object Initial extends HardwareControlState
-  case class Uploading(requester: Option[ActorRef]) extends HardwareControlState
-  case class ConfiguringMonitor(requester: Option[ActorRef]) extends HardwareControlState
-}
-
-trait HardwareControlStateActions {
-  var state: HardwareControlState
-
-  def isInitial: Boolean =
-    state match {
-      case Initial => true
-      case _       => false
-    }
-
-  def isUploading: Boolean =
-    state match {
-      case _: Uploading => true
-      case _            => false
-    }
-
-  def isMonitoring: Boolean =
-    state match {
-      case _: ConfiguringMonitor => true
-      case _                     => false
-    }
-
-  def isUploadObserved: Option[ActorRef] =
-    state match {
-      case Uploading(Some(requester)) => Some(requester)
-      case _                          => None
-    }
-
-  def isMonitorObserved: Option[ActorRef] =
-    state match {
-      case ConfiguringMonitor(Some(requester)) => Some(requester)
-      case _                                   => None
-    }
-
-  def setInitialState(): Unit =
-    state = Initial
-
-  def setUploadingState(inquirer: Option[ActorRef]): Unit =
-    state = Uploading(inquirer)
-
-  def setConfiguringMonitorState(inquirer: Option[ActorRef]): Unit =
-    state = ConfiguringMonitor(inquirer)
-
-}
+import io.circe.syntax.EncoderOps
 
 class HardwareControlActor(
   pubSubMediator: ActorRef,
-  out: ActorRef,
+  agent: ActorRef,
   hardwareId: HardwareId,
 )(implicit
   iort: IORuntime,
 ) extends Actor
-    with LazyLogging
-    with HardwareControlStateActions {
-  logger.info(s"Actor for hardware #${hardwareId} spawned")
+    with LazyLogging {
+  var state: HardwareControlState[ActorRef] =
+    HardwareControlState.initial(self, agent, hardwareId, HardwareListenerHeartbeatConfig.default())
 
-  val serialMonitorTopic: String = hardwareSerialMonitorTopic(hardwareId)
-  var state: HardwareControlState = Initial
-
-  var listenerHeartbeatsReceived: Int = 0
-  val listenerHeartbeatInterval: FiniteDuration = 5.seconds
-  val listenerHeartbeatWaitTime: FiniteDuration = 2.seconds // Should be less than the interval
-
-  def scheduleHeartbeatTest(): IO[Unit] = {
-    val laterTest = IO.sleep(listenerHeartbeatInterval) >>
-      IO(self ! SerialMonitorListenersHeartbeatStart())
-
-    laterTest.start.void
+  def setState(newState: HardwareControlState[ActorRef]): Unit = {
+    state = newState
   }
 
-  scheduleHeartbeatTest().unsafeRunAsync(_ => ())
+  def send(actorRef: ActorRef, message: Any): IO[Unit] =
+    IO(actorRef ! message)
 
-  def sendToAgent(message: Control): IO[Unit] =
-    IO(out ! (message match {
-      case m: Control.SerialMonitorMessageToAgent =>
-        BinaryMessage(ByteString.fromArray(m.message.bytes))
-      case m: Control => TextMessage(m.asJson.noSpaces)
-    }))
-  def sendToRequester(requester: ActorRef, message: Control): IO[Unit] =
-    IO(requester ! message)
+  def publish(topic: PubSubTopic, message: HardwareControlMessage): IO[Unit] =
+    send(pubSubMediator, Publish(topic.text(), message))
 
-  def receive: Receive = {
-    case controlMessage: Control =>
-      isNonPingMessage(controlMessage).foreach(message =>
-        logger.debug(s"Receiving non-ping control message: ${message}"),
-      )
-      controlHandler(None, controlMessage).unsafeRunSync()
+  def onMessage(
+    inquirer: => Option[ActorRef],
+  ): HardwareControlMessage => MessageResult[IO, HardwareControlEvent[ActorRef], HardwareControlState[ActorRef]] =
+    HardwareControlEventEngine.onMessage[ActorRef, IO](state, send, publish, inquirer)
 
-    case Promise(inquirer, controlMessage: Control) =>
-      logger.debug(s"Inquirer '${inquirer}' sent control message: ${controlMessage}")
-      controlHandler(Some(inquirer), controlMessage).unsafeRunSync()
+  def unsafeMaterializeResult(
+    result: MessageResult[IO, HardwareControlEvent[ActorRef], HardwareControlState[ActorRef]],
+  ): Unit = EventEngine.unsafeMaterializeMessageResultIO(result, setState)
 
-    case message =>
-      logger.debug(s"Receiving and ignoring unknown message: ${message.toString}")
+  override def preStart(): Unit = {
+    super.preStart()
+    unsafeMaterializeResult(onMessage(None)(StartLifecycle()))
   }
 
-  def controlHandler(inquirer: Option[ActorRef], message: Control): IO[Unit] =
-    message match {
-      case m: UploadSoftwareRequest                 => handleUploadSoftwareRequest(inquirer, m)
-      case m: UploadSoftwareResult                  => handleUploadSoftwareResult(m)
-      case m: SerialMonitorRequest                  => handleSerialMonitorRequest(inquirer, m)
-      case m: SerialMonitorRequestStop              => handleSerialMonitorRequestStop(m)
-      case m: SerialMonitorResult                   => handleSerialMonitorResult(m)
-      case m: SerialMonitorMessageToClient          => handleSerialMonitorMessageToClient(m)
-      case m: SerialMonitorMessageToAgent           => handleSerialMonitorMessageToAgent(m)
-      case _: SerialMonitorListenersHeartbeatStart  => handleSerialMonitorListenersHeartbeatStart()
-      case _: SerialMonitorListenersHeartbeatPing   => IO(())
-      case _: SerialMonitorListenersHeartbeatPong   => handleSerialMonitorListenersHeartbeatPong()
-      case _: SerialMonitorListenersHeartbeatFinish => handleSerialMonitorListenersHeartbeatFinish()
-      case _: Ping                                  => IO(())
-    }
+  override def receive: Receive = {
+    case message: HardwareControlMessage =>
+      unsafeMaterializeResult(onMessage(Some(sender()))(message))
 
-  def handleUploadSoftwareRequest(inquirer: Option[ActorRef], message: UploadSoftwareRequest): IO[Unit] =
-    for {
-      // If available, start upload, maybe respond eventually
-      _ <- IO.whenA(isInitial)(sendToAgent(message))
-      // If not available & response is expected, respond w/ unavailability
-      _ <- inquirer.filter(_ => !isInitial).traverse(sendToRequester(_, uploadUnavailableMessage))
-      // If available, also set new state
-      _ <- IO.whenA(isInitial)(IO(setUploadingState(inquirer)))
-    } yield ()
+    // This is an old, dumb workaround, should be removed and tested
+    case Promise(inquirer, message: HardwareControlMessage) =>
+      unsafeMaterializeResult(onMessage(Some(inquirer))(message))
 
-  def handleUploadSoftwareResult(message: UploadSoftwareResult): IO[Unit] =
-    for {
-      // Forward response if upload is observed
-      _ <- isUploadObserved.traverse(sendToRequester(_, message))
-      // Reset state if upload happened
-      _ <- IO.whenA(isUploading)(IO(setInitialState()))
-    } yield ()
-
-  def handleSerialMonitorRequestStop(message: SerialMonitorRequestStop): IO[Unit] =
-    sendToAgent(message)
-
-  def handleSerialMonitorRequest(inquirer: Option[ActorRef], message: SerialMonitorRequest): IO[Unit] =
-    for {
-      // If available, start monitor, maybe respond eventually
-      _ <- IO.whenA(isInitial)(sendToAgent(message))
-      // If not available & response is expected, respond w/ unavailability
-      _ <- inquirer.filter(_ => !isInitial).traverse(sendToRequester(_, monitorUnavailableMessage))
-      // If available, also set new state
-      _ <- IO.whenA(isInitial)(IO(setConfiguringMonitorState(inquirer)))
-    } yield ()
-
-  def handleSerialMonitorResult(message: SerialMonitorResult): IO[Unit] =
-    for {
-      // Forward response if monitor is observed
-      _ <- isMonitorObserved.traverse(sendToRequester(_, message))
-      // Reset state if upload happened
-      _ <- IO.whenA(isMonitoring)(IO(setInitialState()))
-    } yield ()
-
-  def handleSerialMonitorMessageToClient(message: SerialMonitorMessageToClient): IO[Unit] =
-    IO(pubSubMediator ! Publish(serialMonitorTopic, message))
-
-  def handleSerialMonitorMessageToAgent(message: SerialMonitorMessageToAgent): IO[Unit] =
-    sendToAgent(message)
-
-  def handleSerialMonitorListenersHeartbeatStart(): IO[Unit] = {
-    val startAndLaterFinish = IO { listenerHeartbeatsReceived = 0 } >>
-      IO(pubSubMediator ! Publish(serialMonitorTopic, SerialMonitorListenersHeartbeatPing())) >>
-      IO.sleep(listenerHeartbeatWaitTime) >>
-      IO(self ! SerialMonitorListenersHeartbeatFinish())
-
-    startAndLaterFinish.start.void
+    case Terminated => unsafeMaterializeResult(onMessage(None)(EndLifecycle()))
   }
 
-  def handleSerialMonitorListenersHeartbeatPong(): IO[Unit] =
-    IO { listenerHeartbeatsReceived += 1 }
-
-  def handleSerialMonitorListenersHeartbeatFinish(): IO[Unit] =
-    (if (listenerHeartbeatsReceived == 0) sendToAgent(SerialMonitorRequestStop())
-     else sendToAgent(SerialMonitorRequest(None))) >>
-      scheduleHeartbeatTest()
 }
 
-object HardwareControlActor extends ActorHelper {
-  val subscribed = "subscribed"
-  def hardwareActor(hardwareId: HardwareId) = f"hardware-${hardwareId.value}-actor"
-  def hardwareSerialMonitorTopic(hardwareId: HardwareId) = f"hardware-${hardwareId.value}-serial-monitor"
+object HardwareControlActor {
   def props(
     pubSubMediator: ActorRef,
     out: ActorRef,
@@ -216,27 +79,28 @@ object HardwareControlActor extends ActorHelper {
     iort: IORuntime,
   ): Props = Props(new HardwareControlActor(pubSubMediator, out, hardwareId))
 
-  def transformer(byteHandler: ByteString => Either[Control, Message]): MessageFlowTransformer[Control, Message] =
-    (flow: Flow[Control, Message, _]) => {
-      AkkaStreams.bypassWith[Message, Control, Message](Flow[Message].collect {
-        case TextMessage(text) => decode[Control](text).swap.map(e =>
-          CloseMessage(Some(CloseCodes.Unacceptable), e.getMessage))
-        case BinaryMessage(bytes: ByteString) => byteHandler(bytes)
-      })(flow)
-    }
-
-  val controlTransformer = transformer((bytes: ByteString) =>
-    Left(SerialMonitorMessageToClient(SerialMessageToClient(bytes.toArray))))
-
-  val listenerTransformer = transformer((bytes: ByteString) =>
-    Left(SerialMonitorMessageToAgent(SerialMessageToAgent(bytes.toArray))))
+  val controlTransformer: MessageFlowTransformer[HardwareControlMessage, HardwareControlMessage] =
+    websocketFlowTransformer(
+      {
+        case TextMessage(text) =>
+          decode[HardwareControlMessageNonBinary](text)
+            .leftMap(e => CloseMessage(Some(CloseCodes.Unacceptable), e.getMessage))
+        case BinaryMessage(bytes: ByteString) =>
+          Right(SerialMonitorMessageToClient(SerialMessageToClient(bytes.toArray)))
+      },
+      {
+        case m: HardwareControlMessageNonBinary => TextMessage(m.asJson.noSpaces)
+        case m: SerialMonitorMessageToAgent     => BinaryMessage(ByteString.fromArray(m.message.bytes))
+        case m: SerialMonitorMessageToClient    => BinaryMessage(ByteString.fromArray(m.message.bytes))
+      },
+    )
 
   def requestSerialMonitor(
     hardwareId: HardwareId,
     serialConfig: Option[SerialConfig],
   )(implicit actorSystem: ActorSystem, t: Timeout, iort: IORuntime): EitherT[IO, String, Unit] =
     for {
-      hardwareRef <- resolveActorRef(userActorPath(hardwareActor(hardwareId)))(actorSystem, implicitly)
+      hardwareRef <- resolveActorRef(UserPrefixedActorPath(hardwareId.actorId()).text())(actorSystem, implicitly)
       result <- QueryActor.queryActorT(
         hardwareRef,
         actorRef => Promise(actorRef, SerialMonitorRequest(serialConfig)),
@@ -250,10 +114,10 @@ object HardwareControlActor extends ActorHelper {
 
   def sendToHardwareActor(
     hardwareId: HardwareId,
-    serialMessage: Control,
+    serialMessage: HardwareControlMessage,
   )(implicit actorSystem: ActorSystem, t: Timeout): EitherT[IO, String, Unit] =
     for {
-      hardwareRef <- resolveActorRef(userActorPath(hardwareActor(hardwareId)))(actorSystem, implicitly)
+      hardwareRef <- resolveActorRef(UserPrefixedActorPath(hardwareId.actorId()).text())(actorSystem, implicitly)
       _ <- EitherT.liftF(IO(hardwareRef ! serialMessage))
     } yield ()
 
@@ -262,7 +126,7 @@ object HardwareControlActor extends ActorHelper {
     softwareId: SoftwareId,
   )(implicit actorSystem: ActorSystem, t: Timeout, iort: IORuntime): EitherT[IO, String, Unit] =
     for {
-      hardwareRef <- resolveActorRef(userActorPath(hardwareActor(hardwareId)))
+      hardwareRef <- resolveActorRef(UserPrefixedActorPath(hardwareId.actorId()).text())
       result <- QueryActor.queryActorT(
         hardwareRef,
         actorRef => Promise(actorRef, UploadSoftwareRequest(softwareId)),

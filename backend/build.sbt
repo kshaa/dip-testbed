@@ -19,6 +19,7 @@ lazy val domain = (project in file("domain"))
       circeParserPackage,
       pbkdf2,
       scalaTestPackage,
+      catsEffectPackage,
     ),
   )
 

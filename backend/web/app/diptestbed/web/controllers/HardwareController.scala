@@ -1,6 +1,7 @@
 package diptestbed.web.controllers
 
 import akka.actor.{ActorRef, ActorSystem}
+
 import scala.annotation.unused
 import akka.stream.Materializer
 import akka.util.Timeout
@@ -9,15 +10,15 @@ import cats.effect.IO
 import cats.effect.unsafe.IORuntime
 import cats.implicits._
 import diptestbed.database.services.{HardwareService, UserService}
-import diptestbed.domain.{HardwareControlMessage, HardwareId, SerialConfig, SoftwareId}
+import diptestbed.domain.{HardwareControlMessage, HardwareId, HardwareSerialMonitorMessage, SerialConfig, SoftwareId}
 import diptestbed.protocol._
 import diptestbed.protocol.Codecs._
 import diptestbed.protocol.WebResult._
-import diptestbed.web.actors.HardwareControlActor.{controlTransformer, hardwareActor}
+import diptestbed.web.actors.HardwareControlActor.controlTransformer
+import diptestbed.web.actors.HardwareSerialMonitorListenerActor.listenerTransformer
 import diptestbed.web.actors.{BetterActorFlow, HardwareControlActor, HardwareSerialMonitorListenerActor}
 import diptestbed.web.ioControls.PipelineOps._
 import diptestbed.web.ioControls._
-import play.api.http.websocket.{Message => WebsocketMessage}
 import play.api.mvc.WebSocket.MessageFlowTransformer
 import play.api.mvc._
 import scala.concurrent.duration.DurationInt
@@ -74,11 +75,12 @@ class HardwareController(
     }
 
   def controlHardware(hardwareId: HardwareId): WebSocket = {
-    implicit val transformer: MessageFlowTransformer[HardwareControlMessage, WebsocketMessage] = controlTransformer
-    WebSocket.accept[HardwareControlMessage, WebsocketMessage](_ => {
+    implicit val transformer: MessageFlowTransformer[HardwareControlMessage, HardwareControlMessage] =
+      controlTransformer
+    WebSocket.accept[HardwareControlMessage, HardwareControlMessage](_ => {
       BetterActorFlow.actorRef(
         subscriber => HardwareControlActor.props(pubSubMediator, subscriber, hardwareId),
-        maybeName = hardwareActor(hardwareId).some,
+        maybeName = hardwareId.actorId().text().some,
       )
     })
   }
@@ -96,12 +98,15 @@ class HardwareController(
       }
     }
 
-  def listenHardwareSerialMonitor(hardwareId: HardwareId, serialConfig: Option[SerialConfig]): WebSocket =
-    WebSocket.accept[WebsocketMessage, WebsocketMessage](_ => {
+  def listenHardwareSerialMonitor(hardwareId: HardwareId, serialConfig: Option[SerialConfig]): WebSocket = {
+    implicit val transformer: MessageFlowTransformer[HardwareControlMessage, HardwareSerialMonitorMessage] =
+      listenerTransformer
+    WebSocket.accept[HardwareControlMessage, HardwareSerialMonitorMessage](_ => {
       implicit val timeout: Timeout = 60.seconds
       BetterActorFlow.actorRef(subscriber =>
         HardwareSerialMonitorListenerActor.props(pubSubMediator, subscriber, hardwareId, serialConfig),
       )
     })
+  }
 
 }

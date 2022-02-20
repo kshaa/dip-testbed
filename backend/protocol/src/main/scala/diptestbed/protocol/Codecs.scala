@@ -6,8 +6,9 @@ import io.circe.{Codec, Decoder, DecodingFailure, Encoder}
 import io.circe.syntax._
 import cats.implicits._
 import diptestbed.domain._
-import diptestbed.domain.HardwareControlMessage._
-import diptestbed.domain.HardwareSerialMonitorMessage._
+import diptestbed.domain.HardwareControlMessageInternal._
+import diptestbed.domain.HardwareControlMessageExternalNonBinary._
+import diptestbed.domain.HardwareSerialMonitorMessageNonBinary._
 import diptestbed.protocol.WebResult._
 
 object Codecs {
@@ -27,8 +28,7 @@ object Codecs {
   implicit val serialConfigCodec: Codec[SerialConfig] = deriveCodec[SerialConfig]
 
   private implicit val monitorUnavailableCodec: Codec[MonitorUnavailable] = deriveCodec[MonitorUnavailable]
-//  private implicit val serialMessageToAgentCodec: Codec[SerialMessageToAgent] = deriveCodec[SerialMessageToAgent]
-//  private implicit val serialMessageToClientCodec: Codec[SerialMessageToClient] = deriveCodec[SerialMessageToClient]
+  private implicit val connectionClosedCodec: Codec[ConnectionClosed] = deriveCodec[ConnectionClosed]
 
   private implicit val uploadSoftwareRequestCodec: Codec[UploadSoftwareRequest] = deriveCodec[UploadSoftwareRequest]
   private implicit val uploadSoftwareResultCodec: Codec[UploadSoftwareResult] = deriveCodec[UploadSoftwareResult]
@@ -37,10 +37,6 @@ object Codecs {
   private implicit val serialMonitorRequestStopCodec: Codec[SerialMonitorRequestStop] =
     deriveCodec[SerialMonitorRequestStop]
   private implicit val serialMonitorResultCodec: Codec[SerialMonitorResult] = deriveCodec[SerialMonitorResult]
-//  private implicit val serialMonitorMessageToAgentCodec: Codec[SerialMonitorMessageToAgent] =
-//    deriveCodec[SerialMonitorMessageToAgent]
-//  private implicit val serialMonitorMessageToClientCodec: Codec[SerialMonitorMessageToClient] =
-//    deriveCodec[SerialMonitorMessageToClient]
   private implicit val serialMonitorListenersHeartbeatStartCodec: Codec[SerialMonitorListenersHeartbeatStart] =
     deriveCodec[SerialMonitorListenersHeartbeatStart]
   private implicit val serialMonitorListenersHeartbeatPingCodec: Codec[SerialMonitorListenersHeartbeatPing] =
@@ -49,72 +45,112 @@ object Codecs {
     deriveCodec[SerialMonitorListenersHeartbeatPong]
   private implicit val serialMonitorListenersHeartbeatFinishCodec: Codec[SerialMonitorListenersHeartbeatFinish] =
     deriveCodec[SerialMonitorListenersHeartbeatFinish]
+  private implicit val serialMonitorUnavailableCodec: Codec[SerialMonitorUnavailable] =
+    deriveCodec[SerialMonitorUnavailable]
+  private implicit val startLifecycleCodec: Codec[StartLifecycle] = deriveCodec[StartLifecycle]
+  private implicit val endLifecycleCodec: Codec[EndLifecycle] = deriveCodec[EndLifecycle]
 
   private implicit val pingCodec: Codec[Ping] = deriveCodec[Ping]
 
-  implicit val hardwareControlMessageEncoder: Encoder[HardwareControlMessage] = Encoder.instance {
+  private implicit val hardwareControlMessageInternalEncoder: Encoder[HardwareControlMessageInternal] =
+    Encoder.instance {
+      case c: StartLifecycle => NamedMessage("startLifecycle", c.asJson).asJson
+      case c: EndLifecycle   => NamedMessage("endLifecycle", c.asJson).asJson
+
+      case c: SerialMonitorRequestStop => NamedMessage("serialMonitorRequestStop", c.asJson).asJson
+      case c: SerialMonitorListenersHeartbeatStart =>
+        NamedMessage("serialMonitorListenersHeartbeatStart", c.asJson).asJson
+      case c: SerialMonitorListenersHeartbeatPing =>
+        NamedMessage("serialMonitorListenersHeartbeatPing", c.asJson).asJson
+      case c: SerialMonitorListenersHeartbeatFinish =>
+        NamedMessage("serialMonitorListenersHeartbeatFinish", c.asJson).asJson
+    }
+
+  private implicit val hardwareControlMessageExternalNonBinaryEncoder
+    : Encoder[HardwareControlMessageExternalNonBinary] = Encoder.instance {
     case c: UploadSoftwareRequest => NamedMessage("uploadSoftwareRequest", c.asJson).asJson
     case c: UploadSoftwareResult  => NamedMessage("uploadSoftwareResult", c.asJson).asJson
 
-    case c: SerialMonitorRequest         => NamedMessage("serialMonitorRequest", c.asJson).asJson
-    case c: SerialMonitorRequestStop     => NamedMessage("serialMonitorRequestStop", c.asJson).asJson
-    case c: SerialMonitorResult          => NamedMessage("serialMonitorResult", c.asJson).asJson
-    case _: SerialMonitorMessageToAgent  => ??? // Bad practice
-    case _: SerialMonitorMessageToClient => ??? // Bad practice
-    case c: SerialMonitorListenersHeartbeatStart =>
-      NamedMessage("serialMonitorListenersHeartbeatStart", c.asJson).asJson
-    case c: SerialMonitorListenersHeartbeatPing => NamedMessage("serialMonitorListenersHeartbeatPing", c.asJson).asJson
-    case c: SerialMonitorListenersHeartbeatPong => NamedMessage("SerialMonitorListenersHeartbeatPong", c.asJson).asJson
-    case c: SerialMonitorListenersHeartbeatFinish =>
-      NamedMessage("SerialMonitorListenersHeartbeatFinish", c.asJson).asJson
+    case c: SerialMonitorRequest                => NamedMessage("serialMonitorRequest", c.asJson).asJson
+    case c: SerialMonitorResult                 => NamedMessage("serialMonitorResult", c.asJson).asJson
+    case c: SerialMonitorListenersHeartbeatPong => NamedMessage("serialMonitorListenersHeartbeatPong", c.asJson).asJson
+    case c: SerialMonitorUnavailable            => NamedMessage("monitorUnavailable", c.asJson).asJson
 
     case c: Ping => NamedMessage("ping", c.asJson).asJson
   }
-  implicit val hardwareControlMessageDecoder: Decoder[HardwareControlMessage] =
+
+  private implicit val hardwareControlMessageExternalNonBinaryDecoder
+    : Decoder[HardwareControlMessageExternalNonBinary] =
     Decoder[NamedMessage].emap { m =>
       {
-        val codec: Option[Decoder[HardwareControlMessage]] = m.command match {
-          case "uploadSoftwareRequest" => Decoder[UploadSoftwareRequest].widen[HardwareControlMessage].some
-          case "uploadSoftwareResult"  => Decoder[UploadSoftwareResult].widen[HardwareControlMessage].some
+        val codec: Option[Decoder[HardwareControlMessageExternalNonBinary]] = m.command match {
+          case "uploadSoftwareRequest" =>
+            Decoder[UploadSoftwareRequest].widen[HardwareControlMessageExternalNonBinary].some
+          case "uploadSoftwareResult" =>
+            Decoder[UploadSoftwareResult].widen[HardwareControlMessageExternalNonBinary].some
 
-          case "serialMonitorRequest"        => Decoder[SerialMonitorRequest].widen[HardwareControlMessage].some
-          case "serialMonitorRequestStop"    => Decoder[SerialMonitorRequestStop].widen[HardwareControlMessage].some
-          case "serialMonitorResult"         => Decoder[SerialMonitorResult].widen[HardwareControlMessage].some
-          case "serialMonitorMessageToAgent" => ??? // Bad practice
-          case "serialMonitorMessageToClient" => ??? // Bad practice
-          case "serialMonitorListenersHeartbeatStart" =>
-            Decoder[SerialMonitorListenersHeartbeatStart].widen[HardwareControlMessage].some
-          case "serialMonitorListenersHeartbeatPing" =>
-            Decoder[SerialMonitorListenersHeartbeatPing].widen[HardwareControlMessage].some
+          case "serialMonitorRequest" =>
+            Decoder[SerialMonitorRequest].widen[HardwareControlMessageExternalNonBinary].some
+          case "serialMonitorResult" => Decoder[SerialMonitorResult].widen[HardwareControlMessageExternalNonBinary].some
           case "serialMonitorListenersHeartbeatPong" =>
-            Decoder[SerialMonitorListenersHeartbeatPong].widen[HardwareControlMessage].some
-          case "serialMonitorListenersHeartbeatFinish" =>
-            Decoder[SerialMonitorListenersHeartbeatFinish].widen[HardwareControlMessage].some
+            Decoder[SerialMonitorListenersHeartbeatPong].widen[HardwareControlMessageExternalNonBinary].some
+          case "monitorUnavailable" =>
+            Decoder[SerialMonitorUnavailable].widen[HardwareControlMessageExternalNonBinary].some
 
-          case "ping" => Decoder[Ping].widen[HardwareControlMessage].some
+          case "ping" => Decoder[Ping].widen[HardwareControlMessageExternalNonBinary].some
           case _      => None
         }
         codec.toRight("Unknown command").flatMap(_.decodeJson(m.payload).leftMap(_.message))
       }
     }
 
-  implicit val hardwareSerialMonitorMessageEncoder: Encoder[HardwareSerialMonitorMessage] = Encoder.instance {
-    case c: MonitorUnavailable    => NamedMessage("monitorUnavailable", c.asJson).asJson
-    case _: SerialMessageToAgent  => ??? // Bad practice
-    case _: SerialMessageToClient => ??? // Bad practice
-  }
-  implicit val hardwareSerialMonitorMessageDecoder: Decoder[HardwareSerialMonitorMessage] =
+  private implicit val hardwareControlMessageInternalDecoder: Decoder[HardwareControlMessageInternal] =
     Decoder[NamedMessage].emap { m =>
       {
-        val codec: Option[Decoder[HardwareSerialMonitorMessage]] = m.command match {
-          case "monitorUnavailable"    => Decoder[MonitorUnavailable].widen[HardwareSerialMonitorMessage].some
-//          case "serialMessageToAgent"  => Decoder[SerialMessageToAgent].widen[HardwareSerialMonitorMessage].some
-//          case "serialMessageToClient" => Decoder[SerialMessageToClient].widen[HardwareSerialMonitorMessage].some
-          case _                       => None
+        val codec: Option[Decoder[HardwareControlMessageInternal]] = m.command match {
+          case "startLifecycle" => Decoder[StartLifecycle].widen[HardwareControlMessageInternal].some
+          case "endLifecycle"   => Decoder[EndLifecycle].widen[HardwareControlMessageInternal].some
+          case "serialMonitorRequestStop" =>
+            Decoder[SerialMonitorRequestStop].widen[HardwareControlMessageInternal].some
+          case "serialMonitorListenersHeartbeatStart" =>
+            Decoder[SerialMonitorListenersHeartbeatStart].widen[HardwareControlMessageInternal].some
+          case "serialMonitorListenersHeartbeatPing" =>
+            Decoder[SerialMonitorListenersHeartbeatPing].widen[HardwareControlMessageInternal].some
+          case "serialMonitorListenersHeartbeatFinish" =>
+            Decoder[SerialMonitorListenersHeartbeatFinish].widen[HardwareControlMessageInternal].some
+          case _ => None
         }
         codec.toRight("Unknown command").flatMap(_.decodeJson(m.payload).leftMap(_.message))
       }
     }
+
+  implicit val hardwareSerialMonitorMessageNonBinaryEncoder: Encoder[HardwareSerialMonitorMessageNonBinary] =
+    Encoder.instance {
+      case c: MonitorUnavailable => NamedMessage("monitorUnavailable", c.asJson).asJson
+      case c: ConnectionClosed => NamedMessage("connectionClosed", c.asJson).asJson
+    }
+  implicit val hardwareSerialMonitorMessageNonBinaryDecoder: Decoder[HardwareSerialMonitorMessageNonBinary] =
+    Decoder[NamedMessage].emap { m =>
+      {
+        val codec: Option[Decoder[HardwareSerialMonitorMessageNonBinary]] = m.command match {
+          case "monitorUnavailable" => Decoder[MonitorUnavailable].widen[HardwareSerialMonitorMessageNonBinary].some
+          case "connectionClosed" => Decoder[ConnectionClosed].widen[HardwareSerialMonitorMessageNonBinary].some
+          case _                    => None
+        }
+        codec.toRight("Unknown command").flatMap(_.decodeJson(m.payload).leftMap(_.message))
+      }
+    }
+
+  implicit val hardwareControlMessageNonBinaryEncoder: Encoder[HardwareControlMessageNonBinary] =
+    Encoder.instance {
+      case m: HardwareControlMessageExternalNonBinary => m.asJson
+      case m: HardwareControlMessageInternal          => m.asJson
+    }
+
+  implicit val hardwareControlMessageNonBinaryDecoder: Decoder[HardwareControlMessageNonBinary] =
+    Decoder[HardwareControlMessageExternalNonBinary]
+      .widen[HardwareControlMessageNonBinary]
+      .orElse(Decoder[HardwareControlMessageInternal].widen[HardwareControlMessageNonBinary])
 
   implicit def webResultSuccessCodec[A: Encoder: Decoder]: Codec[Success[A]] =
     Codec.forProduct1[Success[A], A]("success")(Success(_))(_.value)
