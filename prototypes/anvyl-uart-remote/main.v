@@ -99,7 +99,8 @@ module main(
 	//
 	// N.B. If you write too fast, then the agent won't catch up
 	// and eventually will lag extremely behind and you'll be sad
-	parameter sleep = 32'd30000000;
+	// parameter sleep = 32'd30000000; // Around 3 FPS
+    parameter sleep = 32'd2000000; // Around 50 FPS
 	always @(posedge CLK)
 	begin
 		if (r_ticks < sleep) begin

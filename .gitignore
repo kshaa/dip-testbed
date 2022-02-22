@@ -12,3 +12,6 @@
 # scala
 .metals/
 .bsp/
+
+# Build results
+dist/

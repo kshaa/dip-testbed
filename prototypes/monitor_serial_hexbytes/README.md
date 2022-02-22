@@ -1,6 +1,8 @@
 # Custom serial port monitoring script `hexbytes`
 This folder contains a Python module which can be imported by the DIP Testbed Client `hardware-serial-monitor` command.  
-
+  
+**!! Note: This is outdated and might be removed or refactored.**  
+  
 Module contents:
 - `mock.py` - Mocks of all DIP Testbed related Python classes needed to implement a custom monitoring solution,
   this is added for doing type checking in IDEs.
