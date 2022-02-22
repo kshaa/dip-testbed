@@ -27,4 +27,5 @@ then
     rm -rf ../dip-testbed-dist/.gitignore
     cp -rf dist/* ../dip-testbed-dist/
     cp -rf .gitignore ../dip-testbed-dist/.gitignore
+    cp -rf package.sh ../dip-testbed-dist/package.sh
 fi
