@@ -269,13 +269,9 @@ class CLI(CLIInterface):
         (hardware_id, heartbeat_seconds, backend, hardware_control_url, device_path) = \
             common_agent_input_result.value
 
-        # Anvyl agent specific scan chain index parameter
-        sci_result = PositiveInteger.build(scan_chain_index)
-        if isinstance(sci_result, Err): return Err(sci_result.value.of_type("scan chain index"))
-
         # Engine
         base = await EngineBase.build()
-        board_state = EngineAnvylBoardState(device_name_str, device_path, sci_result.value)
+        board_state = EngineAnvylBoardState(device_name_str, device_path, scan_chain_index)
         engine_state = EngineAnvylState(base, hardware_id, backend, heartbeat_seconds, board_state)
         engine_lifecycle = EngineLifecycle()
         engine_upload = EngineAnvylUpload(backend)
