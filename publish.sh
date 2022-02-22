@@ -7,6 +7,15 @@ set -e
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 cd $SCRIPT_DIR
 
+# Dist folder (dip-testbed vs dip-testbed-dist)
+DIST=""
+if [ -d "dist/dist/" ]
+then
+    DIST="dist/dist"
+else
+    DIST="dist"
+fi
+
 # Prepare tag
 TAG="$1"
 if [ -z "${TAG}" ]
@@ -33,8 +42,8 @@ fi
 
 # Release info
 echo "The following files will be in the release:"
-ls -la dist/dist
+ls -la "${DIST}"
 
 # Create release
 echo "Creating release ${TAG}"
-gh release create "${TAG}" dist/dist/*
+gh release create "${TAG}" ${DIST}/*
