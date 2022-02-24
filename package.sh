@@ -16,9 +16,10 @@ mkdir dist/
 cp -rf docs/dist/* dist/
 rm -rf dist/dist/
 mkdir dist/dist/
-## Copy binaries
+## Copy executables
 cp -rf backend/web/target/universal/web-0.1.0-SNAPSHOT.zip dist/dist/dip_server.zip
 cp -rf client/dist/* dist/dist/
+cp -rf docs/dist/client_install.sh dist/dist/client_install.sh
 
 # Copy all of this into user-friendly dist repo if it exists
 if [ -d "../dip-testbed-dist" ] 

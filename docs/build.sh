@@ -18,3 +18,4 @@ cp -rf ./assets dist/docs/assets
 cp -rf ../prototypes dist/prototypes  
 cp -rf ../README.md dist/README.md  
 cp -rf ../.gitignore dist/.gitignore  
+cp -rf ./client_install.sh dist/client_install.sh  
