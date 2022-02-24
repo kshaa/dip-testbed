@@ -11,7 +11,8 @@ from src.domain.existing_file_path import ExistingFilePath
 from src.domain.hardware_control_message import UploadMessage, InternalStartLifecycle, InternalEndLifecycle, \
     InternalSucceededSoftwareDownload, InternalSucceededSoftwareUpload, UploadResultMessage, \
     InternalUploadBoardSoftware, PingMessage, SerialMonitorRequest, log_hardware_message, SerialMonitorRequestStop, \
-    InternalSerialMonitorStarting, InternalStartedSerialMonitor, InternalReceivedSerialBytes, SerialMonitorResult
+    InternalSerialMonitorStarting, InternalStartedSerialMonitor, InternalReceivedSerialBytes, SerialMonitorResult, \
+    InternalSerialMonitorStopped
 from src.domain.managed_uuid import ManagedUUID
 from src.domain.monitor_message import SerialMonitorMessageToAgent, SerialMonitorMessageToClient, MonitorUnavailable
 from src.domain.positive_integer import PositiveInteger
@@ -20,7 +21,7 @@ from src.engine.engine_common_state import EngineCommonState
 from src.engine.engine_events import DownloadingBoardSoftware, LifecycleStarted, BoardSoftwareDownloadSuccess, \
     UploadingBoardSoftware, BoardUploadSuccess, LifecycleEnded, BoardState, SerialMonitorAboutToStart, \
     StartSerialMonitor, SerialMonitorAlreadyConfigured, SendingBoardBytes, ReceivedSerialBytes, StoppingSerialMonitor, \
-    SerialMonitorStartSuccess
+    SerialMonitorStartSuccess, StoppedSerialMonitor
 from src.engine.engine_lifecycle import EngineLifecycle
 from src.engine.engine_ping import EnginePing
 from src.engine.engine_serial_monitor import EngineSerialMonitor, SerialBoard
@@ -97,7 +98,7 @@ class TestCommonEngine:
         asyncio.create_task(log_outgoing_until_death())
 
         # Backend
-        backend_config: BackendConfig = BackendConfig(None, None)
+        backend_config: BackendConfig = BackendConfig(None, None, None)
         backend = TestBackend(backend_config)
         backend.software_download = lambda software_id: Ok(software_path)
         software_path = ExistingFilePath(src_relative_path("static/test/software.bin"))
@@ -181,6 +182,7 @@ class TestCommonEngine:
             serial_request_message,
             to_agent_message,
             serial_stop_message,
+            InternalSerialMonitorStopped(),
             InternalReceivedSerialBytes(from_agent_bytes),
             InternalEndLifecycle(death_reason)
         ])
@@ -196,6 +198,7 @@ class TestCommonEngine:
             SerialMonitorAlreadyConfigured(),
             SendingBoardBytes(to_agent_bytes),
             StoppingSerialMonitor(),
+            StoppedSerialMonitor(),
             ReceivedSerialBytes(from_agent_bytes),
             LifecycleEnded(death_reason)
         ])
@@ -205,7 +208,8 @@ class TestCommonEngine:
             PingMessage(),
             SerialMonitorResult(None),
             MonitorUnavailable(reason='Hardware control stopped monitor'),
-            SerialMonitorMessageToClient(from_agent_bytes)
+            SerialMonitorMessageToClient(from_agent_bytes),
+            MonitorUnavailable(reason='Agent engine stopped, reason: Test finished')
         ]
         if out_queue_memory[-1] == PingMessage():
             # What a horrible hack

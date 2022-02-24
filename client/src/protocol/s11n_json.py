@@ -1,14 +1,26 @@
 """Module containing any JSON-from/to-Python serialization-specific logic"""
-
-import uuid
+import base64
 from functools import partial
 from typing import Type, TypeVar, Dict, Tuple, List
 from result import Result, Err, Ok
 from src.domain.managed_uuid import ManagedUUID
 from src.protocol.codec import CodecParseException
-from src.domain import hardware_control_message, backend_entity, backend_management_message, monitor_message
+from src.domain import hardware_control_message, backend_entity, backend_management_message, monitor_message, config
 from src.protocol.codec_json import JSON, EncoderJSON, DecoderJSON, CodecJSON
+from src.service.backend_config import UserPassAuthConfig
+from src.service.config_service import ConfigService
 from src.service.managed_serial_config import ManagedSerialConfig
+
+
+# Unit
+def unit_decode_json(value: JSON) -> Result[Dict, CodecParseException]:
+    """Decode string from JSON"""
+    if not isinstance(value, dict):
+        return Err(CodecParseException("Message must be object"))
+    return Ok(value)
+
+
+UNIT_DECODER_JSON: DecoderJSON[str] = DecoderJSON(unit_decode_json)
 
 
 # String
@@ -165,7 +177,7 @@ def upload_message_decode_json(value: JSON) -> Result[hardware_control_message.U
         return Err(CodecParseException("UploadMessage must be an object"))
     firmware_id_result = ManagedUUID.build(value.get("softwareId"))
     if isinstance(firmware_id_result, Err):
-        return Err(CodecParseException(f"UploadMessage .firmware_id isn't valid UUID: {e}"))
+        return Err(CodecParseException(f"UploadMessage .firmware_id isn't valid UUID: {firmware_id_result.value.text()}"))
     return Ok(hardware_control_message.UploadMessage(firmware_id_result.value))
 
 
@@ -565,3 +577,54 @@ def software_decode_json(
 SOFTWARE_ENCODER_JSON = EncoderJSON(software_encode_json)
 SOFTWARE_DECODER_JSON = DecoderJSON(software_decode_json)
 SOFTWARE_CODEC_JSON = CodecJSON(SOFTWARE_DECODER_JSON, SOFTWARE_ENCODER_JSON)
+
+
+# config.Config
+def config_encode_json(value: config.Config) -> JSON:
+    """Serialize UploadMessage to JSON"""
+    # Static URL
+    if value.static_url is None: static_url = None
+    else:
+        static_url_result = value.static_url.text()
+        if isinstance(static_url_result, Err): static_url = None
+        else: static_url = static_url_result.value
+    # Control URL
+    if value.control_url is None:
+        control_url = None
+    else:
+        control_url_result = value.control_url.text()
+        if isinstance(control_url_result, Err):
+            control_url = None
+        else:
+            control_url = control_url_result.value
+    # Auth
+    if isinstance(value.auth, UserPassAuthConfig):
+        username = value.auth.username
+        password_b64 = base64.b64encode(value.auth.password.encode()).decode("utf-8")
+    else:
+        username = None
+        password_b64 = None
+    return {
+        "staticUrl": static_url,
+        "controlUrl": control_url,
+        "username": username,
+        "passwordBase64": password_b64
+    }
+
+
+CONFIG_ENCODER_JSON: EncoderJSON[config.Config] = EncoderJSON(config_encode_json)
+
+
+# ConfigService
+def config_service_encode_json(value: ConfigService) -> JSON:
+    if value.source_file is None:
+        source_file = None
+    else:
+        source_file = value.source_file.value
+    return {
+        "config": CONFIG_ENCODER_JSON.json_encode(value.config),
+        "sourceFile": source_file
+    }
+
+
+CONFIG_SERVICE_ENCODER_JSON: EncoderJSON[ConfigService] = EncoderJSON(config_service_encode_json)

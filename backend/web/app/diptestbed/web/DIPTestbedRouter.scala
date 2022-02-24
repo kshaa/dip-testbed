@@ -16,6 +16,7 @@ class DIPTestbedRouter(
   def routes: Routes = {
     case GET(p"/")       => homeController.index
     case GET(p"/status") => homeController.status
+    case GET(p"/auth-check") => homeController.authCheck
 
     // Users
     case POST(p"/user")                => userController.createUser

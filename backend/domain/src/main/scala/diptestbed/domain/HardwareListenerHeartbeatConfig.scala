@@ -10,5 +10,5 @@ case class HardwareListenerHeartbeatConfig(
 )
 
 object HardwareListenerHeartbeatConfig {
-  def default(): HardwareListenerHeartbeatConfig = HardwareListenerHeartbeatConfig(5.seconds, 4.seconds)
+  def default(): HardwareListenerHeartbeatConfig = HardwareListenerHeartbeatConfig(10.seconds, 8.seconds)
 }

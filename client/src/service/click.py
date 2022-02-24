@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Command line interface definition for agent"""
 import asyncio
-
+from typing import Optional
 import click
 from src.monitor.monitor_type import MonitorType
 from src.service.cli import CLI
@@ -9,17 +9,24 @@ from src.protocol import s11n_json, s11n_rich
 
 ENV_PREFIX = "DIP"
 
+# Config
+CONFIG_PATH_OPTION = click.option(
+    "--config-path", '-x', "config_path_str", show_envvar=True,
+    type=str, envvar=f"{ENV_PREFIX}_CONFIG_PATH", required=False,
+    help='Path to configuration file, should be an absolute path e.g.'
+         '/home/user/.local/share/dip_platform/bin/'
+)
 
 # Server connection
 CONTROL_SERVER_OPTION = click.option(
     "--control-server", '-c', "control_server_str", show_envvar=True,
-    type=str, envvar=f"{ENV_PREFIX}_CONTROL_SERVER", required=True,
+    type=str, envvar=f"{ENV_PREFIX}_CONTROL_SERVER", required=False,
     help='WebSocket server URL to the backend server. '
     'E.g. ws://localhost:9000/'
 )
 STATIC_SERVER_OPTION = click.option(
     "--static-server", '-s', "static_server_str", show_envvar=True,
-    type=str, envvar=f"{ENV_PREFIX}_STATIC_SERVER", required=True,
+    type=str, envvar=f"{ENV_PREFIX}_STATIC_SERVER", required=False,
     help='HTTP server URL to the backend server. '
     'E.g. http://localhost:9000/'
 )
@@ -92,13 +99,13 @@ JSON_OUTPUT_OPTION = click.option(
 
 # Authentication
 USERNAME_OPTION = click.option(
-    '--username', '-u', "username", show_envvar=True,
-    type=str, envvar=f"{ENV_PREFIX}_AUTH_USERNAME", required=True,
+    '--username', '-u', "username_str", show_envvar=True,
+    type=str, envvar=f"{ENV_PREFIX}_AUTH_USERNAME", required=False,
     help='User username (e.g. \'johndoe\').'
 )
 PASSWORD_OPTION = click.option(
-    '--password', '-p', "password", show_envvar=True,
-    type=str, envvar=f"{ENV_PREFIX}_AUTH_PASSWORD", required=True,
+    '--password', '-p', "password_str", show_envvar=True,
+    type=str, envvar=f"{ENV_PREFIX}_AUTH_PASSWORD", required=False,
     help='User password (e.g. \'12345\').'
 )
 
@@ -117,54 +124,172 @@ def cli_client():
 
 
 @cli_client.command()
+@CONFIG_PATH_OPTION
+def session_debug(config_path_str: Optional[str]):
+    """Print out all session data"""
+    CLI.execute_table_result(
+        True,
+        CLI.session_debug(config_path_str),
+        s11n_json.CONFIG_SERVICE_ENCODER_JSON,
+        None
+    )
+
+
+@cli_client.command()
+@CONFIG_PATH_OPTION
+@STATIC_SERVER_OPTION
+@USERNAME_OPTION
+@PASSWORD_OPTION
+def session_auth(
+    config_path_str: Optional[str],
+    static_server_str: Optional[str],
+    username_str: Optional[str],
+    password_str: Optional[str],
+):
+    """Add authentication data to session"""
+    CLI.execute_optional_result(
+        False,
+        CLI.session_auth(config_path_str, static_server_str, username_str, password_str),
+        f"Authenticated against backend"
+    )
+
+
+@cli_client.command()
+@CONFIG_PATH_OPTION
+def session_auth_remove(
+    config_path_str: Optional[str],
+):
+    """Remove authentication data from session"""
+    CLI.execute_optional_result(
+        False,
+        CLI.session_auth_remove(config_path_str),
+        f"Deleted backend authentication data"
+    )
+
+
+@cli_client.command()
+@CONFIG_PATH_OPTION
+@STATIC_SERVER_OPTION
+def session_static_server(
+    config_path_str: Optional[str],
+    static_server_str: Optional[str],
+):
+    """Add static server to session"""
+    CLI.execute_optional_result(
+        False,
+        CLI.session_static_server(config_path_str, static_server_str),
+        f"Set static server URL"
+    )
+
+
+@cli_client.command()
+@CONFIG_PATH_OPTION
+def session_static_server_remove(
+    config_path_str: Optional[str]
+):
+    """Remove static server from session"""
+    CLI.execute_optional_result(
+        False,
+        CLI.session_static_server_remove(config_path_str),
+        f"Deleted static server URL"
+    )
+
+
+@cli_client.command()
+@CONFIG_PATH_OPTION
+@CONTROL_SERVER_OPTION
+def session_control_server(
+    config_path_str: Optional[str],
+    control_server_str: Optional[str],
+):
+    """Add control server to session"""
+    CLI.execute_optional_result(
+        False,
+        CLI.session_control_server(config_path_str, control_server_str),
+        f"Set control server URL"
+    )
+
+
+@cli_client.command()
+@CONFIG_PATH_OPTION
+def session_control_server_remove(
+    config_path_str: Optional[str]
+):
+    """Remove control server from session"""
+    CLI.execute_optional_result(
+        False,
+        CLI.session_control_server_remove(config_path_str),
+        f"Deleted control server URL"
+    )
+
+
+@cli_client.command()
+@CONFIG_PATH_OPTION
 @HARDWARE_ID_OPTION
 @CONTROL_SERVER_OPTION
 @STATIC_SERVER_OPTION
+@USERNAME_OPTION
+@PASSWORD_OPTION
 @HEARTBEAT_SECONDS_OPTION
 @DEVICE_PATH_OPTION
 def agent_nrf52(
-        hardware_id_str: str,
-        control_server_str: str,
-        static_server_str: str,
-        heartbeat_seconds: int,
-        device_path_str: str
+    config_path_str: Optional[str],
+    hardware_id_str: str,
+    control_server_str: Optional[str],
+    static_server_str: Optional[str],
+    username_str: Optional[str],
+    password_str: Optional[str],
+    heartbeat_seconds: int,
+    device_path_str: str
 ):
-    """[Linux] NRF52 microcontroller agent"""
+    """NRF52 MCU agent (Linux specific)"""
     async def exec():
         return await CLI.execute_runnable_result(
             await CLI.agent_nrf52(
+                config_path_str,
                 hardware_id_str,
                 control_server_str,
                 static_server_str,
+                username_str,
+                password_str,
                 heartbeat_seconds,
                 device_path_str), "NRF52 agent finished work")
     asyncio.run(exec())
 
 
 @cli_client.command()
+@CONFIG_PATH_OPTION
 @HARDWARE_ID_OPTION
 @CONTROL_SERVER_OPTION
 @STATIC_SERVER_OPTION
+@USERNAME_OPTION
+@PASSWORD_OPTION
 @HEARTBEAT_SECONDS_OPTION
 @DEVICE_NAME_OPTION
 @SCAN_CHAIN_INDEX_OPTION
 @DEVICE_PATH_OPTION
 def agent_anvyl(
+    config_path_str: Optional[str],
     hardware_id_str: str,
-    control_server_str: str,
-    static_server_str: str,
+    control_server_str: Optional[str],
+    static_server_str: Optional[str],
+    username_str: Optional[str],
+    password_str: Optional[str],
     heartbeat_seconds: int,
     device_name_str: str,
     scan_chain_index: int,
     device_path_str: str
 ):
-    """[Linux] Anvyl FPGA agent"""
+    """Anvyl FPGA agent (Linux specific)"""
     async def exec():
         return await CLI.execute_runnable_result(
             await CLI.agent_anvyl(
+                config_path_str,
                 hardware_id_str,
                 control_server_str,
                 static_server_str,
+                username_str,
+                password_str,
                 heartbeat_seconds,
                 device_name_str,
                 scan_chain_index,
@@ -173,104 +298,139 @@ def agent_anvyl(
 
 
 @cli_client.command()
+@CONFIG_PATH_OPTION
 @HARDWARE_ID_OPTION
 @CONTROL_SERVER_OPTION
 @STATIC_SERVER_OPTION
+@USERNAME_OPTION
+@PASSWORD_OPTION
 @HEARTBEAT_SECONDS_OPTION
 def agent_fake(
-        hardware_id_str: str,
-        control_server_str: str,
-        static_server_str: str,
-        heartbeat_seconds: int
+    config_path_str: Optional[str],
+    hardware_id_str: str,
+    control_server_str: Optional[str],
+    static_server_str: Optional[str],
+    username_str: Optional[str],
+    password_str: Optional[str],
+    heartbeat_seconds: int
 ):
-    """[Linux] Fake board agent"""
+    """Fake board agent"""
     async def exec():
         return await CLI.execute_runnable_result(
             await CLI.agent_fake(
+                config_path_str,
                 hardware_id_str,
                 control_server_str,
                 static_server_str,
+                username_str,
+                password_str,
                 heartbeat_seconds), "Fake agent finished work")
     asyncio.run(exec())
 
 
 @cli_client.command()
+@CONFIG_PATH_OPTION
 @JSON_OUTPUT_OPTION
 @STATIC_SERVER_OPTION
-def user_list(json_output: bool, static_server_str: str):
+def user_list(
+    config_path_str: Optional[str],
+    json_output: bool,
+    static_server_str: Optional[str]
+):
     """Fetch list of users"""
     CLI.execute_table_result(
         json_output,
-        CLI.user_list(static_server_str),
-        s11n_json.USER_ENCODER_JSON,
+        CLI.user_list(config_path_str, static_server_str),
+        s11n_json.list_encoder_json(s11n_json.USER_ENCODER_JSON),
         s11n_rich.RichUserEncoder()
     )
 
 
 @cli_client.command()
+@CONFIG_PATH_OPTION
 @JSON_OUTPUT_OPTION
 @STATIC_SERVER_OPTION
 @USERNAME_OPTION
 @PASSWORD_OPTION
-def user_create(json_output: bool, static_server_str: str, username: str, password: str):
+def user_create(
+    config_path_str: Optional[str],
+    json_output: bool,
+    static_server_str: Optional[str],
+    username_str: Optional[str],
+    password_str: Optional[str]
+):
     """Create new user"""
     CLI.execute_table_result(
         json_output,
-        CLI.user_create(static_server_str, username, password).map(lambda x: [x]),
-        s11n_json.USER_ENCODER_JSON,
+        CLI.user_create(config_path_str, static_server_str, username_str, password_str).map(lambda x: [x]),
+        s11n_json.list_encoder_json(s11n_json.USER_ENCODER_JSON),
         s11n_rich.RichUserEncoder()
     )
 
 
 @cli_client.command()
+@CONFIG_PATH_OPTION
 @JSON_OUTPUT_OPTION
 @STATIC_SERVER_OPTION
-def hardware_list(json_output: bool, static_server_str: str):
+def hardware_list(
+    config_path_str: Optional[str],
+    json_output: bool,
+    static_server_str: Optional[str]
+):
     """Fetch list of hardware"""
     CLI.execute_table_result(
         json_output,
-        CLI.hardware_list(static_server_str),
-        s11n_json.HARDWARE_ENCODER_JSON,
+        CLI.hardware_list(config_path_str, static_server_str),
+        s11n_json.list_encoder_json(s11n_json.HARDWARE_ENCODER_JSON),
         s11n_rich.RichHardwareEncoder()
     )
 
 
 @cli_client.command()
+@CONFIG_PATH_OPTION
 @JSON_OUTPUT_OPTION
 @STATIC_SERVER_OPTION
 @USERNAME_OPTION
 @PASSWORD_OPTION
 @HARDWARE_NAME_OPTION
 def hardware_create(
+    config_path_str: Optional[str],
     json_output: bool,
-    static_server_str: str,
-    username: str,
-    password: str,
+    static_server_str: Optional[str],
+    username_str: Optional[str],
+    password_str: Optional[str],
     hardware_name: str
 ):
     """Create new hardware"""
     CLI.execute_table_result(
         json_output,
-        CLI.hardware_create(static_server_str, username, password, hardware_name).map(lambda x: [x]),
-        s11n_json.HARDWARE_ENCODER_JSON,
+        CLI.hardware_create(
+            config_path_str, static_server_str, username_str, password_str, hardware_name).map(lambda x: [x]),
+        s11n_json.list_encoder_json(s11n_json.HARDWARE_ENCODER_JSON),
         s11n_rich.RichHardwareEncoder()
     )
 
 
 @cli_client.command()
+@CONFIG_PATH_OPTION
 @JSON_OUTPUT_OPTION
 @STATIC_SERVER_OPTION
-def software_list(json_output: bool, static_server_str: str):
+def software_list(
+    config_path_str: Optional[str],
+    json_output: bool,
+    static_server_str: Optional[str]
+):
     """Fetch list of software"""
     CLI.execute_table_result(
         json_output,
-        CLI.software_list(static_server_str),
-        s11n_json.SOFTWARE_ENCODER_JSON,
+        CLI.software_list(config_path_str, static_server_str),
+        s11n_json.list_encoder_json(s11n_json.SOFTWARE_ENCODER_JSON),
         s11n_rich.RichSoftwareEncoder()
     )
 
 
 @cli_client.command()
+@CONFIG_PATH_OPTION
 @JSON_OUTPUT_OPTION
 @STATIC_SERVER_OPTION
 @USERNAME_OPTION
@@ -278,63 +438,71 @@ def software_list(json_output: bool, static_server_str: str):
 @SOFTWARE_NAME_OPTION
 @SOFTWARE_FILE_PATH
 def software_upload(
+    config_path_str: Optional[str],
     json_output: bool,
-    static_server_str: str,
-    username: str,
-    password: str,
+    static_server_str: Optional[str],
+    username_str: Optional[str],
+    password_str: Optional[str],
     software_name: str,
     file_path: str,
 ):
     """Upload new software"""
     CLI.execute_table_result(
         json_output,
-        CLI.software_upload(static_server_str, username, password, software_name, file_path).map(lambda x: [x]),
-        s11n_json.SOFTWARE_ENCODER_JSON,
+        CLI.software_upload(
+            config_path_str, static_server_str, username_str, password_str, software_name, file_path).map(lambda x: [x]),
+        s11n_json.list_encoder_json(s11n_json.SOFTWARE_ENCODER_JSON),
         s11n_rich.RichSoftwareEncoder()
     )
 
 
 @cli_client.command()
+@CONFIG_PATH_OPTION
 @STATIC_SERVER_OPTION
 @SOFTWARE_ID_OPTION
 @SOFTWARE_FILE_PATH
 def software_download(
-    static_server_str: str,
+    config_path_str: Optional[str],
+    static_server_str: Optional[str],
     software_id_str: str,
     file_path: str
 ):
     """Download existing software"""
     CLI.execute_optional_result(
         False,
-        CLI.software_download(static_server_str, software_id_str, file_path),
+        CLI.software_download(config_path_str, static_server_str, software_id_str, file_path),
         f"Downloaded software at '{file_path}'"
     )
 
 
 @cli_client.command()
+@CONFIG_PATH_OPTION
 @STATIC_SERVER_OPTION
 @HARDWARE_ID_OPTION
 @SOFTWARE_ID_OPTION
 def hardware_software_upload(
-    static_server_str: str,
+    config_path_str: Optional[str],
+    static_server_str: Optional[str],
     hardware_id_str: str,
     software_id_str: str
 ):
     """Upload software to hardware"""
     CLI.execute_optional_result(
         False,
-        CLI.hardware_software_upload(static_server_str, hardware_id_str, software_id_str),
+        CLI.hardware_software_upload(config_path_str, static_server_str, hardware_id_str, software_id_str),
         f"Uploaded software '{software_id_str}' to hardware '{hardware_id_str}'"
     )
 
 
 @cli_client.command()
+@CONFIG_PATH_OPTION
 @CONTROL_SERVER_OPTION
 @HARDWARE_ID_OPTION
 @MONITOR_TYPE_OPTION
 @MONITOR_SCRIPT_PATH_OPTION
 def hardware_serial_monitor(
-    control_server_str: str,
+    config_path_str: Optional[str],
+    control_server_str: Optional[str],
     hardware_id_str: str,
     monitor_type_str: str,
     monitor_script_path_str: str
@@ -342,6 +510,7 @@ def hardware_serial_monitor(
     """Monitor hardware's serial port"""
     async def exec():
         await CLI.execute_runnable_result(CLI.hardware_serial_monitor(
+            config_path_str,
             control_server_str,
             hardware_id_str,
             monitor_type_str,

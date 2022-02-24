@@ -24,7 +24,9 @@ class HomeController(
   @unused iort: IORuntime,
   @unused materializer: Materializer,
 ) extends AbstractController(cc)
-    with IOController {
+    with IOController
+    with ResultsController[IO]
+    with AuthController[IO] {
   def index: Action[AnyContent] =
     Action(Success(Hello("diptestbed")).withHttpStatus(OK))
 
@@ -45,4 +47,8 @@ class HomeController(
           status => Success(status).withHttpStatus(OK),
         )
     }
+
+  def authCheck: Action[AnyContent] =
+    IOActionAny(withRequestAuthnOrFail(_)((_, _) => EitherT.liftF(IO.pure(Success(()).withHttpStatus(OK)))))
+
 }

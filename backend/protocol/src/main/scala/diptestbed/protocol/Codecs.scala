@@ -27,6 +27,9 @@ object Codecs {
 
   implicit val serialConfigCodec: Codec[SerialConfig] = deriveCodec[SerialConfig]
 
+  implicit val unitCodec: Codec[Unit] = deriveCodec[Unit]
+
+
   private implicit val monitorUnavailableCodec: Codec[MonitorUnavailable] = deriveCodec[MonitorUnavailable]
   private implicit val connectionClosedCodec: Codec[ConnectionClosed] = deriveCodec[ConnectionClosed]
 

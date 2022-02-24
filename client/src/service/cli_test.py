@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """Test command line interface definition for agent"""
-
+import os
 import unittest
 from uuid import UUID
 
@@ -20,15 +20,23 @@ class TestCLI(unittest.TestCase):
     test_static_server = ManagedURL.build("http://localhost:9000/base/path").value.text().value
     test_heartbeat_seconds = 30
     test_device_path = ExistingFilePath(src_relative_path("static/test/device")).value
+    test_config_path = src_relative_path("static/test/config.yaml")
     def test_good_common_agent_params(self):
         """Test whether upload arguments are constructed properly"""
 
+        # Flush old test data
+        if ExistingFilePath.exists(self.test_config_path):
+            os.remove(self.test_config_path)
+
         result = CLI.parsed_agent_input(
+            self.test_config_path,
             str(self.test_hardware_id),
             self.test_control_server,
             self.test_static_server,
+            None,
+            None,
             self.test_heartbeat_seconds,
-            self.test_device_path
+            self.test_device_path,
         )
         self.assertTrue(isinstance(result, Ok), result.value)
 
@@ -38,6 +46,11 @@ class TestCLI(unittest.TestCase):
         self.assertTrue(ssrv, self.test_static_server)
         self.assertTrue(hs, self.test_heartbeat_seconds)
         self.assertTrue(dp, self.test_device_path)
+
+        # Flush current test data
+        if ExistingFilePath.exists(self.test_config_path):
+            os.remove(self.test_config_path)
+
 
 
 if __name__ == '__main__':

@@ -166,7 +166,7 @@ class EngineSerialMonitor:
                 await previous_state.active_serial.close()
             if previous_state.serial_death is not None:
                 previous_state.serial_death.grace()
-            message = f"Hardware controller stopped monitor"
+            message = f"Hardware control stopped monitor"
             if event.reason is not None:
                 message = f"{message}, reason: {event.reason.text()}"
             await previous_state.base.outgoing_message_queue.put(MonitorUnavailable(message))

@@ -1,13 +1,17 @@
 #!/usr/bin/env python
 """Command line interface definition for agent"""
 import asyncio
+import os
 import sys
 from typing import Tuple, Optional, List, Union, TypeVar, Any, Awaitable
+
+import appdirs
 from result import Err, Result, Ok
 from rich.table import Table
 from src.agent.agent import Agent
 from src.agent.agent_config import AgentConfig
 from src.domain.backend_entity import User, Hardware, Software
+from src.domain.config import Config
 from src.domain.dip_runnable import DIPRunnable
 from src.engine.board.anvyl.engine_anvyl import EngineAnvyl
 from src.engine.board.anvyl.engine_anvyl_state import EngineAnvylState, EngineAnvylBoardState
@@ -31,8 +35,11 @@ from src.protocol import s11n_hybrid, s11n_json
 from src.protocol.codec_json import JSON, EncoderJSON
 from src.protocol.s11n_hybrid import COMMON_INCOMING_MESSAGE_DECODER, COMMON_INCOMING_MESSAGE_ENCODER, \
     COMMON_OUTGOING_MESSAGE_ENCODER
+from src.protocol.s11n_json import CONFIG_ENCODER_JSON
 from src.protocol.s11n_rich import RichEncoder
 from src.service.backend import BackendConfig, BackendService, BackendServiceInterface
+from src.service.backend_config import UserPassAuthConfig
+from src.service.config_service import ConfigService
 from src.service.managed_url import ManagedURL
 from src.service.ws import WebSocket
 from src.util import log
@@ -48,88 +55,168 @@ RESULT_CONTENT = Result[Union[Table, JSON], DIPClientError]
 
 class CLIInterface:
     @staticmethod
-    def build_agent_nrf52(
-            hardware_id_str: str,
-            control_server_str: str,
-            static_server_str: str,
-            heartbeat_seconds: int,
-            device_path_str: str
+    def session_debug(
+            config_path_str: Optional[str],
+    ) -> Result[ConfigService, DIPClientError]:
+        pass
+
+    @staticmethod
+    def session_auth(
+        config_path_str: Optional[str],
+        static_server_str: Optional[str],
+        username: str,
+        password: str,
+    ) -> Optional[DIPClientError]:
+        pass
+
+    @staticmethod
+    def session_auth_remove(
+        config_path_str: Optional[str],
+    ) -> Optional[DIPClientError]:
+        pass
+
+    @staticmethod
+    def session_control_server(
+        config_path_str: Optional[str],
+        control_server_str: Optional[str]
+    ) -> Optional[DIPClientError]:
+        pass
+
+    @staticmethod
+    def session_control_server_remove(
+        config_path_str: Optional[str]
+    ) -> Optional[DIPClientError]:
+        pass
+
+    @staticmethod
+    def session_static_server(
+        config_path_str: Optional[str],
+        static_server_str: Optional[str]
+    ) -> Optional[DIPClientError]:
+        pass
+
+    @staticmethod
+    def session_static_server_remove(
+        config_path_str: Optional[str]
+    ) -> Optional[DIPClientError]:
+        pass
+
+    @staticmethod
+    async def agent_nrf52(
+        config_path_str: Optional[str],
+        hardware_id_str: str,
+        control_server_str: Optional[str],
+        static_server_str: Optional[str],
+        username_str: Optional[str],
+        password_str: Optional[str],
+        heartbeat_seconds: int,
+        device_path_str: str
     ) -> Result[Agent, DIPClientError]:
         pass
 
     @staticmethod
-    def agent_anvyl(
-            hardware_id_str: str,
-            control_server_str: str,
-            static_server_str: str,
-            heartbeat_seconds: int,
-            device_name_str: str,
-            scan_chain_index: int,
-            device_path_str: str
+    async def agent_anvyl(
+        config_path_str: Optional[str],
+        hardware_id_str: str,
+        control_server_str: Optional[str],
+        static_server_str: Optional[str],
+        username_str: Optional[str],
+        password_str: Optional[str],
+        heartbeat_seconds: int,
+        device_name_str: str,
+        scan_chain_index: int,
+        device_path_str: str
     ) -> Result[Agent, DIPClientError]:
         pass
 
     @staticmethod
-    def user_list(static_server_str: str) -> Result[List[User], DIPClientError]:
+    async def agent_fake(
+        config_path_str: Optional[str],
+        hardware_id_str: str,
+        control_server_str: Optional[str],
+        static_server_str: Optional[str],
+        username_str: Optional[str],
+        password_str: Optional[str],
+        heartbeat_seconds: int
+    ) -> Result[Agent, DIPClientError]:
+        pass
+
+    @staticmethod
+    def user_list(
+        config_path_str: Optional[str],
+        static_server_str: Optional[str]
+    ) -> Result[List[User], DIPClientError]:
         pass
 
     @staticmethod
     def user_create(
-        static_server_str: str,
-        username: str,
-        password: str
+        config_path_str: Optional[str],
+        static_server_str: Optional[str],
+        username: Optional[str],
+        password: Optional[str]
     ) -> Result[User, DIPClientError]:
         pass
 
     @staticmethod
-    def hardware_list(static_server_str: str) -> Result[List[Hardware], DIPClientError]:
+    def hardware_list(
+        config_path_str: Optional[str],
+        static_server_str: Optional[str]
+    ) -> Result[List[Hardware], DIPClientError]:
         pass
 
     @staticmethod
     def hardware_create(
-            static_server_str: str,
-            username: str,
-            password: str,
-            hardware_name: str
+        config_path_str: Optional[str],
+        static_server_str: Optional[str],
+        username: Optional[str],
+        password: Optional[str],
+        hardware_name: str
     ) -> Result[Hardware, DIPClientError]:
         pass
 
     @staticmethod
-    def software_list(static_server_str: str) -> Result[List[Software], DIPClientError]:
+    def software_list(
+        config_path_str: Optional[str],
+        static_server_str: str
+    ) -> Result[List[Software], DIPClientError]:
         pass
 
     @staticmethod
     def software_upload(
-            static_server_str: str,
-            username: str,
-            password: str,
-            software_name: str,
-            file_path: str,
+        config_path_str: Optional[str],
+        static_server_str: Optional[str],
+        username: Optional[str],
+        password: Optional[str],
+        software_name: str,
+        file_path: str,
     ) -> Result[Software, DIPClientError]:
         pass
 
     @staticmethod
     def software_download(
-            static_server_str: str,
-            software_id_str: str,
-            file_path: str
+        config_path_str: Optional[str],
+        static_server_str: Optional[str],
+        software_id_str: str,
+        file_path: str
     ) -> Result[ExistingFilePath, DIPClientError]:
         pass
 
     @staticmethod
     def hardware_software_upload(
-            static_server_str: str,
-            hardware_id_str: str,
-            software_id_str: str
+        config_path_str: Optional[str],
+        static_server_str: Optional[str],
+        hardware_id_str: str,
+        software_id_str: str
     ) -> Optional[DIPClientError]:
         pass
 
     @staticmethod
     def hardware_serial_monitor(
-            control_server_str: str,
-            hardware_id_str: str,
-            monitor_type_str: str,
-            monitor_script_path_str: str
+        config_path_str: Optional[str],
+        control_server_str: Optional[str],
+        hardware_id_str: str,
+        monitor_type_str: str,
+        monitor_script_path_str: str
     ):
         pass
 
@@ -157,57 +244,217 @@ class CLIInterface:
 
 class CLI(CLIInterface):
     @staticmethod
-    def parsed_backend(
-            control_server_str: Optional[str],
-            static_server_str: Optional[str],
-    ) -> Result[BackendServiceInterface, DIPClientError]:
-        if control_server_str is None and static_server_str is None:
-            return Err(GenericClientError("Backend service requires either static or control URL"))
+    def config_service_from_path(
+        config_path_str: Optional[str],
+    ) -> Result[ConfigService, DIPClientError]:
+        # Fallback config path
+        if config_path_str is None:
+            base_path = appdirs.user_data_dir("dip_platform")
+            config_path_str = f"{base_path}/config.yaml"
+        # Find config file or create one
+        config_path_result = ExistingFilePath.build(config_path_str)
+        if isinstance(config_path_result, Err):
+            config_path_result = ExistingFilePath.new(config_path_str)
+            if isinstance(config_path_result, Err):
+                # Accept inability to create config, assume empty config
+                LOGGER.warning(config_path_result.value.of_type('config').text())
+                return Ok(ConfigService(Config(), CONFIG_ENCODER_JSON))
+        # Read file config
+        config_result = ConfigService.from_file(CONFIG_ENCODER_JSON, config_path_result.value)
+        if isinstance(config_result, Err):
+            return Err(config_result.value)
+        return Ok(config_result.value)
 
-        if control_server_str is None:
-            control_server = None
-        else:
+    @staticmethod
+    def config_service_with_overrides(
+        config_path_str: Optional[str],
+        control_server_str: Optional[str] = None,
+        static_server_str: Optional[str] = None,
+        username_str: Optional[str] = None,
+        password_str: Optional[str] = None
+    ) -> Result[ConfigService, DIPClientError]:
+        # Raw config
+        config_service_result = CLI.config_service_from_path(config_path_str)
+        if isinstance(config_service_result, Err): return Err(config_service_result.value)
+        config_service = config_service_result.value
+
+        # Build control URL
+        if control_server_str is not None:
             control_server_result = ManagedURL.build(control_server_str)
             if isinstance(control_server_result, Err): return Err(control_server_result.value.of_type("control server"))
-            control_server = control_server_result.value
+            config_service = config_service.with_config(
+                config_service.config.with_control_url(control_server_result.value))
 
-        if static_server_str is None:
-            static_server = None
-        else:
+        # Build static URL
+        if static_server_str is not None:
             static_server_result = ManagedURL.build(static_server_str)
             if isinstance(static_server_result, Err): return Err(static_server_result.value.of_type("static server"))
-            static_server = static_server_result.value
+            config_service = config_service.with_config(
+                config_service.config.with_static_url(static_server_result.value))
 
-        return Ok(BackendService(BackendConfig(control_server, static_server)))
+        # Build auth
+        if username_str is None and password_str is None:
+            # No auth configured, ignore
+            pass
+        elif username_str is not None and password_str is not None:
+            config_service = config_service.with_config(
+                config_service.config.with_auth(UserPassAuthConfig(username_str, password_str)))
+        else:
+            return Err(GenericClientError("Username and password must both be empty or both defined"))
+
+        # Parsed config
+        return Ok(config_service)
+
+    @staticmethod
+    def parsed_backend(
+        config_path_str: Optional[str],
+        control_server_str: Optional[str],
+        static_server_str: Optional[str],
+        username_str: Optional[str],
+        password_str: Optional[str]
+    ) -> Result[BackendServiceInterface, DIPClientError]:
+        # Build config
+        config_service_result = CLI.config_service_with_overrides(
+            config_path_str,
+            control_server_str,
+            static_server_str,
+            username_str,
+            password_str)
+        if isinstance(config_service_result, Err): return Err(config_service_result.value)
+        config = config_service_result.value.config
+
+        # Complete non-sense check
+        if config.control_url is None and config.static_url is None:
+            return Err(GenericClientError("Backend service requires either static or control URL"))
+
+        # Successful build
+        return Ok(BackendService(BackendConfig(config.control_url, config.static_url, config.auth)))
+
+    @staticmethod
+    def session_debug(
+        config_path_str: Optional[str],
+    ) -> Result[ConfigService, DIPClientError]:
+        return CLI.config_service_from_path(config_path_str)
+
+    @staticmethod
+    def session_auth(
+        config_path_str: Optional[str],
+        static_server_str: Optional[str],
+        username_str: Optional[str],
+        password_str: Optional[str],
+    ) -> Optional[DIPClientError]:
+        # Updated config
+        config_service_result = CLI.config_service_with_overrides(
+            config_path_str,
+            None,
+            static_server_str,
+            username_str,
+            password_str)
+        if isinstance(config_service_result, Err): return config_service_result.value
+        config_service = config_service_result.value
+        config = config_service.config
+
+        # Auth check
+        auth_error = BackendService(BackendConfig(config.control_url, config.static_url, config.auth)).auth_check()
+        if auth_error is not None: return auth_error
+
+        # Write auth to file
+        if config_service.changed:
+            write_error = config_service.to_file()
+            if write_error is not None: return write_error
+
+    @staticmethod
+    def session_auth_remove(
+        config_path_str: Optional[str],
+    ) -> Optional[DIPClientError]:
+        config_service_result = CLI.config_service_with_overrides(config_path_str)
+        if isinstance(config_service_result, Err): return config_service_result.value
+        config_service = config_service_result.value
+        new_config_service = config_service.with_config(config_service.config.with_auth(None))
+        if new_config_service.changed:
+            write_error = new_config_service.to_file()
+            if write_error is not None: return write_error
+
+    @staticmethod
+    def session_control_server(
+        config_path_str: Optional[str],
+        control_server_str: str
+    ) -> Optional[DIPClientError]:
+        if control_server_str is None: return GenericClientError("URL required")
+        config_service_result = CLI.config_service_with_overrides(config_path_str, control_server_str)
+        if isinstance(config_service_result, Err): return config_service_result.value
+        if config_service_result.value.changed:
+            write_error = config_service_result.value.to_file()
+            if write_error is not None: return write_error
+
+    @staticmethod
+    def session_control_server_remove(
+        config_path_str: Optional[str]
+    ) -> Optional[DIPClientError]:
+        config_service_result = CLI.config_service_with_overrides(config_path_str)
+        if isinstance(config_service_result, Err): return config_service_result.value
+        config_service = config_service_result.value
+        new_config_service = config_service.with_config(config_service.config.with_control_url(None))
+        if new_config_service.changed:
+            write_error = new_config_service.to_file()
+            if write_error is not None: return write_error
+
+    @staticmethod
+    def session_static_server(
+        config_path_str: Optional[str],
+        static_server_str: Optional[str]
+    ) -> Optional[DIPClientError]:
+        if static_server_str is None: return GenericClientError("URL required")
+        config_service_result = CLI.config_service_with_overrides(config_path_str, None, static_server_str)
+        if isinstance(config_service_result, Err): return config_service_result.value
+        if config_service_result.value.changed:
+            write_error = config_service_result.value.to_file()
+            if write_error is not None: return write_error
+
+    @staticmethod
+    def session_static_server_remove(
+        config_path_str: Optional[str]
+    ) -> Optional[DIPClientError]:
+        config_service_result = CLI.config_service_with_overrides(config_path_str)
+        if isinstance(config_service_result, Err): return config_service_result.value
+        config_service = config_service_result.value
+        new_config_service = config_service.with_config(config_service.config.with_static_url(None))
+        if new_config_service.changed:
+            write_error = new_config_service.to_file()
+            if write_error is not None: return write_error
 
     @staticmethod
     def parsed_agent_input(
-            hardware_id_str: str,
-            control_server_str: str,
-            static_server_str: str,
-            heartbeat_seconds: int,
-            device_path_str: str
+        config_path_str: Optional[str],
+        hardware_id_str: str,
+        control_server_str: Optional[str],
+        static_server_str: Optional[str],
+        username_str: Optional[str],
+        password_str: Optional[str],
+        heartbeat_seconds: int,
+        device_path_str: str
     ) -> Result[
         Tuple[ManagedUUID, PositiveInteger, BackendServiceInterface, ManagedURL, ExistingFilePath],
         DIPClientError
     ]:
+        config_service_result = CLI.config_service_with_overrides(
+            config_path_str, control_server_str, static_server_str, username_str, password_str)
+        if isinstance(config_service_result, Err): return config_service_result.value
+        config = config_service_result.value.config
+
         hardware_id_result = ManagedUUID.build(hardware_id_str)
         if isinstance(hardware_id_result, Err): return Err(hardware_id_result.value.of_type("hardware"))
 
-        control_server_result = ManagedURL.build(control_server_str)
-        if isinstance(control_server_result, Err): return Err(control_server_result.value.of_type("control server"))
-
-        static_server_result = ManagedURL.build(static_server_str)
-        if isinstance(static_server_result, Err): return Err(static_server_result.value.of_type("static server"))
+        if config.control_url is None: return Err(GenericClientError("Control URL is required"))
+        if config.static_url is None: return Err(GenericClientError("Static URL is required"))
 
         heartbeat_seconds_result = PositiveInteger.build(heartbeat_seconds)
         if isinstance(heartbeat_seconds_result, Err): return Err(heartbeat_seconds_result.value.of_type("heartbeat"))
 
-        backend_result = CLI.parsed_backend(control_server_str, static_server_str)
-        if isinstance(backend_result, Err): return Err(backend_result.value)
+        backend = BackendService(BackendConfig(config.control_url, config.static_url, config.auth))
 
-        control_url_result = backend_result.value.hardware_control_url(hardware_id_result.value)
-        if isinstance(control_url_result, Err): return Err(control_url_result.value)
+        hardware_control_url_result = backend.hardware_control_url(hardware_id_result.value)
+        if isinstance(hardware_control_url_result, Err): return Err(hardware_control_url_result.value)
 
         device_path_result = ExistingFilePath.build(device_path_str)
         if isinstance(device_path_result, Err): return Err(device_path_result.value.of_type("device"))
@@ -215,22 +462,26 @@ class CLI(CLIInterface):
         return Ok((
             hardware_id_result.value,
             heartbeat_seconds_result.value,
-            backend_result.value,
-            control_url_result.value,
+            backend,
+            hardware_control_url_result.value,
             device_path_result.value
         ))
 
     @staticmethod
     async def agent_nrf52(
-            hardware_id_str: str,
-            control_server_str: str,
-            static_server_str: str,
-            heartbeat_seconds: int,
-            device_path_str: str
+        config_path_str: Optional[str],
+        hardware_id_str: str,
+        control_server_str: Optional[str],
+        static_server_str: Optional[str],
+        username_str: Optional[str],
+        password_str: Optional[str],
+        heartbeat_seconds: int,
+        device_path_str: str
     ) -> Result[Agent, DIPClientError]:
         # Common agent input
         common_agent_input_result: Result = CLI.parsed_agent_input(
-            hardware_id_str, control_server_str, static_server_str, heartbeat_seconds, device_path_str)
+            config_path_str, hardware_id_str, control_server_str, static_server_str, username_str, password_str,
+            heartbeat_seconds, device_path_str)
         if isinstance(common_agent_input_result, Err): return common_agent_input_result
         (hardware_id, heartbeat_seconds, backend, hardware_control_url, device_path) = \
             common_agent_input_result.value
@@ -255,8 +506,11 @@ class CLI(CLIInterface):
     @staticmethod
     async def agent_anvyl(
         hardware_id_str: str,
-        control_server_str: str,
-        static_server_str: str,
+        config_path_str: Optional[str],
+        control_server_str: Optional[str],
+        static_server_str: Optional[str],
+        username_str: Optional[str],
+        password_str: Optional[str],
         heartbeat_seconds: int,
         device_name_str: str,
         scan_chain_index: int,
@@ -264,7 +518,8 @@ class CLI(CLIInterface):
     ) -> Result[Agent, DIPClientError]:
         # Common agent input
         common_agent_input_result: Result = CLI.parsed_agent_input(
-            hardware_id_str, control_server_str, static_server_str, heartbeat_seconds, device_path_str)
+            config_path_str, hardware_id_str, control_server_str, static_server_str, username_str, password_str,
+            heartbeat_seconds, device_path_str)
         if isinstance(common_agent_input_result, Err): return common_agent_input_result
         (hardware_id, heartbeat_seconds, backend, hardware_control_url, device_path) = \
             common_agent_input_result.value
@@ -289,14 +544,18 @@ class CLI(CLIInterface):
     @staticmethod
     async def agent_fake(
         hardware_id_str: str,
-        control_server_str: str,
-        static_server_str: str,
+        config_path_str: Optional[str],
+        control_server_str: Optional[str],
+        static_server_str: Optional[str],
+        username_str: Optional[str],
+        password_str: Optional[str],
         heartbeat_seconds: int
     ) -> Result[Agent, DIPClientError]:
         # Common agent input
         device_path = ExistingFilePath(src_relative_path("static/test/device"))
         common_agent_input_result: Result = CLI.parsed_agent_input(
-            hardware_id_str, control_server_str, static_server_str, heartbeat_seconds, device_path.value)
+            config_path_str, hardware_id_str, control_server_str, static_server_str, username_str, password_str,
+            heartbeat_seconds, device_path.value)
         if isinstance(common_agent_input_result, Err): return common_agent_input_result
         (hardware_id, heartbeat_seconds, backend, hardware_control_url, device_path) = \
             common_agent_input_result.value
@@ -319,65 +578,78 @@ class CLI(CLIInterface):
         return Ok(Agent(AgentConfig(engine, websocket)))
 
     @staticmethod
-    def user_list(static_server_str: str) -> Result[List[User], DIPClientError]:
-        backend_result = CLI.parsed_backend(None, static_server_str)
+    def user_list(
+        config_path_str: Optional[str],
+        static_server_str: Optional[str]
+    ) -> Result[List[User], DIPClientError]:
+        backend_result = CLI.parsed_backend(config_path_str, None, static_server_str, None, None)
         if isinstance(backend_result, Err): return Err(backend_result.value)
         return backend_result.value.user_list()
 
     @staticmethod
     def user_create(
-        static_server_str: str,
-        username: str,
-        password: str
+        config_path_str: Optional[str],
+        static_server_str: Optional[str],
+        username: Optional[str],
+        password: Optional[str]
     ) -> Result[User, DIPClientError]:
-        backend_result = CLI.parsed_backend(None, static_server_str)
+        backend_result = CLI.parsed_backend(config_path_str, None, static_server_str, username, password)
         if isinstance(backend_result, Err): return Err(backend_result.value)
         return backend_result.value.user_create(username, password)
 
     @staticmethod
-    def hardware_list(static_server_str: str) -> Result[List[Hardware], DIPClientError]:
-        backend_result = CLI.parsed_backend(None, static_server_str)
+    def hardware_list(
+        config_path_str: Optional[str],
+        static_server_str: Optional[str]
+    ) -> Result[List[Hardware], DIPClientError]:
+        backend_result = CLI.parsed_backend(config_path_str, None, static_server_str, None, None)
         if isinstance(backend_result, Err): return Err(backend_result.value)
         return backend_result.value.hardware_list()
 
     @staticmethod
     def hardware_create(
-        static_server_str: str,
-        username: str,
-        password: str,
+        config_path_str: Optional[str],
+        static_server_str: Optional[str],
+        username: Optional[str],
+        password: Optional[str],
         hardware_name: str
     ) -> Result[Hardware, DIPClientError]:
-        backend_result = CLI.parsed_backend(None, static_server_str)
+        backend_result = CLI.parsed_backend(config_path_str, None, static_server_str, username, password)
         if isinstance(backend_result, Err): return Err(backend_result.value)
-        return backend_result.value.hardware_create(username, password, hardware_name)
+        return backend_result.value.hardware_create(hardware_name)
 
     @staticmethod
-    def software_list(static_server_str: str) -> Result[List[Software], DIPClientError]:
-        backend_result = CLI.parsed_backend(None, static_server_str)
+    def software_list(
+        config_path_str: Optional[str],
+        static_server_str: Optional[str]
+    ) -> Result[List[Software], DIPClientError]:
+        backend_result = CLI.parsed_backend(config_path_str, None, static_server_str, None, None)
         if isinstance(backend_result, Err): return Err(backend_result.value)
         return backend_result.value.software_list()
 
     @staticmethod
     def software_upload(
-        static_server_str: str,
-        username: str,
-        password: str,
+        config_path_str: Optional[str],
+        static_server_str: Optional[str],
+        username: Optional[str],
+        password: Optional[str],
         software_name: str,
         file_path: str,
     ) -> Result[Software, DIPClientError]:
-        backend_result = CLI.parsed_backend(None, static_server_str)
+        backend_result = CLI.parsed_backend(config_path_str, None, static_server_str, username, password)
         if isinstance(backend_result, Err): return Err(backend_result.value)
         file_result = ExistingFilePath.build(file_path)
         if isinstance(file_result, Err): return Err(file_result.value.of_type("software"))
-        return backend_result.value.software_upload(username, password, software_name, file_result.value)
+        return backend_result.value.software_upload(software_name, file_result.value)
 
     @staticmethod
     def software_download(
-        static_server_str: str,
+        config_path_str: Optional[str],
+        static_server_str: Optional[str],
         software_id_str: str,
         file_path: str
     ) -> Result[ExistingFilePath, DIPClientError]:
-        backend_result = CLI.parsed_backend(None, static_server_str)
+        backend_result = CLI.parsed_backend(config_path_str, None, static_server_str, None, None)
         if isinstance(backend_result, Err): return Err(backend_result.value)
         software_id_result = ManagedUUID.build(software_id_str)
         if isinstance(software_id_result, Err): return Err(software_id_result.value.of_type("software"))
@@ -385,11 +657,12 @@ class CLI(CLIInterface):
 
     @staticmethod
     def hardware_software_upload(
-            static_server_str: str,
-            hardware_id_str: str,
-            software_id_str: str
+        config_path_str: Optional[str],
+        static_server_str: Optional[str],
+        hardware_id_str: str,
+        software_id_str: str
     ) -> Optional[DIPClientError]:
-        backend_result = CLI.parsed_backend(None, static_server_str)
+        backend_result = CLI.parsed_backend(config_path_str, None, static_server_str, None, None)
         if isinstance(backend_result, Err): return backend_result.value
         software_id_result = ManagedUUID.build(software_id_str)
         if isinstance(software_id_result, Err): return software_id_result.value.of_type("software")
@@ -407,13 +680,14 @@ class CLI(CLIInterface):
 
     @staticmethod
     def hardware_serial_monitor(
-        control_server_str: str,
+        config_path_str: Optional[str],
+        control_server_str: Optional[str],
         hardware_id_str: str,
         monitor_type_str: str,
         monitor_script_path_str: Optional[str]
     ) -> Result[MonitorSerial, DIPClientError]:
         # Build backend
-        backend_result = CLI.parsed_backend(control_server_str, None)
+        backend_result = CLI.parsed_backend(control_server_str, None, None, None)
         if isinstance(backend_result, Err): return Err(backend_result.value)
 
         # Hardware id
@@ -454,9 +728,9 @@ class CLI(CLIInterface):
     @staticmethod
     def execute_table_result(
         json_output: bool,
-        result: Result[List[E], DIPClientError],
+        result: Result[E, DIPClientError],
         json_encoder: EncoderJSON,
-        rich_encoder: RichEncoder
+        rich_encoder: Optional[RichEncoder]
     ):
         # Handle error
         if isinstance(result, Err):
@@ -465,8 +739,9 @@ class CLI(CLIInterface):
             return
 
         # Handle success
-        if json_output: CLI.print_json_success(s11n_json.list_encoder_json(json_encoder).json_encode(result.value))
-        else: richprint(rich_encoder.toTable(result.value))
+        if json_output: CLI.print_json_success(json_encoder.json_encode(result.value))
+        elif rich_encoder is not None: richprint(rich_encoder.toTable(result.value))
+        else: raise Exception("Programmer error: Table encoder for entity not provided")
 
     @staticmethod
     def execute_optional_result(

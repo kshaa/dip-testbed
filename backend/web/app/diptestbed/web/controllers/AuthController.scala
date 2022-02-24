@@ -19,7 +19,9 @@ trait AuthController[F[_]] { self: ResultsController[F] =>
   val effectMonad: Monad[F]
   val userService: UserService[F]
 
-  val authorizationErrorResult = Failure("Failed to authenticate request").withHttpStatus(UNAUTHORIZED)
+  val authorizationErrorResult: Result = Failure("Failed to authenticate request")
+    .withHttpStatus(UNAUTHORIZED)
+    .withHeaders("WWW-Authenticate" -> "Basic")
 
   def withRequestAuthn[R, H](request: Request[R])(handler: (Request[R], DatabaseResult[Option[User]]) => F[H]): F[H] = {
     implicit val implicitEffectMonad: Monad[F] = effectMonad
@@ -53,12 +55,7 @@ object AuthController {
   type Password = String
 
   def extractRequestBasicAuth[R](request: Request[R]): Option[(Username, Password)] = {
-    // This is incorrect and has to be refactored
-    // "Authorization" is the actual header name
-    // however Scala Play has automagical processing for it
-    // to force usage of my functionality, I rename it
-    // (wow, such high quality code) https://i.imgur.com/Gk3HDSj.png
-    val auth = request.headers.get("Authentication")
+    val auth = request.headers.get("Authorization")
     val authParts = auth.map(_.trim.split(" +").toList)
     val usernamePassword = authParts.flatMap {
       case "Basic" :: secret :: Nil =>

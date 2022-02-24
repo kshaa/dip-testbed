@@ -30,6 +30,18 @@ class ManagedURLBuildError(DIPClientError):
 class ManagedURL:
     value: ParseResult
 
+    def __str__(self):
+        return f"ManagedURL({self.text()})"
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __eq__(self, other):
+        """Overrides the default implementation"""
+        if isinstance(other, ManagedURL):
+            return self.text() == other.text()
+        return False
+
     @staticmethod
     def build(value: str) -> Result['ManagedURL', 'ManagedURLBuildError']:
         try:

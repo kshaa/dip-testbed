@@ -9,7 +9,7 @@ from requests import Response
 import requests
 from src.domain.backend_management_message import CreateUserMessage, CreateHardwareMessage, SuccessMessage, \
     FailureMessage
-from src.domain.dip_client_error import DIPClientError
+from src.domain.dip_client_error import DIPClientError, GenericClientError
 from src.domain.existing_file_path import ExistingFilePath
 from src.domain.managed_uuid import ManagedUUID
 from src.protocol.codec import CodecParseException
@@ -59,6 +59,9 @@ class BackendServiceInterface:
         pass
 
     # User
+    def auth_check(self) -> Optional[DIPClientError]:
+        pass
+
     def user_list(self) -> Result[List[User], BackendManagementError]:
         pass
 
@@ -71,8 +74,6 @@ class BackendServiceInterface:
 
     def hardware_create(
         self,
-        username: str,
-        password: str,
         hardware_name: str
     ) -> Result[Hardware, BackendManagementError]:
         pass
@@ -86,8 +87,6 @@ class BackendServiceInterface:
 
     def software_upload(
         self,
-        username: str,
-        password: str,
         software_name: str,
         file_path: str
     ) -> Result[Software, BackendManagementError]:
@@ -104,6 +103,11 @@ class BackendServiceInterface:
 @dataclass
 class BackendService(BackendServiceInterface):
     """Backend service implementation"""
+
+    json_headers = {
+        "Content-type": "application/json"
+    }
+    auth_error = GenericClientError("Authentication data required")
 
     def static_url(self, path: str) -> Result[ManagedURL, BackendManagementError]:
         if self.config.static_server is None: return Err(BackendManagementError("Missing static server URL"))
@@ -127,19 +131,6 @@ class BackendService(BackendServiceInterface):
         """Build hardware serial monitor URL"""
         return self.control_url(f"{self.config.api_prefix}/hardware/{hardware_id.value}/monitor/serial")
 
-
-    # Request headers
-    json_headers = {
-        "Content-type": "application/json"
-    }
-
-    @staticmethod
-    def auth_headers(username: str, password: str) -> Dict:
-        """Create authentication header"""
-        token = base64.b64encode(f"{username}:{password}".encode()).decode("utf-8")
-        return {
-            "Authentication": f"Basic {token}"
-        }
 
     @staticmethod
     def response_to_result(
@@ -221,6 +212,14 @@ class BackendService(BackendServiceInterface):
             return Err(BackendManagementError("Request failed", exception=e))
 
     # User
+    def auth_check(self) -> Optional[DIPClientError]:
+        if self.config.auth is None: return BackendService.auth_error
+        path = f"{self.config.api_prefix}/auth-check"
+        auth_result = self.static_get_json_result(path, s11n_json.UNIT_DECODER_JSON, headers=self.config.auth.auth_headers())
+        if isinstance(auth_result, Err):
+            return auth_result.value
+        return None
+
     def user_list(self) -> Result[List[User], BackendManagementError]:
         """Fetch a list of users"""
         path = f"{self.config.api_prefix}/user"
@@ -244,8 +243,6 @@ class BackendService(BackendServiceInterface):
 
     def hardware_create(
         self,
-        username: str,
-        password: str,
         hardware_name: str
     ) -> Result[Hardware, BackendManagementError]:
         """Create a new hardware"""
@@ -253,7 +250,8 @@ class BackendService(BackendServiceInterface):
         encoder = s11n_json.CREATE_HARDWARE_MESSAGE_ENCODER_JSON
         decoder = s11n_json.HARDWARE_DECODER_JSON
         payload = CreateHardwareMessage(hardware_name)
-        headers = dict(self.json_headers, **self.auth_headers(username, password))
+        if self.config.auth is None: return BackendService.auth_error
+        headers = dict(self.json_headers, **self.config.auth.auth_headers())
         return self.static_post_json_result(path, decoder, payload, encoder, headers)
 
     def hardware_software_upload(
@@ -277,8 +275,6 @@ class BackendService(BackendServiceInterface):
 
     def software_upload(
         self,
-        username: str,
-        password: str,
         software_name: str,
         file_path: ExistingFilePath
     ) -> Result[Software, BackendManagementError]:
@@ -287,8 +283,8 @@ class BackendService(BackendServiceInterface):
         decoder = s11n_json.SOFTWARE_DECODER_JSON
         files = {'software': open(file_path.value, 'rb')}
         payload = {'name': software_name}
-        headers = self.auth_headers(username, password)
-        return self.static_post_json_result(path, decoder, payload, None, headers, files)
+        if self.config.auth is None: return BackendService.auth_error
+        return self.static_post_json_result(path, decoder, payload, None, self.config.auth.auth_headers(), files)
 
     def software_download(
         self,
