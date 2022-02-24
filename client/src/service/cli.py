@@ -216,8 +216,23 @@ class CLIInterface:
         control_server_str: Optional[str],
         hardware_id_str: str,
         monitor_type_str: str,
-        monitor_script_path_str: str
+        monitor_script_path_str: Optional[str]
     ):
+        pass
+
+    @staticmethod
+    async def quick_run(
+        config_path_str: Optional[str],
+        control_server_str: Optional[str],
+        static_server_str: Optional[str],
+        username_str: Optional[str],
+        password_str: Optional[str],
+        file_path: Optional[str],
+        software_name: Optional[str],
+        hardware_id_str: str,
+        monitor_type_str: str,
+        monitor_script_path_str: Optional[str]
+    ) -> Result[DIPRunnable, DIPClientError]:
         pass
 
     @staticmethod
@@ -633,14 +648,14 @@ class CLI(CLIInterface):
         static_server_str: Optional[str],
         username: Optional[str],
         password: Optional[str],
-        software_name: str,
+        software_name: Optional[str],
         file_path: str,
     ) -> Result[Software, DIPClientError]:
         backend_result = CLI.parsed_backend(config_path_str, None, static_server_str, username, password)
         if isinstance(backend_result, Err): return Err(backend_result.value)
         file_result = ExistingFilePath.build(file_path)
         if isinstance(file_result, Err): return Err(file_result.value.of_type("software"))
-        return backend_result.value.software_upload(software_name, file_result.value)
+        return backend_result.value.software_upload(file_result.value, software_name)
 
     @staticmethod
     def software_download(
@@ -687,7 +702,7 @@ class CLI(CLIInterface):
         monitor_script_path_str: Optional[str]
     ) -> Result[MonitorSerial, DIPClientError]:
         # Build backend
-        backend_result = CLI.parsed_backend(control_server_str, None, None, None)
+        backend_result = CLI.parsed_backend(control_server_str, None, None, None, None)
         if isinstance(backend_result, Err): return Err(backend_result.value)
 
         # Hardware id
@@ -708,6 +723,34 @@ class CLI(CLIInterface):
         encoder = s11n_hybrid.MONITOR_LISTENER_OUTGOING_MESSAGE_ENCODER
         websocket = WebSocket(url_result.value, decoder, encoder)
         return monitor_serial.resolve(websocket, monitor_script_path_str)
+
+    @staticmethod
+    async def quick_run(
+        config_path_str: Optional[str],
+        control_server_str: Optional[str],
+        static_server_str: Optional[str],
+        username_str: Optional[str],
+        password_str: Optional[str],
+        file_path: Optional[str],
+        software_name: Optional[str],
+        hardware_id_str: str,
+        monitor_type_str: str,
+        monitor_script_path_str: Optional[str]
+    ) -> Result[DIPRunnable, DIPClientError]:
+        # Upload software to platform
+        upload_result = await CLI.software_upload(
+            config_path_str, static_server_str, username_str, password_str, software_name, file_path)
+        if isinstance(upload_result, Err): return Err(upload_result.value)
+        software: Software = upload_result.value
+        # Forward software to board
+        forward_error = CLI.hardware_software_upload(
+            config_path_str, static_server_str, hardware_id_str, str(software.id))
+        if forward_error is not None: return Err(forward_error)
+        # Create serial monitor connection to board
+        monitor_result = CLI.hardware_serial_monitor(
+            config_path_str, control_server_str, hardware_id_str, monitor_type_str, monitor_script_path_str)
+        if isinstance(monitor_result, Err): return Err(monitor_result.value)
+        return Ok(monitor_result.value)
 
     @staticmethod
     async def execute_runnable_result(

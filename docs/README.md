@@ -1,6 +1,10 @@
 # DIP Testbed Platform
 DIP Testbed Platform allows users to remotely program and experience physical, embedded devices through various virtual interfaces (uni-directional webcam stream, bi-directional serial connection stream).  
 
+## 🌸 🌼 DIP User Tutorial Guides 🌼 🌸
+_Hopefully if I have enough time I will create detailed tutorials for beginners_  
+_Meanwhile you can check out the platform prototypes which are like "get your hands dirty" type of tutorials_  
+  
 ## 🌸 🌼 DIP Client 🌼 🌸
 DIP Client is the main CLI tool to interact with the DIP Testbed platform.  
 For more documentations see [CLIENT.md](./CLIENT.md)  
@@ -8,7 +12,7 @@ For more documentations see [CLIENT.md](./CLIENT.md)
 Latest release: https://github.com/kshaa/dip-testbed-dist/releases/latest/download/dip_client_amd64  
 Quick install: `curl https://github.com/kshaa/dip-testbed-dist/releases/latest/download/client_install.sh | bash`  
 
-## DIP Platform usage prototypes
+## 🌸 🌼 DIP Platform Prototypes 🌼 🌸
 The author of this academic work created various prototypes when manually emulating end-user usage of the platform.  
 The prototypes, their source codes and descriptions can be seen in [prototypes](../prototypes/README.md)  
   

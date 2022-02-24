@@ -39,7 +39,8 @@ class SoftwareController(
         maybeUser
           .leftMap(databaseErrorResult)
           .flatMap(_.toRight(authorizationErrorResult))
-          .flatMap(user =>
+          .flatMap(user => {
+            println(request.body.file("software"), request.body.dataParts.get("name"))
             (request.body.file("software"), request.body.dataParts.get("name").flatMap(_.headOption)).tupled
               .toRight(Failure("Request must contain 'software' file and 'name' field").withHttpStatus(BAD_REQUEST))
               .flatMap {
@@ -50,8 +51,8 @@ class SoftwareController(
                       Failure("Request too large").withHttpStatus(BAD_REQUEST),
                     )
                     .map(_ => (data, name, user))
-              },
-          ),
+              }
+          })
       )
 
       val authWithSoftwareBytes = authWithSoftwareData.flatMap {

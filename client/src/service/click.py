@@ -48,12 +48,12 @@ SOFTWARE_ID_OPTION = click.option(
     help='Software id (e.g. \'16db6c30-3328-11ec-ae41-ff1d66202dcc\')'
 )
 SOFTWARE_NAME_OPTION = click.option(
-    '--name', '-n', "software_name", show_envvar=True,
-    type=str, envvar=f"{ENV_PREFIX}_SOFTWARE_NAME", required=True,
+    '--software-name', '-n', "software_name", show_envvar=True,
+    type=str, envvar=f"{ENV_PREFIX}_SOFTWARE_NAME", required=False,
     help='Software name (e.g. \'adafruit-nrf52-hello-world.bin\' '
-       'or \'my-beautiful-program\' or whatever).')
-SOFTWARE_FILE_PATH = click.option(
-    '--file', '-f', "file_path", show_envvar=True,
+       'or \'my-beautiful-program\' or whatever), default: file name.')
+SOFTWARE_FILE_PATH_OPTION = click.option(
+    '--software-file', '-f', "software_file_path", show_envvar=True,
     type=str, envvar="DIP_SOFTWARE_FILE_PATH", required=True,
     help='Software file path (e.g. \'./hello-world.bin\' '
         'or \'$HOME/code/project/hello-world.bin\' or whatever).')
@@ -82,7 +82,7 @@ SCAN_CHAIN_INDEX_OPTION = click.option(
 # Monitor options
 MONITOR_TYPE_OPTION = click.option(
     "--monitor-type", "-t", "monitor_type_str", type=click.Choice([t.name for t in MonitorType]),
-    show_envvar=True, envvar=f"{ENV_PREFIX}_MONITOR_TYPE", required=True, default=MonitorType.hexbytes.name,
+    show_envvar=True, envvar=f"{ENV_PREFIX}_MONITOR_TYPE", required=False, default=MonitorType.buttonleds.name,
     help="Sets the type of monitor implementation to be used")
 MONITOR_SCRIPT_PATH_OPTION = click.option(
     "--monitor-script-path", "-s", "monitor_script_path_str", type=str, default=None,
@@ -123,7 +123,11 @@ def cli_client():
      """
 
 
-@cli_client.command()
+# Command
+CLI_COMMAND = cli_client.command(context_settings=dict(max_content_width=300))
+
+
+@CLI_COMMAND
 @CONFIG_PATH_OPTION
 def session_debug(config_path_str: Optional[str]):
     """Print out all session data"""
@@ -135,7 +139,7 @@ def session_debug(config_path_str: Optional[str]):
     )
 
 
-@cli_client.command()
+@CLI_COMMAND
 @CONFIG_PATH_OPTION
 @STATIC_SERVER_OPTION
 @USERNAME_OPTION
@@ -154,7 +158,7 @@ def session_auth(
     )
 
 
-@cli_client.command()
+@CLI_COMMAND
 @CONFIG_PATH_OPTION
 def session_auth_remove(
     config_path_str: Optional[str],
@@ -167,7 +171,7 @@ def session_auth_remove(
     )
 
 
-@cli_client.command()
+@CLI_COMMAND
 @CONFIG_PATH_OPTION
 @STATIC_SERVER_OPTION
 def session_static_server(
@@ -182,7 +186,7 @@ def session_static_server(
     )
 
 
-@cli_client.command()
+@CLI_COMMAND
 @CONFIG_PATH_OPTION
 def session_static_server_remove(
     config_path_str: Optional[str]
@@ -195,7 +199,7 @@ def session_static_server_remove(
     )
 
 
-@cli_client.command()
+@CLI_COMMAND
 @CONFIG_PATH_OPTION
 @CONTROL_SERVER_OPTION
 def session_control_server(
@@ -210,7 +214,7 @@ def session_control_server(
     )
 
 
-@cli_client.command()
+@CLI_COMMAND
 @CONFIG_PATH_OPTION
 def session_control_server_remove(
     config_path_str: Optional[str]
@@ -223,7 +227,7 @@ def session_control_server_remove(
     )
 
 
-@cli_client.command()
+@CLI_COMMAND
 @CONFIG_PATH_OPTION
 @HARDWARE_ID_OPTION
 @CONTROL_SERVER_OPTION
@@ -257,7 +261,7 @@ def agent_nrf52(
     asyncio.run(exec())
 
 
-@cli_client.command()
+@CLI_COMMAND
 @CONFIG_PATH_OPTION
 @HARDWARE_ID_OPTION
 @CONTROL_SERVER_OPTION
@@ -297,7 +301,7 @@ def agent_anvyl(
     asyncio.run(exec())
 
 
-@cli_client.command()
+@CLI_COMMAND
 @CONFIG_PATH_OPTION
 @HARDWARE_ID_OPTION
 @CONTROL_SERVER_OPTION
@@ -328,7 +332,7 @@ def agent_fake(
     asyncio.run(exec())
 
 
-@cli_client.command()
+@CLI_COMMAND
 @CONFIG_PATH_OPTION
 @JSON_OUTPUT_OPTION
 @STATIC_SERVER_OPTION
@@ -346,7 +350,7 @@ def user_list(
     )
 
 
-@cli_client.command()
+@CLI_COMMAND
 @CONFIG_PATH_OPTION
 @JSON_OUTPUT_OPTION
 @STATIC_SERVER_OPTION
@@ -368,7 +372,7 @@ def user_create(
     )
 
 
-@cli_client.command()
+@CLI_COMMAND
 @CONFIG_PATH_OPTION
 @JSON_OUTPUT_OPTION
 @STATIC_SERVER_OPTION
@@ -386,7 +390,7 @@ def hardware_list(
     )
 
 
-@cli_client.command()
+@CLI_COMMAND
 @CONFIG_PATH_OPTION
 @JSON_OUTPUT_OPTION
 @STATIC_SERVER_OPTION
@@ -411,7 +415,7 @@ def hardware_create(
     )
 
 
-@cli_client.command()
+@CLI_COMMAND
 @CONFIG_PATH_OPTION
 @JSON_OUTPUT_OPTION
 @STATIC_SERVER_OPTION
@@ -429,53 +433,53 @@ def software_list(
     )
 
 
-@cli_client.command()
+@CLI_COMMAND
 @CONFIG_PATH_OPTION
 @JSON_OUTPUT_OPTION
 @STATIC_SERVER_OPTION
 @USERNAME_OPTION
 @PASSWORD_OPTION
 @SOFTWARE_NAME_OPTION
-@SOFTWARE_FILE_PATH
+@SOFTWARE_FILE_PATH_OPTION
 def software_upload(
     config_path_str: Optional[str],
     json_output: bool,
     static_server_str: Optional[str],
     username_str: Optional[str],
     password_str: Optional[str],
-    software_name: str,
-    file_path: str,
+    software_name: Optional[str],
+    software_file_path: str,
 ):
     """Upload new software"""
     CLI.execute_table_result(
         json_output,
         CLI.software_upload(
-            config_path_str, static_server_str, username_str, password_str, software_name, file_path).map(lambda x: [x]),
+            config_path_str, static_server_str, username_str, password_str, software_name, software_file_path).map(lambda x: [x]),
         s11n_json.list_encoder_json(s11n_json.SOFTWARE_ENCODER_JSON),
         s11n_rich.RichSoftwareEncoder()
     )
 
 
-@cli_client.command()
+@CLI_COMMAND
 @CONFIG_PATH_OPTION
 @STATIC_SERVER_OPTION
 @SOFTWARE_ID_OPTION
-@SOFTWARE_FILE_PATH
+@SOFTWARE_FILE_PATH_OPTION
 def software_download(
     config_path_str: Optional[str],
     static_server_str: Optional[str],
     software_id_str: str,
-    file_path: str
+    software_file_path: str
 ):
     """Download existing software"""
     CLI.execute_optional_result(
         False,
-        CLI.software_download(config_path_str, static_server_str, software_id_str, file_path),
-        f"Downloaded software at '{file_path}'"
+        CLI.software_download(config_path_str, static_server_str, software_id_str, software_file_path),
+        f"Downloaded software at '{software_file_path}'"
     )
 
 
-@cli_client.command()
+@CLI_COMMAND
 @CONFIG_PATH_OPTION
 @STATIC_SERVER_OPTION
 @HARDWARE_ID_OPTION
@@ -494,7 +498,7 @@ def hardware_software_upload(
     )
 
 
-@cli_client.command()
+@CLI_COMMAND
 @CONFIG_PATH_OPTION
 @CONTROL_SERVER_OPTION
 @HARDWARE_ID_OPTION
@@ -517,3 +521,41 @@ def hardware_serial_monitor(
             monitor_script_path_str), "Finished monitoring")
     asyncio.run(exec())
 
+
+@CLI_COMMAND
+@CONFIG_PATH_OPTION
+@CONTROL_SERVER_OPTION
+@STATIC_SERVER_OPTION
+@USERNAME_OPTION
+@PASSWORD_OPTION
+@SOFTWARE_FILE_PATH_OPTION
+@SOFTWARE_NAME_OPTION
+@HARDWARE_ID_OPTION
+@MONITOR_TYPE_OPTION
+@MONITOR_SCRIPT_PATH_OPTION
+def quick_run(
+    config_path_str: Optional[str],
+    control_server_str: Optional[str],
+    static_server_str: Optional[str],
+    username_str: Optional[str],
+    password_str: Optional[str],
+    software_file_path: Optional[str],
+    software_name: Optional[str],
+    hardware_id_str: str,
+    monitor_type_str: str,
+    monitor_script_path_str: str
+):
+    """Upload, forward & monitor board software"""
+    async def exec():
+        await CLI.execute_runnable_result(CLI.quick_run(
+            config_path_str,
+            control_server_str,
+            static_server_str,
+            username_str,
+            password_str,
+            software_file_path,
+            software_name,
+            hardware_id_str,
+            monitor_type_str,
+            monitor_script_path_str), "Finished quick run")
+    asyncio.run(exec())

@@ -1,5 +1,5 @@
 """Module for backend management service definitions"""
-
+import os
 from typing import List, TypeVar, Dict, Optional
 from dataclasses import dataclass
 import base64
@@ -87,8 +87,8 @@ class BackendServiceInterface:
 
     def software_upload(
         self,
-        software_name: str,
-        file_path: str
+        file_path: str,
+        software_name: str
     ) -> Result[Software, BackendManagementError]:
         pass
 
@@ -174,6 +174,7 @@ class BackendService(BackendServiceInterface):
         if headers is None:
             headers = {}
         try:
+            LOGGER.debug(f"HTTP GET JSON: {url_text_result.value}, headers: {headers}")
             response = requests.get(url_text_result.value, headers=headers)
             LOGGER.debug(ManagedURL.response_log_text(response))
             return BackendService.response_to_result(response, content_decoder)
@@ -201,9 +202,11 @@ class BackendService(BackendServiceInterface):
         if files is None: headers = {}
         try:
             if payload is None:
+                LOGGER.debug(f"HTTP POST JSON: {url_text_result.value}, headers: {headers}, files:{ files }")
                 response = requests.post(url_text_result.value, headers=headers, files=files)
             else:
                 encoded_payload = payload_encoder.encode(payload) if payload_encoder is not None else payload
+                LOGGER.debug(f"HTTP POST JSON: {url_text_result.value}, payload: {encoded_payload}, headers: {headers}, files:{files}")
                 response = requests.post(url_text_result.value, encoded_payload, headers=headers, files=files)
             # Parse response
             LOGGER.debug(ManagedURL.response_log_text(response))
@@ -275,13 +278,15 @@ class BackendService(BackendServiceInterface):
 
     def software_upload(
         self,
-        software_name: str,
-        file_path: ExistingFilePath
+        file_path: ExistingFilePath,
+        software_name: Optional[str]
     ) -> Result[Software, BackendManagementError]:
         """Upload a new software"""
         path = f"{self.config.api_prefix}/software"
         decoder = s11n_json.SOFTWARE_DECODER_JSON
         files = {'software': open(file_path.value, 'rb')}
+        if software_name is None:
+            software_name = os.path.basename(file_path.value)
         payload = {'name': software_name}
         if self.config.auth is None: return BackendService.auth_error
         return self.static_post_json_result(path, decoder, payload, None, self.config.auth.auth_headers(), files)

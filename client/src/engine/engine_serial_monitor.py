@@ -14,7 +14,7 @@ from src.domain.hardware_control_message import COMMON_INCOMING_MESSAGE, SerialM
 from src.domain.monitor_message import SerialMonitorMessageToAgent, SerialMonitorMessageToClient, MonitorUnavailable
 from src.engine.engine_events import COMMON_ENGINE_EVENT, StartSerialMonitor, SerialMonitorStartSuccess, \
     SerialMonitorStartFailure, ReceivedSerialBytes, SendingBoardBytes, StoppingSerialMonitor, StoppedSerialMonitor, \
-    SerialMonitorAboutToStart, SerialMonitorAlreadyConfigured, MonitorDied, LifecycleEnded
+    SerialMonitorAboutToStart, SerialMonitorAlreadyConfigured, MonitorDied, LifecycleEnded, UploadingBoardSoftware
 from src.engine.engine_state import EngineState, ManagedQueue, EngineBase
 from src.service.managed_serial import ManagedSerial
 from src.service.managed_serial_config import ManagedSerialConfig
@@ -179,3 +179,6 @@ class EngineSerialMonitor:
             if event.reason is not None:
                 message = f"{message}, reason: {event.reason.text()}"
             await previous_state.base.outgoing_message_queue.put(MonitorUnavailable(message))
+        elif isinstance(event, UploadingBoardSoftware):
+            await previous_state.base.outgoing_message_queue.put(MonitorUnavailable(
+                "Serial connection broken by new board software upload"))

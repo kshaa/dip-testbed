@@ -11,6 +11,9 @@ from result import Result, Ok, Err
 from requests import Response
 from src.domain.dip_client_error import DIPClientError
 from src.domain.existing_file_path import ExistingFilePath
+from src.util import log
+
+LOGGER = log.timed_named_logger("url")
 
 
 @dataclass
@@ -72,6 +75,7 @@ class ManagedURL:
             if isinstance(url_result, Err):
                 return url_result
             url_text: str = url_result.value
+            LOGGER.debug(f"HTTP download. URL: {url_text}, file: {path}")
             urllib.request.urlretrieve(url_text, path)
             return Ok(ExistingFilePath(path))
         except Exception as e:
