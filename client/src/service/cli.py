@@ -558,8 +558,8 @@ class CLI(CLIInterface):
 
     @staticmethod
     async def agent_fake(
-        hardware_id_str: str,
         config_path_str: Optional[str],
+        hardware_id_str: str,
         control_server_str: Optional[str],
         static_server_str: Optional[str],
         username_str: Optional[str],
@@ -738,15 +738,18 @@ class CLI(CLIInterface):
         monitor_script_path_str: Optional[str]
     ) -> Result[DIPRunnable, DIPClientError]:
         # Upload software to platform
-        upload_result = await CLI.software_upload(
+        LOGGER.info("Uploading software to platform")
+        upload_result = CLI.software_upload(
             config_path_str, static_server_str, username_str, password_str, software_name, file_path)
         if isinstance(upload_result, Err): return Err(upload_result.value)
         software: Software = upload_result.value
         # Forward software to board
+        LOGGER.info("Forwarding software to board")
         forward_error = CLI.hardware_software_upload(
-            config_path_str, static_server_str, hardware_id_str, str(software.id))
+            config_path_str, static_server_str, hardware_id_str, str(software.id.value))
         if forward_error is not None: return Err(forward_error)
         # Create serial monitor connection to board
+        LOGGER.info("Starting serial connection monitor with board")
         monitor_result = CLI.hardware_serial_monitor(
             config_path_str, control_server_str, hardware_id_str, monitor_type_str, monitor_script_path_str)
         if isinstance(monitor_result, Err): return Err(monitor_result.value)

@@ -547,15 +547,17 @@ def quick_run(
 ):
     """Upload, forward & monitor board software"""
     async def exec():
-        await CLI.execute_runnable_result(CLI.quick_run(
-            config_path_str,
-            control_server_str,
-            static_server_str,
-            username_str,
-            password_str,
-            software_file_path,
-            software_name,
-            hardware_id_str,
-            monitor_type_str,
-            monitor_script_path_str), "Finished quick run")
+        await CLI.execute_runnable_result(
+            await CLI.quick_run(
+                config_path_str,
+                control_server_str,
+                static_server_str,
+                username_str,
+                password_str,
+                software_file_path,
+                software_name,
+                hardware_id_str,
+                monitor_type_str,
+                monitor_script_path_str
+            ), "Finished quick run")
     asyncio.run(exec())
