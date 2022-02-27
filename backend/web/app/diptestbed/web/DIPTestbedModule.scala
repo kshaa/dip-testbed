@@ -67,15 +67,24 @@ class DIPTestbedModule(context: Context)(implicit iort: IORuntime)
   lazy val softwareController =
     new SoftwareController(controllerComponents, softwareService, userService)
 
-  lazy val basePrefix = "/api"
-  lazy val v1Prefix = "/v1"
+  lazy val apiPrefix = s"/api/v1"
+  lazy val apiRouter = new APIRouter(
+    homeController,
+    userController,
+    hardwareController,
+    softwareController
+  )
+  lazy val appPrefix = s"/app"
+  lazy val appRouter = new AppRouter(
+    homeController
+  )
   lazy val router: Router =
     new DIPTestbedRouter(
-      homeController,
-      userController,
-      hardwareController,
-      softwareController,
-    ).withPrefix(f"${basePrefix}${v1Prefix}")
+      apiRouter,
+      apiPrefix,
+      appRouter,
+      appPrefix
+    )
 }
 
 object DIPTestbedModuleHelper {

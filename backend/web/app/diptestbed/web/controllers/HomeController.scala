@@ -6,6 +6,7 @@ import akka.stream.Materializer
 import cats.data.EitherT
 import cats.effect.unsafe.IORuntime
 import cats.effect.IO
+import controllers.AssetsFinder
 import play.api.mvc._
 import diptestbed.database.services._
 import diptestbed.web.ioControls.PipelineOps._
@@ -26,11 +27,17 @@ class HomeController(
 ) extends AbstractController(cc)
     with IOController
     with ResultsController[IO]
-    with AuthController[IO] {
-  def index: Action[AnyContent] =
+    with AuthController[IO]
+    with AssetsFinder {
+  implicit val assetsFinder: AssetsFinder = this
+
+  def indexJSON: Action[AnyContent] =
     Action(Success(Hello("diptestbed")).withHttpStatus(OK))
 
-  def status: Action[AnyContent] =
+  def indexHTML: Action[AnyContent] =
+    Action(Ok(diptestbed.web.views.html.index()))
+
+  def statusJSON: Action[AnyContent] =
     IOActionAny { _ =>
       (for {
         userCount <- EitherT(userService.countUsers())
@@ -48,7 +55,7 @@ class HomeController(
         )
     }
 
-  def authCheck: Action[AnyContent] =
+  def authCheckJSON: Action[AnyContent] =
     IOActionAny(withRequestAuthnOrFail(_)((_, _) => EitherT.liftF(IO.pure(Success(()).withHttpStatus(OK)))))
 
 }
