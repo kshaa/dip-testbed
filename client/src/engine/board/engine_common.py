@@ -1,20 +1,20 @@
 """Anvyl FPGA client functionality."""
 from dataclasses import dataclass
-from typing import List, TypeVar
+from typing import List, TypeVar, Optional
 from result import Result
 from src.domain.dip_client_error import DIPClientError
 from src.engine.engine import Engine
-from src.engine.engine_common_state import EngineCommonState
-from src.engine.engine_events import COMMON_ENGINE_EVENT, log_event
+from src.engine.board.engine_common_state import EngineCommonState
+from src.domain.hardware_control_event import COMMON_ENGINE_EVENT, log_event
 from src.engine.engine_lifecycle import EngineLifecycle
 from src.engine.engine_ping import EnginePing
 from src.domain.hardware_control_message import COMMON_INCOMING_MESSAGE, COMMON_OUTGOING_MESSAGE, log_hardware_message, \
-    HardwareControlMessage
-from src.engine.engine_serial_monitor import EngineSerialMonitor
-from src.engine.engine_upload import EngineUpload
+    HardwareControlMessage, InternalStartLifecycle, InternalEndLifecycle
+from src.engine.board.engine_serial_monitor import EngineSerialMonitor
+from src.engine.board.engine_upload import EngineUpload
 from src.util import log
 
-HARDWARE_LOGGER = log.timed_named_logger("incoming_hardware")
+HARDWARE_LOGGER = log.timed_named_logger("incoming_engine")
 EVENT_LOGGER = log.timed_named_logger("event")
 PI = TypeVar('PI', bound=COMMON_INCOMING_MESSAGE)
 PO = TypeVar('PO', bound=COMMON_OUTGOING_MESSAGE)
@@ -29,6 +29,12 @@ class EngineCommon(Engine[PI, PO, S, E, X]):
     engine_upload: EngineUpload
     engine_ping: EnginePing
     engine_serial_monitor: EngineSerialMonitor
+
+    async def start(self):
+        await self.state.base.incoming_message_queue.put(InternalStartLifecycle())
+
+    async def kill(self, reason: Optional[DIPClientError]):
+        await self.state.base.incoming_message_queue.put(InternalEndLifecycle(reason))
 
     async def pre_process_message(self, previous_state: EngineCommonState, message: HardwareControlMessage):
         log_hardware_message(HARDWARE_LOGGER, message)

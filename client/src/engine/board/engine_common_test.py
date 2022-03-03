@@ -8,25 +8,27 @@ from result import Ok, Err
 from src.domain.death import Death
 from src.domain.dip_client_error import GenericClientError
 from src.domain.existing_file_path import ExistingFilePath
-from src.domain.hardware_control_message import UploadMessage, InternalStartLifecycle, InternalEndLifecycle, \
+from src.domain.hardware_control_message import UploadMessage, \
     InternalSucceededSoftwareDownload, InternalSucceededSoftwareUpload, UploadResultMessage, \
-    InternalUploadBoardSoftware, PingMessage, SerialMonitorRequest, log_hardware_message, SerialMonitorRequestStop, \
+    InternalUploadBoardSoftware, SerialMonitorRequest, log_hardware_message, SerialMonitorRequestStop, \
     InternalSerialMonitorStarting, InternalStartedSerialMonitor, InternalReceivedSerialBytes, SerialMonitorResult, \
     InternalSerialMonitorStopped
+from src.domain.hardware_shared_event import LifecycleStarted, LifecycleEnded
+from src.domain.hardware_shared_message import InternalStartLifecycle, InternalEndLifecycle, PingMessage
 from src.domain.managed_uuid import ManagedUUID
 from src.domain.monitor_message import SerialMonitorMessageToAgent, SerialMonitorMessageToClient, MonitorUnavailable
 from src.domain.positive_integer import PositiveInteger
-from src.engine.engine_common import EngineCommon
-from src.engine.engine_common_state import EngineCommonState
-from src.engine.engine_events import DownloadingBoardSoftware, LifecycleStarted, BoardSoftwareDownloadSuccess, \
-    UploadingBoardSoftware, BoardUploadSuccess, LifecycleEnded, BoardState, SerialMonitorAboutToStart, \
+from src.engine.board.engine_common import EngineCommon
+from src.engine.board.engine_common_state import EngineCommonState
+from src.domain.hardware_control_event import DownloadingBoardSoftware, BoardSoftwareDownloadSuccess, \
+    UploadingBoardSoftware, BoardUploadSuccess, SerialMonitorAboutToStart, \
     StartSerialMonitor, SerialMonitorAlreadyConfigured, SendingBoardBytes, ReceivedSerialBytes, StoppingSerialMonitor, \
     SerialMonitorStartSuccess, StoppedSerialMonitor
 from src.engine.engine_lifecycle import EngineLifecycle
 from src.engine.engine_ping import EnginePing
-from src.engine.engine_serial_monitor import EngineSerialMonitor, SerialBoard
+from src.engine.board.engine_serial_monitor import EngineSerialMonitor, SerialBoard
 from src.engine.engine_state import ManagedQueue, EngineState
-from src.engine.engine_upload import EngineUpload
+from src.engine.board.engine_upload import EngineUpload
 from src.service.backend import BackendServiceInterface
 from src.service.backend_config import BackendConfig
 from src.service.managed_serial import ManagedSerial
@@ -104,9 +106,13 @@ class TestCommonEngine:
         software_path = ExistingFilePath(src_relative_path("static/test/software.bin"))
 
         # Engine upload
-        engine_lifecycle = EngineLifecycle()
         engine_upload = EngineUpload(backend)
         engine_upload.upload = MagicMock(return_value=async_identity(None))
+
+        # Engine lifecycle
+        engine_lifecycle = EngineLifecycle()
+
+        # Engine ping
         engine_ping = EnginePing()
 
         # Engine serial monitor
@@ -203,6 +209,7 @@ class TestCommonEngine:
             LifecycleEnded(death_reason)
         ])
         out_queue_memory_expectation = [
+            MonitorUnavailable("Serial connection broken by new board software upload"),
             UploadResultMessage(None),
             SerialMonitorResult(None),
             PingMessage(),

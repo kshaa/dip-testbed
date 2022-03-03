@@ -5,6 +5,7 @@ from uuid import UUID
 from dataclasses import dataclass
 from src.domain.dip_client_error import DIPClientError
 from src.domain.existing_file_path import ExistingFilePath
+from src.domain.hardware_shared_message import InternalStartLifecycle, InternalEndLifecycle, PingMessage
 from src.domain.managed_uuid import ManagedUUID
 from src.domain.monitor_message import SerialMonitorMessageToAgent, SerialMonitorMessageToClient
 from src.domain.noisy_message import NoisyMessage
@@ -32,16 +33,6 @@ class InternalHardwareControlMessage(HardwareControlMessage):
 class ExternalHardwareControlMessage(HardwareControlMessage):
     """Marker trait for external hardware control messages"""
     pass
-
-
-@dataclass(frozen=True)
-class InternalStartLifecycle(InternalHardwareControlMessage):
-    pass
-
-
-@dataclass(frozen=True)
-class InternalEndLifecycle(InternalHardwareControlMessage):
-    reason: Optional[DIPClientError] = None
 
 
 @dataclass(frozen=True)
@@ -127,12 +118,6 @@ class InternalReceivedSerialBytes(InternalHardwareControlMessage, NoisyMessage):
 class SerialMonitorResult(ExternalHardwareControlMessage):
     """Message regarding result of a hardware serial monitor request"""
     error: Optional[str]
-
-
-@dataclass(frozen=True)
-class PingMessage(ExternalHardwareControlMessage, NoisyMessage):
-    pass
-    """Message for sending heartbeats to server"""
 
 
 # Messages incoming and outgoing to and from control server

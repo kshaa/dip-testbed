@@ -1,6 +1,7 @@
 import asyncio
 import unittest
 from dataclasses import dataclass
+from typing import Optional
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import MagicMock
 from uuid import UUID
@@ -9,15 +10,15 @@ from src.agent.agent import Agent
 from src.agent.agent_config import AgentConfig
 from src.agent.agent_error import AgentExecutionError
 from src.domain.dip_client_error import DIPClientError
+from src.domain.hardware_shared_message import InternalEndLifecycle, InternalStartLifecycle
 from src.domain.managed_uuid import ManagedUUID
 from src.engine.engine import Engine
-from src.engine.engine_events import COMMON_ENGINE_EVENT
+from src.domain.hardware_control_event import COMMON_ENGINE_EVENT
 from src.engine.engine_state import EngineState, ManagedQueue, EngineBase
 from src.domain.death import Death
 from src.domain.hardware_control_message import COMMON_OUTGOING_MESSAGE, COMMON_INCOMING_MESSAGE, \
-    InternalEndLifecycle, UploadMessage, InternalStartLifecycle, UploadResultMessage
+    UploadMessage, UploadResultMessage
 from src.service.ws import SocketInterface
-from src.util.future import async_identity
 
 
 @dataclass
@@ -38,8 +39,11 @@ class TestEngine(Engine[
     COMMON_ENGINE_EVENT,
     DIPClientError
 ]):
-    pass
+    async def start(self):
+        await self.state.base.incoming_message_queue.put(InternalStartLifecycle())
 
+    async def kill(self, reason: Optional[DIPClientError]):
+        await self.state.base.incoming_message_queue.put(InternalEndLifecycle(reason))
 
 class TestAgent(IsolatedAsyncioTestCase):
     """Test suite for agent"""
@@ -76,10 +80,10 @@ class TestAgent(IsolatedAsyncioTestCase):
 
         # Let engine ignore inputs
         processed_messages = []
-        async def process_message(previous_state, message):
+        def message_project(previous_state, message):
             processed_messages.append(message)
             return Ok([])
-        engine.process_message = process_message
+        engine.message_project = message_project
         engine.state_project = MagicMock(return_value=state)
         effect_result = asyncio.Future()
         effect_result.set_result(None)
@@ -90,7 +94,7 @@ class TestAgent(IsolatedAsyncioTestCase):
 
         # Let agent run
         agent_task = asyncio.create_task(agent.run())
-        await asyncio.sleep(0.05)
+        await asyncio.sleep(0.1)
         self.assertEqual(processed_messages, [InternalStartLifecycle()])
         processed_messages = []
 

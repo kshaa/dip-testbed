@@ -6,13 +6,11 @@ from src.domain.positive_integer import PositiveInteger
 from src.engine.board.anvyl.engine_anvyl import EngineAnvyl
 from src.engine.board.anvyl.engine_anvyl_state import EngineAnvylState, EngineAnvylBoardState
 from src.engine.board.anvyl.engine_anvyl_upload import EngineAnvylUpload, FIRMWARE_UPLOAD_PATH
-from src.engine.engine_common_test import TestCommonEngine
-from src.engine.engine_events import BoardState
+from src.engine.board.engine_common_test import TestCommonEngine
 from src.engine.engine_lifecycle import EngineLifecycle
 from src.engine.engine_ping import EnginePing
-from src.engine.engine_serial_monitor import EngineSerialMonitor
+from src.engine.board.engine_serial_monitor import EngineSerialMonitor
 from src.engine.engine_state import ManagedQueue, EngineState, EngineBase
-from src.engine.engine_upload import EngineUpload
 from src.service.backend import BackendServiceInterface
 from src.util.sh import src_relative_path
 from unittest import IsolatedAsyncioTestCase

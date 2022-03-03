@@ -12,10 +12,10 @@ from src.domain.hardware_control_message import COMMON_INCOMING_MESSAGE, SerialM
     InternalStartedSerialMonitor, InternalSerialMonitorStartFailure, SerialMonitorResult, InternalReceivedSerialBytes, \
     SerialMonitorRequestStop, InternalSerialMonitorStopped, InternalSerialMonitorStarting, InternalSerialMonitorDied
 from src.domain.monitor_message import SerialMonitorMessageToAgent, SerialMonitorMessageToClient, MonitorUnavailable
-from src.engine.engine_events import COMMON_ENGINE_EVENT, StartSerialMonitor, SerialMonitorStartSuccess, \
+from src.domain.hardware_control_event import COMMON_ENGINE_EVENT, StartSerialMonitor, SerialMonitorStartSuccess, \
     SerialMonitorStartFailure, ReceivedSerialBytes, SendingBoardBytes, StoppingSerialMonitor, StoppedSerialMonitor, \
     SerialMonitorAboutToStart, SerialMonitorAlreadyConfigured, MonitorDied, LifecycleEnded, UploadingBoardSoftware
-from src.engine.engine_state import EngineState, ManagedQueue, EngineBase
+from src.engine.engine_state import EngineState, EngineBase
 from src.service.managed_serial import ManagedSerial
 from src.service.managed_serial_config import ManagedSerialConfig
 from src.util import log

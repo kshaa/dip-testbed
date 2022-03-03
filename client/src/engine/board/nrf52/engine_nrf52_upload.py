@@ -8,7 +8,7 @@ from typing import Tuple, Optional
 from result import Result
 from src.domain.dip_client_error import DIPClientError
 from src.domain.existing_file_path import ExistingFilePath
-from src.engine.engine_upload import EngineUpload
+from src.engine.board.engine_upload import EngineUpload
 from src.util.sh import outcome_sh, src_relative_path
 
 FIRMWARE_UPLOAD_PATH = '../../../static/adafruit_nrf52/upload.sh'

@@ -6,7 +6,6 @@ from typing import TypeVar, Generic, List, Optional, Callable, Awaitable
 from result import Result, Err, Ok
 from src.agent.agent_error import AgentExecutionError
 from src.domain.dip_client_error import DIPClientError
-from src.domain.hardware_control_message import InternalStartLifecycle, InternalEndLifecycle
 from src.engine.engine_state import EngineState
 from src.util import log
 
@@ -25,12 +24,15 @@ class Engine(Generic[PI, PO, S, E, X]):
     state: S
 
     async def run(self) -> Result[type(None), Optional[AgentExecutionError]]:
-        await self.state.base.incoming_message_queue.put(InternalStartLifecycle())
+        await self.start()
         await self.loop()
         return self.state.base.death.reason
 
+    async def start(self):
+        pass
+
     async def kill(self, reason: Optional[DIPClientError]):
-        await self.state.base.incoming_message_queue.put(InternalEndLifecycle(reason))
+        pass
 
     async def loop_messages(self):
         while not self.state.base.death.gracing:
@@ -127,6 +129,7 @@ class Engine(Generic[PI, PO, S, E, X]):
 
     @staticmethod
     def message_project(previous_state: S, message: PI) -> Result[List[E], Exception]:
+        print("Called")
         pass
 
     @staticmethod

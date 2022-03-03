@@ -2,6 +2,8 @@
   
 DIP Testbed Platform is an academic work which allows users to remotely program and experience physical, embedded devices through various virtual interfaces (uni-directional webcam stream, bi-directional serial connection stream).  
   
+_N.B. This is an academic piece of work, it's rough around the edges, because time was a significant constraint._  
+  
 ## Quick installation & usage
 Download the CLI tool:
 ```bash
@@ -28,18 +30,21 @@ _Note: Quick run has all of the underlying mechanics configurable, see options w
 - Download `https://github.com/kshaa/dip-testbed-dist/releases/latest/download/dip_client_${TARGET_ARCH}`  
 - Store in `${PATH}`
 - Set executable bit
+
+## Platform access initiation
   
-## Usage
 Configure academic DIP Testbed platform server:
 ```bash
 dip_client session-static-server -s http://testbed.veinbahs.lv
 dip_client session-control-server -s ws://testbed.veinbahs.lv
 ```
-
+  
 Authenticate:  
 ```bash
 dip_client session-auth -u <username> -p <password>
 ```
+  
+## Developer usage
 
 Upload software to platform:
 ```bash
@@ -55,6 +60,20 @@ Create a serial connection to the board:
 ```
 dip_client hardware-serial-monitor --hardware-id ${BOARD_UUID} -t buttonleds
 ```
+
+## Lab operator usage
+  
+Register hardware in platform:
+```
+dip_client hardware-create --name ${BOARD_NAME}
+```
+  
+Run agent for registered hardware (allows remote access & management by platform):
+```
+dip_client agent-${AGENT_TYPE} -b ${BOARD_UUID} <AGENT_SPECIFIC_OPTIONS>
+```
+  
+_Note: For agent-specific usage, see `dip_client agent-${AGENT_TYPE} --help`_  
   
 ## Documentation
 - See 🌼 🌻 [docs](./docs/README.md) 🌻 🌼 for user-centric documentation  

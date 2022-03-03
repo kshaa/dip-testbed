@@ -5,6 +5,7 @@ import io.circe.generic.extras.semiauto.deriveUnwrappedCodec
 import io.circe.{Codec, Decoder, DecodingFailure, Encoder}
 import io.circe.syntax._
 import cats.implicits._
+import diptestbed.domain.HardwareCameraMessage.{Ping => CameraPing, CameraSubscription, CameraUnavailable, StopBroadcasting}
 import diptestbed.domain._
 import diptestbed.domain.HardwareControlMessageInternal._
 import diptestbed.domain.HardwareControlMessageExternalNonBinary._
@@ -154,6 +155,32 @@ object Codecs {
     Decoder[HardwareControlMessageExternalNonBinary]
       .widen[HardwareControlMessageNonBinary]
       .orElse(Decoder[HardwareControlMessageInternal].widen[HardwareControlMessageNonBinary])
+
+
+  private implicit val cameraUnavailableCodec: Codec[CameraUnavailable] = deriveCodec[CameraUnavailable]
+  private implicit val stopBroadcastingCodec: Codec[StopBroadcasting] = deriveCodec[StopBroadcasting]
+  private implicit val cameraSubscriptionCodec: Codec[CameraSubscription] = deriveCodec[CameraSubscription]
+  private implicit val cameraPingCodec: Codec[CameraPing] = deriveCodec[CameraPing]
+  implicit val hardwareCameraExternalMessageEncoder: Encoder[HardwareCameraMessageExternal] =
+    Encoder.instance {
+      case c: CameraUnavailable   => NamedMessage("cameraUnavailable", c.asJson).asJson
+      case c: StopBroadcasting    => NamedMessage("stopBroadcasting", c.asJson).asJson
+      case c: CameraSubscription  => NamedMessage("cameraSubscription", c.asJson).asJson
+      case c: CameraPing          => NamedMessage("ping", c.asJson).asJson
+    }
+  implicit val hardwareCameraExternalMessageDecoder: Decoder[HardwareCameraMessageExternal] =
+    Decoder[NamedMessage].emap { m =>
+    {
+      val codec: Option[Decoder[HardwareCameraMessageExternal]] = m.command match {
+        case "cameraUnavailable"  => Decoder[CameraUnavailable].widen[HardwareCameraMessageExternal].some
+        case "stopBroadcasting"   => Decoder[StopBroadcasting].widen[HardwareCameraMessageExternal].some
+        case "cameraSubscription" => Decoder[CameraSubscription].widen[HardwareCameraMessageExternal].some
+        case "ping"               => Decoder[CameraPing].widen[HardwareCameraMessageExternal].some
+        case _                    => None
+      }
+      codec.toRight("Unknown command").flatMap(_.decodeJson(m.payload).leftMap(_.message))
+    }
+    }
 
   implicit def webResultSuccessCodec[A: Encoder: Decoder]: Codec[Success[A]] =
     Codec.forProduct1[Success[A], A]("success")(Success(_))(_.value)

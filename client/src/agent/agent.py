@@ -11,12 +11,12 @@ from src.agent.agent_config import AgentConfig
 from src.agent.agent_error import AgentExecutionError
 from src.domain.dip_client_error import GenericClientError
 from src.domain.dip_runnable import DIPRunnable
-from src.domain.hardware_control_message import InternalEndLifecycle, log_hardware_message
+from src.domain.hardware_control_message import log_hardware_message
 from src.util import log
 from src.protocol.codec import CodecParseException
 
 LOGGER = log.timed_named_logger("agent")
-OUTGOING_LOGGER = log.timed_named_logger("outgoing_hardware")
+OUTGOING_LOGGER = log.timed_named_logger("outgoing_engine")
 PI = TypeVar('PI')
 PO = TypeVar('PO')
 
@@ -79,7 +79,7 @@ class Agent(Generic[PI, PO], DIPRunnable):
             # Handle transmission error (and stop transmitting)
             if transmission_exception is not None:
                 deathly_error = AgentExecutionError("Failed to transmit message", exception=transmission_exception)
-                await self.config.engine.state.base.incoming_message_queue.put(InternalEndLifecycle(deathly_error))
+                await self.config.engine.kill(deathly_error)
                 return
 
     async def socket_receive(self):
@@ -100,7 +100,7 @@ class Agent(Generic[PI, PO], DIPRunnable):
             incoming_result = death_or_message.value
             if isinstance(incoming_result, Err) and isinstance(incoming_result.value, ConnectionClosedError):
                 deathly_error = AgentExecutionError("Control server connection closed")
-                await self.config.engine.state.base.incoming_message_queue.put(InternalEndLifecycle(deathly_error))
+                await self.config.engine.kill(deathly_error)
                 return
 
             # Handle unknown message (and continue receiving)
@@ -111,7 +111,7 @@ class Agent(Generic[PI, PO], DIPRunnable):
             # Handle catch-all transmission error (and stop receiving)
             if isinstance(incoming_result, Err):
                 deathly_error = AgentExecutionError("Failed to receive message", exception=incoming_result.value)
-                await self.config.engine.state.base.incoming_message_queue.put(InternalEndLifecycle(deathly_error))
+                await self.config.engine.kill(deathly_error)
                 return
 
             # Handle valid message (and continue receiving)

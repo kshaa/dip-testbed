@@ -17,6 +17,7 @@ kivy = { version = "*", platform_machine = "!= 'aarch64'" }
 bitstring = "*"
 pyyaml = "*"
 appdirs = "*"
+aiohttp = "*"
 
 [dev-packages]
 pyinstaller = "*"

@@ -4,33 +4,16 @@ from typing import TypeVar, Union, Optional
 from dataclasses import dataclass
 from src.domain.dip_client_error import DIPClientError
 from src.domain.existing_file_path import ExistingFilePath
+from src.domain.failure_event import FailureEvent
+from src.domain.hardware_shared_event import LifecycleStarted, LifecycleEnded
 from src.domain.managed_uuid import ManagedUUID
+from src.domain.noisy_event import NoisyEvent
 from src.engine.engine_state import EngineState
 from src.service.managed_serial import ManagedSerial
 from src.service.managed_serial_config import ManagedSerialConfig
 
 PI = TypeVar('PI')
 PO = TypeVar('PO')
-
-
-class NoisyEvent:
-    """Marker trait to mark an event as noisy, used for logging"""
-
-
-class FailureEvent:
-    """Marker trait to mark an event as a failure, used for logging"""
-
-
-@dataclass(frozen=True)
-class LifecycleStarted:
-    """First message emitted into engines"""
-    state: EngineState
-
-
-@dataclass(frozen=True)
-class LifecycleEnded:
-    """Last message emitted into engines"""
-    reason: Optional[DIPClientError] = None
 
 
 @dataclass(frozen=True)

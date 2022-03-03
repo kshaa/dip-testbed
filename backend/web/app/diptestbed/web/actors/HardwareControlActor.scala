@@ -1,11 +1,9 @@
 package diptestbed.web.actors
 
 import akka.actor._
-import akka.cluster.pubsub.DistributedPubSubMediator.Publish
 import diptestbed.domain._
 import play.api.http.websocket._
 import play.api.mvc.WebSocket.MessageFlowTransformer
-import io.circe.parser.decode
 import cats.effect.IO
 import cats.implicits._
 import cats.effect.unsafe.IORuntime
@@ -17,57 +15,38 @@ import diptestbed.domain.HardwareControlMessageExternalBinary._
 import diptestbed.domain.HardwareControlMessageExternalNonBinary._
 import diptestbed.domain.HardwareControlMessageInternal._
 import diptestbed.domain.HardwareSerialMonitorMessageBinary._
+import io.circe.parser.decode
 import diptestbed.protocol.Codecs._
+import io.circe.syntax.EncoderOps
 import diptestbed.web.actors.ActorHelper._
 import diptestbed.web.actors.QueryActor.Promise
-import io.circe.syntax.EncoderOps
 
 class HardwareControlActor(
-  pubSubMediator: ActorRef,
-  agent: ActorRef,
-  hardwareId: HardwareId,
+  val pubSubMediator: ActorRef,
+  val agent: ActorRef,
+  val hardwareId: HardwareId,
 )(implicit
-  iort: IORuntime,
-) extends Actor
+  val iort: IORuntime,
+) extends PubSubEngineActor[HardwareControlState[ActorRef], HardwareControlMessage, HardwareControlEvent[ActorRef]]
+    with Actor
     with LazyLogging {
+  val startMessage: Option[HardwareControlMessage] = Some(StartLifecycle())
+  val endMessage: Option[HardwareControlMessage] = Some(EndLifecycle())
   var state: HardwareControlState[ActorRef] =
     HardwareControlState.initial(self, agent, hardwareId, HardwareListenerHeartbeatConfig.default())
 
-  def setState(newState: HardwareControlState[ActorRef]): Unit = {
-    state = newState
+  override def receiveMessage: PartialFunction[Any, (Some[ActorRef], HardwareControlMessage)] = {
+    case message: HardwareControlMessage =>
+      (Some(sender()), message)
+    // This is an old, dumb workaround, should be removed and tested
+    case Promise(inquirer, message: HardwareControlMessage) =>
+      (Some(inquirer), message)
   }
-
-  def send(actorRef: ActorRef, message: Any): IO[Unit] =
-    IO(actorRef ! message)
-
-  def publish(topic: PubSubTopic, message: HardwareControlMessage): IO[Unit] =
-    send(pubSubMediator, Publish(topic.text(), message))
 
   def onMessage(
     inquirer: => Option[ActorRef],
   ): HardwareControlMessage => MessageResult[IO, HardwareControlEvent[ActorRef], HardwareControlState[ActorRef]] =
     HardwareControlEventEngine.onMessage[ActorRef, IO](state, send, publish, inquirer)
-
-  def unsafeMaterializeResult(
-    result: MessageResult[IO, HardwareControlEvent[ActorRef], HardwareControlState[ActorRef]],
-  ): Unit = EventEngine.unsafeMaterializeMessageResultIO(result, setState)
-
-  override def preStart(): Unit = {
-    super.preStart()
-    unsafeMaterializeResult(onMessage(None)(StartLifecycle()))
-  }
-
-  override def receive: Receive = {
-    case message: HardwareControlMessage =>
-      unsafeMaterializeResult(onMessage(Some(sender()))(message))
-
-    // This is an old, dumb workaround, should be removed and tested
-    case Promise(inquirer, message: HardwareControlMessage) =>
-      unsafeMaterializeResult(onMessage(Some(inquirer))(message))
-
-    case Terminated => unsafeMaterializeResult(onMessage(None)(EndLifecycle()))
-  }
-
 }
 
 object HardwareControlActor {
