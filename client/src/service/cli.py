@@ -795,10 +795,15 @@ class CLI(CLIInterface):
             config_path_str, static_server_str, hardware_id_str, str(software.id.value))
         if forward_error is not None: return Err(forward_error)
         # Create serial monitor connection to board
-        LOGGER.info("Starting serial connection monitor with board")
+        LOGGER.info("Configuring serial connection monitor with board")
         monitor_result = CLI.hardware_serial_monitor(
             config_path_str, control_server_str, hardware_id_str, monitor_type_str, monitor_script_path_str)
         if isinstance(monitor_result, Err): return Err(monitor_result.value)
+        # Open stream in background
+        LOGGER.info("Opening video stream in browser")
+        stream_open_error = CLI.hardware_stream_open(config_path_str, static_server_str, hardware_id_str)
+        if stream_open_error is not None: return Err(stream_open_error)
+        # Return serial monitor
         return Ok(monitor_result.value)
 
     @staticmethod
