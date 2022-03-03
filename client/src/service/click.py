@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Command line interface definition for agent"""
 import asyncio
+import webbrowser
 from typing import Optional
 import click
 from src.monitor.monitor_type import MonitorType
@@ -658,3 +659,19 @@ def agent_hardware_video(
                 port
             ), "Hardware camera agent finished work")
     asyncio.run(exec())
+
+@CLI_COMMAND
+@CONFIG_PATH_OPTION
+@HARDWARE_ID_OPTION
+@STATIC_SERVER_OPTION
+def hardware_stream_open(
+    config_path_str: Optional[str],
+    hardware_id_str: str,
+    static_server_str: Optional[str]
+):
+    """Open hardware video stream in a browser"""
+    CLI.execute_optional_result(
+        False,
+        CLI.hardware_stream_open(config_path_str, static_server_str, hardware_id_str),
+        f"Opening hardware stream for '{hardware_id_str}'"
+    )

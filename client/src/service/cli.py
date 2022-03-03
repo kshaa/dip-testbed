@@ -2,6 +2,7 @@
 """Command line interface definition for agent"""
 import asyncio
 import sys
+import webbrowser
 from typing import Tuple, Optional, List, Union, TypeVar, Any
 
 import appdirs
@@ -661,6 +662,24 @@ class CLI(CLIInterface):
         return backend_result.value.hardware_create(hardware_name)
 
     @staticmethod
+    def hardware_stream_open(
+        config_path_str: Optional[str],
+        static_server_str: Optional[str],
+        hardware_id_str: str
+    ) -> Optional[DIPClientError]:
+        backend_result = CLI.parsed_backend(config_path_str, None, static_server_str, None, None)
+        if isinstance(backend_result, Err): return backend_result.value
+        hardware_id_result = ManagedUUID.build(hardware_id_str)
+        if isinstance(hardware_id_result, Err): return hardware_id_result.value.of_type("hardware")
+        hardware_video_sink_url_result = backend_result.value.hardware_video_sink_url(hardware_id_result.value)
+        if isinstance(hardware_video_sink_url_result, Err): return hardware_video_sink_url_result.value
+        url_text_result = hardware_video_sink_url_result.value.text()
+        if isinstance(url_text_result, Err): return url_text_result.value
+        url = url_text_result.value
+        LOGGER.info(f"Video stream available at: {url}")
+        webbrowser.open(url)
+
+    @staticmethod
     def software_list(
         config_path_str: Optional[str],
         static_server_str: Optional[str]
@@ -855,17 +874,6 @@ class CLI(CLIInterface):
         video_source_url_result = backend.hardware_video_source_url(hardware_id)
         if isinstance(video_source_url_result, Err): return video_source_url_result
         video_source_url = video_source_url_result.value
-
-        # # Video stream config
-        # if is_stream_existing:
-        #     if stream_url_str is None:
-        #         return Err(GenericClientError("If existing video stream is used, URL is required"))
-        #     stream_url_result = ManagedURL.build(stream_url_str)
-        #     if isinstance(stream_url_result, Err): return stream_url_result.value.of_type("stream")
-        #     initial_stream_config: VideoStreamConfig = ExistingStreamConfig(stream_url_result.value)
-        # else:
-        #     initial_stream_config: VideoStreamConfig = None
-        #     raise Exception("Not implemented yet, chill")
 
         # Engine
         base = await EngineBase.build()

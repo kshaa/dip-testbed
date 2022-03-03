@@ -133,6 +133,9 @@ class BackendService(BackendServiceInterface):
     def hardware_video_source_url(self, hardware_id: ManagedUUID) -> Result[ManagedURL, BackendManagementError]:
         return self.control_url(f"{self.config.api_prefix}/hardware/video/source?hardware={hardware_id.value}")
 
+    def hardware_video_sink_url(self, hardware_id: ManagedUUID) -> Result[ManagedURL, BackendManagementError]:
+        return self.static_url(f"{self.config.api_prefix}/hardware/video/sink/{hardware_id.value}.ogg")
+
     def hardware_serial_monitor_url(self, hardware_id: ManagedUUID) -> Result[ManagedURL, BackendManagementError]:
         """Build hardware serial monitor URL"""
         return self.control_url(f"{self.config.api_prefix}/hardware/{hardware_id.value}/monitor/serial")
