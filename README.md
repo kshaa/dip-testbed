@@ -15,7 +15,7 @@ Create a local authentication session:
 dip_client session-auth -u <username> -p <password>
 ```
   
-Upload software to the platform, forward it to a hardware board, run a serial connection against it: 
+Upload software to the platform, forward it to a hardware board, start a web video stream in a browser, run a serial connection against the board: 
 ```bash
 dip_client quick-run -f firmware.bit -b ${BOARD_UUID}
 ```
