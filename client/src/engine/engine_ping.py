@@ -1,17 +1,13 @@
 #!/usr/bin/env python
 """Engine which reacts to server commands and supervises microcontroller"""
 import asyncio
-from asyncio import Task
 from dataclasses import dataclass
-from typing import TypeVar, Generic, List, Optional, Any
-from result import Result, Err
-
-from src.agent.agent_error import AgentExecutionError
+from typing import TypeVar, Any
+from result import Err
 from src.domain.death import Death
-from src.domain.dip_client_error import DIPClientError
-from src.domain.hardware_control_message import COMMON_INCOMING_MESSAGE, PingMessage
+from src.domain.hardware_shared_event import LifecycleStarted
+from src.domain.hardware_shared_message import PingMessage
 from src.domain.positive_integer import PositiveInteger
-from src.engine.engine_events import NoisyEvent, FailureEvent, COMMON_ENGINE_EVENT, LifecycleStarted
 from src.engine.engine_state import EngineState, ManagedQueue, EngineBase
 from src.util import log
 
@@ -45,7 +41,7 @@ class EnginePing:
             # Ping and repeat
             await out_queue.put(PingMessage())
 
-    async def effect_project(self, previous_state: EnginePingState, event: COMMON_ENGINE_EVENT):
+    async def effect_project(self, previous_state: EnginePingState, event: Any):
         if isinstance(event, LifecycleStarted):
             await self.ping_until_death(
                 previous_state.base.death,

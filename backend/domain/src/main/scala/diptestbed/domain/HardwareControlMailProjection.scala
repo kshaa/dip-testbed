@@ -27,11 +27,11 @@ object HardwareControlMailProjection {
       case _: MonitorDropExpected[A] => Some(send(state.agent, SerialMonitorRequestStop()))
 
       case MonitorMessageToClient(bytes) =>
-        Some(publish(state.hardwareId.serialTopic(), SerialMonitorMessageToClient(SerialMessageToClient(bytes))))
+        Some(publish(state.hardwareId.serialBroadcastTopic(), SerialMonitorMessageToClient(SerialMessageToClient(bytes))))
       case MonitorMessageToAgent(bytes) =>
         Some(send(state.agent, SerialMonitorMessageToAgent(SerialMessageToAgent(bytes))))
       case MonitorDropped(reason) =>
-        Some(publish(state.hardwareId.serialTopic(), SerialMonitorUnavailable(reason)))
+        Some(publish(state.hardwareId.serialBroadcastTopic(), SerialMonitorUnavailable(reason)))
     }
   }
 }

@@ -16,6 +16,18 @@ def src_relative_path(relative_path: str) -> str:
     """Convert a path relative to the project root into an absolute path"""
     return os.path.join(SRC_DIR, relative_path)
 
+def runnable_sh(
+    runner_args: Sequence[str]
+) -> Result[subprocess.Popen, Exception]:
+    try:
+        LOGGER.debug("Running command: %s", runner_args)
+        proc = subprocess.Popen(
+            runner_args,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+        return Ok(proc)
+    except Exception as e:
+        return Err(e)
 
 def outcome_sh(
     runner_args: Sequence[str]

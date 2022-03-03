@@ -10,12 +10,12 @@ from src.domain.dip_client_error import DIPClientError
 
 @dataclass
 class ManagedExistingFilePathBuildError(DIPClientError):
-    source_value: str
+    source_value: Optional[str]
     type: Optional[str] = None
     exception: Optional[Exception] = None
 
     def text(self):
-        type_info = f" for '{self.type}'" if self.type is None else ""
+        type_info = f" for '{self.type}'" if self.type is not None else ""
         reason_info = f", reason: {str(self.exception)}" if self.exception is not None else ""
         return f"File path '{self.source_value}'{type_info} does not exist{reason_info}"
 
@@ -34,6 +34,8 @@ class ExistingFilePath:
 
     @staticmethod
     def build(value: str) -> Result['ExistingFilePath', ManagedExistingFilePathBuildError]:
+        if value is None:
+            return Err(ManagedExistingFilePathBuildError(None))
         if not os.path.exists(value):
             return Err(ManagedExistingFilePathBuildError(value))
         return Ok(ExistingFilePath(value))

@@ -41,7 +41,7 @@ class HardwareSerialMonitorListenerActor(
     .flatMap {
       case Right(_) =>
         // Start listening to serial monitor topic
-        IO(pubSubMediator ! Subscribe(hardwareId.serialTopic().text(), self))
+        IO(pubSubMediator ! Subscribe(hardwareId.serialBroadcastTopic().text(), self))
       case Left(error) =>
         // Send error to listener
         val message: HardwareSerialMonitorMessageNonBinary = MonitorUnavailable(error)

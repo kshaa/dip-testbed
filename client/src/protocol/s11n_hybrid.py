@@ -2,8 +2,8 @@
 
 from typing import TypeVar, Type, Dict, Union
 from functools import partial
-from result import Result
-from src.domain import hardware_control_message, monitor_message
+from result import Result, Err
+from src.domain import hardware_control_message, monitor_message, hardware_video_message, hardware_shared_message
 from src.protocol import s11n_json, s11n_binary
 from src.protocol.codec import Encoder, CodecParseException
 from src.protocol.codec_binary import DecoderBinary
@@ -68,7 +68,7 @@ COMMON_INCOMING_MESSAGE_CODEC = CodecHybrid(COMMON_INCOMING_MESSAGE_DECODER, COM
 # protocol.CommonOutgoingMessage
 COMMON_OUTGOING_MESSAGE_ENCODER = hybrid_encoder({
     hardware_control_message.UploadResultMessage: s11n_json.COMMON_OUTGOING_MESSAGE_ENCODER_JSON,
-    hardware_control_message.PingMessage: s11n_json.COMMON_OUTGOING_MESSAGE_ENCODER_JSON,
+    hardware_shared_message.PingMessage: s11n_json.COMMON_OUTGOING_MESSAGE_ENCODER_JSON,
     hardware_control_message.SerialMonitorResult: s11n_json.COMMON_OUTGOING_MESSAGE_ENCODER_JSON,
     monitor_message.MonitorUnavailable: s11n_json.COMMON_OUTGOING_MESSAGE_ENCODER_JSON,
     hardware_control_message.SerialMonitorMessageToClient: s11n_binary.SERIAL_MONITOR_MESSAGE_TO_CLIENT_ENCODER_BINARY
@@ -79,6 +79,19 @@ COMMON_OUTGOING_MESSAGE_DECODER = hybrid_decoder(
 COMMON_OUTGOING_MESSAGE_CODEC = CodecHybrid(
     COMMON_OUTGOING_MESSAGE_DECODER,
     COMMON_OUTGOING_MESSAGE_ENCODER)
+
+# protocol.CommonOutgoingVideoMessage
+COMMON_OUTGOING_VIDEO_MESSAGE_ENCODER = hybrid_encoder({
+    hardware_shared_message.PingMessage: s11n_json.COMMON_OUTGOING_VIDEO_MESSAGE_ENCODER_JSON,
+    hardware_video_message.CameraUnavailable: s11n_json.COMMON_OUTGOING_VIDEO_MESSAGE_ENCODER_JSON,
+    hardware_video_message.CameraChunk: s11n_binary.CAMERA_CHUNK_ENCODER_BINARY
+})
+
+# protocol.CommonIncomingVideoMessage
+COMMON_INCOMING_VIDEO_MESSAGE_DECODER = hybrid_decoder(
+    DecoderBinary(lambda x: Err(CodecParseException("No binary expected for incoming video stream"))),
+    s11n_json.COMMON_INCOMING_VIDEO_MESSAGE_DECODER_JSON
+)
 
 # protocol.MonitorListenerIncomingMessage
 MONITOR_LISTENER_INCOMING_MESSAGE_ENCODER = hybrid_encoder({

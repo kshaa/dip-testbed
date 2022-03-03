@@ -5,10 +5,9 @@ from src.domain.managed_uuid import ManagedUUID
 from src.domain.positive_integer import PositiveInteger
 from src.engine.board.fake.engine_fake import EngineFakeBoardState, EngineFakeState, EngineFake, EngineFakeUpload, \
     EngineFakeSerialMonitor
-from src.engine.engine_common_test import TestCommonEngine
+from src.engine.board.engine_common_test import TestCommonEngine
 from src.engine.engine_lifecycle import EngineLifecycle
 from src.engine.engine_ping import EnginePing
-from src.engine.engine_serial_monitor import EngineSerialMonitor
 from src.engine.engine_state import ManagedQueue, EngineBase
 from src.service.backend import BackendServiceInterface
 from src.util.sh import src_relative_path

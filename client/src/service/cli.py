@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 """Command line interface definition for agent"""
 import asyncio
-import os
 import sys
-from typing import Tuple, Optional, List, Union, TypeVar, Any, Awaitable
+from typing import Tuple, Optional, List, Union, TypeVar, Any
 
 import appdirs
 from result import Err, Result, Ok
@@ -12,7 +11,9 @@ from src.agent.agent import Agent
 from src.agent.agent_config import AgentConfig
 from src.domain.backend_entity import User, Hardware, Software
 from src.domain.config import Config
+from src.domain.death import Death
 from src.domain.dip_runnable import DIPRunnable
+from src.domain.hardware_control_message import InternalStartLifecycle, InternalEndLifecycle
 from src.engine.board.anvyl.engine_anvyl import EngineAnvyl
 from src.engine.board.anvyl.engine_anvyl_state import EngineAnvylState, EngineAnvylBoardState
 from src.domain.dip_client_error import DIPClientError, GenericClientError
@@ -27,20 +28,24 @@ from src.engine.board.nrf52.engine_nrf52_state import EngineNRF52State, EngineNR
 from src.engine.board.nrf52.engine_nrf52_upload import EngineNRF52Upload
 from src.engine.engine_lifecycle import EngineLifecycle
 from src.engine.engine_ping import EnginePing
-from src.engine.engine_serial_monitor import EngineSerialMonitor
-from src.engine.engine_state import ManagedQueue, EngineBase
+from src.engine.board.engine_serial_monitor import EngineSerialMonitor
+from src.engine.engine_state import EngineBase
+from src.engine.video.engine_video import EngineVideo
+from src.engine.video.engine_video_state import EngineVideoState
+from src.engine.video.engine_video_stream import EngineVideoStream
 from src.monitor.monitor_serial import MonitorSerial
 from src.monitor.monitor_type import MonitorType
-from src.protocol import s11n_hybrid, s11n_json
+from src.protocol import s11n_hybrid
 from src.protocol.codec_json import JSON, EncoderJSON
-from src.protocol.s11n_hybrid import COMMON_INCOMING_MESSAGE_DECODER, COMMON_INCOMING_MESSAGE_ENCODER, \
-    COMMON_OUTGOING_MESSAGE_ENCODER
+from src.protocol.s11n_hybrid import COMMON_INCOMING_MESSAGE_DECODER, COMMON_OUTGOING_MESSAGE_ENCODER, \
+    COMMON_OUTGOING_VIDEO_MESSAGE_ENCODER, COMMON_INCOMING_VIDEO_MESSAGE_DECODER
 from src.protocol.s11n_json import CONFIG_ENCODER_JSON
 from src.protocol.s11n_rich import RichEncoder
 from src.service.backend import BackendConfig, BackendService, BackendServiceInterface
 from src.service.backend_config import UserPassAuthConfig
 from src.service.config_service import ConfigService
 from src.service.managed_url import ManagedURL
+from src.service.managed_video_stream import VideoStreamConfig, ExistingStreamConfig, VLCStreamConfig
 from src.service.ws import WebSocket
 from src.util import log
 from rich import print as richprint, print_json
@@ -233,6 +238,24 @@ class CLIInterface:
         monitor_type_str: str,
         monitor_script_path_str: Optional[str]
     ) -> Result[DIPRunnable, DIPClientError]:
+        pass
+
+    @staticmethod
+    async def agent_hardware_camera(
+        config_path_str: Optional[str],
+        hardware_id_str: str,
+        control_server_str: Optional[str],
+        heartbeat_seconds: int,
+        is_stream_existing: bool,
+        stream_url_str: Optional[str],
+        video_device: Optional[str],
+        video_width: Optional[int],
+        video_height: Optional[int],
+        video_buffer_size: Optional[int],
+        audio_sample_rate: Optional[int],
+        audio_buffer_size: Optional[int],
+        port: Optional[int]
+    ) -> Result[Agent, DIPClientError]:
         pass
 
     @staticmethod
@@ -447,7 +470,8 @@ class CLI(CLIInterface):
         username_str: Optional[str],
         password_str: Optional[str],
         heartbeat_seconds: int,
-        device_path_str: str
+        device_path_str: Optional[str],
+        video_agent: bool = False
     ) -> Result[
         Tuple[ManagedUUID, PositiveInteger, BackendServiceInterface, ManagedURL, ExistingFilePath],
         DIPClientError
@@ -461,7 +485,7 @@ class CLI(CLIInterface):
         if isinstance(hardware_id_result, Err): return Err(hardware_id_result.value.of_type("hardware"))
 
         if config.control_url is None: return Err(GenericClientError("Control URL is required"))
-        if config.static_url is None: return Err(GenericClientError("Static URL is required"))
+        if not video_agent and config.static_url is None: return Err(GenericClientError("Static URL is required"))
 
         heartbeat_seconds_result = PositiveInteger.build(heartbeat_seconds)
         if isinstance(heartbeat_seconds_result, Err): return Err(heartbeat_seconds_result.value.of_type("heartbeat"))
@@ -471,8 +495,11 @@ class CLI(CLIInterface):
         hardware_control_url_result = backend.hardware_control_url(hardware_id_result.value)
         if isinstance(hardware_control_url_result, Err): return Err(hardware_control_url_result.value)
 
-        device_path_result = ExistingFilePath.build(device_path_str)
-        if isinstance(device_path_result, Err): return Err(device_path_result.value.of_type("device"))
+        if device_path_str is None:
+            device_path_result = Ok(None)
+        else:
+            device_path_result = ExistingFilePath.build(device_path_str)
+            if isinstance(device_path_result, Err): return Err(device_path_result.value.of_type("device"))
 
         return Ok((
             hardware_id_result.value,
@@ -754,6 +781,106 @@ class CLI(CLIInterface):
             config_path_str, control_server_str, hardware_id_str, monitor_type_str, monitor_script_path_str)
         if isinstance(monitor_result, Err): return Err(monitor_result.value)
         return Ok(monitor_result.value)
+
+    @staticmethod
+    def parsed_video_config(
+        is_stream_existing: bool,
+        stream_url_str: Optional[str],
+        video_device: Optional[str],
+        video_width: Optional[int],
+        video_height: Optional[int],
+        video_buffer_size: Optional[int],
+        audio_sample_rate: Optional[int],
+        audio_buffer_size: Optional[int],
+        port: Optional[int]
+    ) -> Result[VideoStreamConfig, DIPClientError]:
+        if is_stream_existing:
+            if stream_url_str is None:
+                return Err(GenericClientError("If existing video stream is used, URL is required"))
+            stream_url_result = ManagedURL.build(stream_url_str)
+            if isinstance(stream_url_result, Err): return Err(stream_url_result.value.of_type("stream"))
+            return Ok(ExistingStreamConfig(stream_url_result.value))
+        else:
+            video_device_result = ExistingFilePath.build(video_device)
+            if isinstance(video_device_result, Err): return Err(video_device_result.value.of_type("video"))
+            if video_width is None: return Err(GenericClientError("Video stream width is required"))
+            if video_height is None: return Err(GenericClientError("Video stream height is required"))
+            return Ok(VLCStreamConfig.build(
+                video_device_result.value,
+                video_width,
+                video_height,
+                video_buffer_size,
+                audio_sample_rate,
+                audio_buffer_size,
+                port))
+
+    @staticmethod
+    async def agent_hardware_camera(
+        config_path_str: Optional[str],
+        hardware_id_str: str,
+        control_server_str: Optional[str],
+        heartbeat_seconds: int,
+        is_stream_existing: bool,
+        stream_url_str: Optional[str],
+        video_device: Optional[str],
+        video_width: Optional[int],
+        video_height: Optional[int],
+        video_buffer_size: Optional[int],
+        audio_sample_rate: Optional[int],
+        audio_buffer_size: Optional[int],
+        port: Optional[int]
+    ) -> Result[Agent, DIPClientError]:
+        # Common agent input
+        common_agent_input_result: Result = CLI.parsed_agent_input(
+            config_path_str, hardware_id_str, control_server_str, None, None, None,
+            heartbeat_seconds, None, True)
+        if isinstance(common_agent_input_result, Err): return common_agent_input_result
+        (hardware_id, heartbeat_seconds, backend, _, _) = \
+            common_agent_input_result.value
+
+        # Video config
+        video_config_result = CLI.parsed_video_config(
+            is_stream_existing,
+            stream_url_str,
+            video_device,
+            video_width,
+            video_height,
+            video_buffer_size,
+            audio_sample_rate,
+            audio_buffer_size,
+            port)
+        if isinstance(video_config_result, Err): return Err(video_config_result.value)
+
+        # Build video source connection URL
+        video_source_url_result = backend.hardware_video_source_url(hardware_id)
+        if isinstance(video_source_url_result, Err): return video_source_url_result
+        video_source_url = video_source_url_result.value
+
+        # # Video stream config
+        # if is_stream_existing:
+        #     if stream_url_str is None:
+        #         return Err(GenericClientError("If existing video stream is used, URL is required"))
+        #     stream_url_result = ManagedURL.build(stream_url_str)
+        #     if isinstance(stream_url_result, Err): return stream_url_result.value.of_type("stream")
+        #     initial_stream_config: VideoStreamConfig = ExistingStreamConfig(stream_url_result.value)
+        # else:
+        #     initial_stream_config: VideoStreamConfig = None
+        #     raise Exception("Not implemented yet, chill")
+
+        # Engine
+        base = await EngineBase.build()
+        engine_state = EngineVideoState(base, hardware_id, heartbeat_seconds, video_config_result.value, None, Death())
+        engine_lifecycle = EngineLifecycle()
+        engine_ping = EnginePing()
+        engine_video_stream = EngineVideoStream()
+        engine = EngineVideo(engine_state, engine_lifecycle, engine_ping, engine_video_stream)
+
+        # Agent with engine construction
+        encoder = COMMON_OUTGOING_VIDEO_MESSAGE_ENCODER
+        decoder = COMMON_INCOMING_VIDEO_MESSAGE_DECODER
+        websocket = WebSocket(video_source_url, decoder, encoder)
+
+        return Ok(Agent(AgentConfig(engine, websocket)))
 
     @staticmethod
     async def execute_runnable_result(

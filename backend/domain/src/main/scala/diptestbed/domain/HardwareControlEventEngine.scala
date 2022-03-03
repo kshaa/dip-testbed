@@ -43,11 +43,11 @@ object HardwareControlEventEngine {
       EventEngine.multiSideeffectProjection(
         List(
           HardwareControlMailProjection.project(send, publish),
-          HardwareControlListenerHeartbeatProjection.project(send, publish),
+          HardwareControlHeartbeatProjection.project(send, publish),
         ),
       ),
       HardwareControlEventStateProjection.project,
-      onError(send, inquirer),
+      onError[A, F](send, inquirer),
     )
   }
 }

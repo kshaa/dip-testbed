@@ -109,6 +109,54 @@ PASSWORD_OPTION = click.option(
     help='User password (e.g. \'12345\').'
 )
 
+# Video  streaming options
+IS_STREAM_EXISTING_OPTION = click.option(
+    '--stream-exists', '-e', "is_stream_existing", show_envvar=True,
+    type=bool, envvar=f"{ENV_PREFIX}_STREAM_IS_EXISTING", required=True,
+    help='Should the video stream be broadcasted from an existing source.'
+)
+# Video stream (existing)
+STREAM_URL_OPTION = click.option(
+    '--stream-url', '-l', "stream_url_str", show_envvar=True,
+    type=str, envvar=f"{ENV_PREFIX}_STREAM_URL", required=False,
+    help='URL for an existing video source (if is_stream_existing), e.g. http://localhost:8081/webcam.ogg'
+)
+# Video stream (non-existing)
+STREAM_DEVICE_PATH_OPTION = click.option(
+    '--stream-device', '-d', "video_device", show_envvar=True,
+    type=str, envvar=f"{ENV_PREFIX}_STREAM_DEVICE_PATH", required=False,
+    help='File path to V4L2 video source (if not is_stream_existing), e.g. /dev/video0'
+)
+STREAM_WIDTH_OPTION = click.option(
+    '--stream-width', '-w', "video_width", show_envvar=True,
+    type=str, envvar=f"{ENV_PREFIX}_STREAM_WIDTH", required=False,
+    help='Size in pixels for video source width (if not is_stream_existing), e.g. 1280'
+)
+STREAM_HEIGHT_OPTION = click.option(
+    '--stream-height', '-h', "video_height", show_envvar=True,
+    type=str, envvar=f"{ENV_PREFIX}_STREAM_HEIGHT", required=False,
+    help='Size in pixels for video source height (if not is_stream_existing), e.g. 720'
+)
+STREAM_VIDEO_BUFFER_OPTION = click.option(
+    '--stream-video-buffer', '-v', "video_buffer_size", show_envvar=True,
+    type=str, envvar=f"{ENV_PREFIX}_STREAM_VIDEO_BUFFER", required=False,
+    help='Size in bytes for video stream buffer (if not is_stream_existing), default: 50'
+)
+STREAM_SAMPLE_RATE_OPTION = click.option(
+    '--stream-sample-rate', '-s', "audio_sample_rate", show_envvar=True,
+    type=str, envvar=f"{ENV_PREFIX}_STREAM_SAMPLE_RATE", required=False,
+    help='Video stream sample rate (if not is_stream_existing), default: 44100'
+)
+STREAM_AUDIO_BUFFER_OPTION = click.option(
+    '--stream-audio-buffer', '-a', "audio_buffer_size", show_envvar=True,
+    type=str, envvar=f"{ENV_PREFIX}_STREAM_AUDIO_BUFFER", required=False,
+    help='Size in bytes for audio stream buffer (if not is_stream_existing), default: 50'
+)
+STREAM_PORT_OPTION = click.option(
+    '--stream-url', '-p', "port", show_envvar=True,
+    type=str, envvar=f"{ENV_PREFIX}_STREAM_URL", required=False,
+    help='Port number for VLC video source (if not is_stream_existing), default: 8081'
+)
 
 @click.group()
 def cli_client():
@@ -560,4 +608,53 @@ def quick_run(
                 monitor_type_str,
                 monitor_script_path_str
             ), "Finished quick run")
+    asyncio.run(exec())
+
+@CLI_COMMAND
+@CONFIG_PATH_OPTION
+@HARDWARE_ID_OPTION
+@CONTROL_SERVER_OPTION
+@HEARTBEAT_SECONDS_OPTION
+@IS_STREAM_EXISTING_OPTION
+@STREAM_URL_OPTION
+@STREAM_DEVICE_PATH_OPTION
+@STREAM_WIDTH_OPTION
+@STREAM_HEIGHT_OPTION
+@STREAM_VIDEO_BUFFER_OPTION
+@STREAM_SAMPLE_RATE_OPTION
+@STREAM_AUDIO_BUFFER_OPTION
+@STREAM_PORT_OPTION
+def agent_hardware_video(
+    config_path_str: Optional[str],
+    hardware_id_str: str,
+    control_server_str: Optional[str],
+    heartbeat_seconds: int,
+    is_stream_existing: bool,
+    stream_url_str: Optional[str],
+    video_device: Optional[str],
+    video_width: Optional[int],
+    video_height: Optional[int],
+    video_buffer_size: Optional[int],
+    audio_sample_rate: Optional[int],
+    audio_buffer_size: Optional[int],
+    port: Optional[int]
+):
+    """Hardware video stream broadcast"""
+    async def exec():
+        return await CLI.execute_runnable_result(
+            await CLI.agent_hardware_camera(
+                config_path_str,
+                hardware_id_str,
+                control_server_str,
+                heartbeat_seconds,
+                is_stream_existing,
+                stream_url_str,
+                video_device,
+                video_width,
+                video_height,
+                video_buffer_size,
+                audio_sample_rate,
+                audio_buffer_size,
+                port
+            ), "Hardware camera agent finished work")
     asyncio.run(exec())

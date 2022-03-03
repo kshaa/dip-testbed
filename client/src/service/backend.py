@@ -52,10 +52,13 @@ class BackendServiceInterface:
     def control_url(self, path: str) -> Result[ManagedURL, BackendManagementError]:
         pass
 
-    def hardware_control_url(self, hardware_id: UUID) -> Result[ManagedURL, BackendManagementError]:
+    def hardware_control_url(self, hardware_id: ManagedUUID) -> Result[ManagedURL, BackendManagementError]:
         pass
 
-    def hardware_serial_monitor_url(self, hardware_id: UUID) -> Result[ManagedURL, BackendManagementError]:
+    def hardware_video_source_url(self, hardware_id: ManagedUUID) -> Result[ManagedURL, BackendManagementError]:
+        pass
+
+    def hardware_serial_monitor_url(self, hardware_id: ManagedUUID) -> Result[ManagedURL, BackendManagementError]:
         pass
 
     # User
@@ -126,6 +129,9 @@ class BackendService(BackendServiceInterface):
     def hardware_control_url(self, hardware_id: ManagedUUID) -> Result[ManagedURL, BackendManagementError]:
         """Build hardware control server URL"""
         return self.control_url(f"{self.config.api_prefix}/hardware/{hardware_id.value}/control")
+
+    def hardware_video_source_url(self, hardware_id: ManagedUUID) -> Result[ManagedURL, BackendManagementError]:
+        return self.control_url(f"{self.config.api_prefix}/hardware/video/source?hardware={hardware_id.value}")
 
     def hardware_serial_monitor_url(self, hardware_id: ManagedUUID) -> Result[ManagedURL, BackendManagementError]:
         """Build hardware serial monitor URL"""

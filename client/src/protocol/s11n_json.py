@@ -5,7 +5,8 @@ from typing import Type, TypeVar, Dict, Tuple, List
 from result import Result, Err, Ok
 from src.domain.managed_uuid import ManagedUUID
 from src.protocol.codec import CodecParseException
-from src.domain import hardware_control_message, backend_entity, backend_management_message, monitor_message, config
+from src.domain import hardware_control_message, backend_entity, backend_management_message, monitor_message, config, \
+    hardware_shared_message, hardware_video_message
 from src.protocol.codec_json import JSON, EncoderJSON, DecoderJSON, CodecJSON
 from src.service.backend_config import UserPassAuthConfig
 from src.service.config_service import ConfigService
@@ -216,22 +217,22 @@ UPLOAD_RESULT_MESSAGE_CODEC_JSON: CodecJSON[hardware_control_message.UploadResul
 
 
 # protocol.PingMessage
-def ping_message_encode_json(_: hardware_control_message.PingMessage) -> JSON:
+def ping_message_encode_json(_: hardware_shared_message.PingMessage) -> JSON:
     """Serialize PingMessage to JSON"""
     return {}
 
 
-def ping_message_decode_json(value: JSON) -> Result[hardware_control_message.PingMessage, CodecParseException]:
+def ping_message_decode_json(value: JSON) -> Result[hardware_shared_message.PingMessage, CodecParseException]:
     """Un-serialize PingMessage from JSON"""
     if isinstance(value, dict):
-        return Ok(hardware_control_message.PingMessage())
+        return Ok(hardware_shared_message.PingMessage())
     else:
         return Err(CodecParseException("PingMessage must be an object"))
 
 
-PING_MESSAGE_ENCODER_JSON: EncoderJSON[hardware_control_message.PingMessage] = \
+PING_MESSAGE_ENCODER_JSON: EncoderJSON[hardware_shared_message.PingMessage] = \
     EncoderJSON(ping_message_encode_json)
-PING_MESSAGE_DECODER_JSON: DecoderJSON[hardware_control_message.PingMessage] = \
+PING_MESSAGE_DECODER_JSON: DecoderJSON[hardware_shared_message.PingMessage] = \
     DecoderJSON(ping_message_decode_json)
 PING_MESSAGE_CODEC_JSON: CodecJSON[hardware_control_message.UploadResultMessage] = \
     CodecJSON(UPLOAD_RESULT_MESSAGE_DECODER_JSON, UPLOAD_RESULT_MESSAGE_ENCODER_JSON)
@@ -458,19 +459,65 @@ COMMON_INCOMING_MESSAGE_CODEC_JSON = CodecJSON(
 # protocol.CommonOutgoingMessage
 COMMON_OUTGOING_MESSAGE_ENCODER_JSON = named_message_union_encoder_json({
     hardware_control_message.UploadResultMessage: ("uploadSoftwareResult", UPLOAD_RESULT_MESSAGE_ENCODER_JSON),
-    hardware_control_message.PingMessage: ("ping", PING_MESSAGE_ENCODER_JSON),
+    hardware_shared_message.PingMessage: ("ping", PING_MESSAGE_ENCODER_JSON),
     hardware_control_message.SerialMonitorResult: ("serialMonitorResult", SERIAL_MONITOR_RESULT_ENCODER_JSON),
     monitor_message.MonitorUnavailable: ("monitorUnavailable", MONITOR_UNAVAILABLE_ENCODER_JSON)
 })
 COMMON_OUTGOING_MESSAGE_DECODER_JSON = named_message_union_decoder_json({
     hardware_control_message.UploadResultMessage: ("uploadSoftwareResult", UPLOAD_RESULT_MESSAGE_DECODER_JSON),
-    hardware_control_message.PingMessage: ("ping", PING_MESSAGE_DECODER_JSON),
+    hardware_shared_message.PingMessage: ("ping", PING_MESSAGE_DECODER_JSON),
     hardware_control_message.SerialMonitorResult: ("serialMonitorResult", SERIAL_MONITOR_RESULT_DECODER_JSON),
     monitor_message.MonitorUnavailable: ("monitorUnavailable", MONITOR_UNAVAILABLE_DECODER_JSON)
 })
 COMMON_OUTGOING_MESSAGE_CODEC_JSON = CodecJSON(
     COMMON_OUTGOING_MESSAGE_DECODER_JSON,
     COMMON_OUTGOING_MESSAGE_ENCODER_JSON)
+
+
+# hardware_video_message.CameraUnavailable
+def camera_unavailable_encode_json(value: hardware_video_message.CameraUnavailable) -> JSON:
+    """Encode CameraUnavailable into JSON"""
+    return {
+        "reason": value.reason.text()
+    }
+CAMERA_UNAVAILABLE_ENCODER_JSON: EncoderJSON[hardware_video_message.CameraUnavailable] = \
+    EncoderJSON(camera_unavailable_encode_json)
+
+# hardware_video_message.StopBroadcasting
+def stop_broadcasting_decode_json(
+    value: JSON
+) -> Result[hardware_video_message.StopBroadcasting, CodecParseException]:
+    """Un-serialize StopBroadcasting from JSON"""
+    if not isinstance(value, dict):
+        return Err(CodecParseException("CameraSubscription must be an object"))
+    return Ok(hardware_video_message.StopBroadcasting())
+
+STOP_BROADCASTING_MESSAGE_DECODER_JSON: DecoderJSON[hardware_video_message.StopBroadcasting] = \
+    DecoderJSON(stop_broadcasting_decode_json)
+
+# hardware_video_message.CameraSubscription
+def camera_subscription_decode_json(
+    value: JSON
+) -> Result[hardware_video_message.CameraSubscription, CodecParseException]:
+    """Un-serialize CameraSubscription from JSON"""
+    if not isinstance(value, dict):
+        return Err(CodecParseException("CameraSubscription must be an object"))
+    return Ok(hardware_video_message.CameraSubscription())
+
+CAMERA_SUBSCRIPTION_MESSAGE_DECODER_JSON: DecoderJSON[hardware_video_message.CameraSubscription] = \
+    DecoderJSON(camera_subscription_decode_json)
+
+# protocol.CommonIncomingVideoMessage
+COMMON_INCOMING_VIDEO_MESSAGE_DECODER_JSON = named_message_union_decoder_json({
+    hardware_video_message.StopBroadcasting: ("stopBroadcasting", STOP_BROADCASTING_MESSAGE_DECODER_JSON),
+    hardware_video_message.CameraSubscription: ("cameraSubscription", CAMERA_SUBSCRIPTION_MESSAGE_DECODER_JSON),
+})
+
+# protocol.CommonOutgoingVideoMessage
+COMMON_OUTGOING_VIDEO_MESSAGE_ENCODER_JSON = named_message_union_encoder_json({
+    hardware_shared_message.PingMessage: ("ping", PING_MESSAGE_ENCODER_JSON),
+    hardware_video_message.CameraUnavailable: ("cameraUnavailable", CAMERA_UNAVAILABLE_ENCODER_JSON)
+})
 
 # protocol.MonitorListenerIncomingMessage
 MONITOR_LISTENER_INCOMING_MESSAGE_ENCODER_JSON = named_message_union_encoder_json({

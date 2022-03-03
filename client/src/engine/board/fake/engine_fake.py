@@ -6,13 +6,13 @@ from src.domain.managed_uuid import ManagedUUID
 from src.domain.positive_integer import PositiveInteger
 from dataclasses import dataclass
 from src.domain.dip_client_error import DIPClientError
-from src.engine.engine_common import EngineCommon
-from src.engine.engine_common_state import EngineCommonState
-from src.engine.engine_events import COMMON_ENGINE_EVENT
+from src.engine.board.engine_common import EngineCommon
+from src.engine.board.engine_common_state import EngineCommonState
+from src.domain.hardware_control_event import COMMON_ENGINE_EVENT
 from src.domain.hardware_control_message import COMMON_INCOMING_MESSAGE, COMMON_OUTGOING_MESSAGE
-from src.engine.engine_serial_monitor import EngineSerialMonitor
+from src.engine.board.engine_serial_monitor import EngineSerialMonitor
 from src.engine.engine_state import EngineBase
-from src.engine.engine_upload import EngineUpload
+from src.engine.board.engine_upload import EngineUpload
 from src.service.backend import BackendServiceInterface
 from src.service.managed_serial import ManagedSerial
 from src.service.managed_serial_config import ManagedSerialConfig

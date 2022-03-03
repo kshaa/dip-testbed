@@ -1,8 +1,6 @@
 """Upload engine functionality."""
 from dataclasses import dataclass
-from functools import partial
-from typing import Callable, Tuple, List, Any, Awaitable, Optional
-from uuid import UUID
+from typing import Callable, Tuple, List, Awaitable, Optional
 from result import Result, Err, Ok
 from src.domain.dip_client_error import DIPClientError, GenericClientError
 from src.domain.hardware_control_message import COMMON_INCOMING_MESSAGE, UploadMessage, \
@@ -10,7 +8,7 @@ from src.domain.hardware_control_message import COMMON_INCOMING_MESSAGE, UploadM
     InternalSucceededSoftwareUpload, InternalFailedSoftwareUpload
 from src.domain.existing_file_path import ExistingFilePath
 from src.domain.managed_uuid import ManagedUUID
-from src.engine.engine_events import COMMON_ENGINE_EVENT, DownloadingBoardSoftware, BoardSoftwareDownloadSuccess, \
+from src.domain.hardware_control_event import COMMON_ENGINE_EVENT, DownloadingBoardSoftware, BoardSoftwareDownloadSuccess, \
     BoardSoftwareDownloadFailure, UploadingBoardSoftware, BoardUploadSuccess, BoardUploadFailure, BoardState
 from src.engine.engine_state import EngineState
 from src.service.backend import BackendServiceInterface
