@@ -123,6 +123,16 @@ STREAM_URL_OPTION = click.option(
     help='URL for an existing video source (if is_stream_existing), e.g. http://localhost:8081/webcam.ogg'
 )
 # Video stream (non-existing)
+STREAM_VLC_OPTION = click.option(
+    '--stream-vlc', '-r', "video_vlc", show_envvar=True,
+    type=str, envvar=f"{ENV_PREFIX}_STREAM_VLC", required=False,
+    help='VLC command to be used, e.g. "vlc" or "vlc-pi"'
+)
+STREAM_AUDIO_DEVICE_OPTION = click.option(
+    '--stream-audio', '-z', "audio_device", show_envvar=True,
+    type=str, envvar=f"{ENV_PREFIX}_STREAM_AUDIO_DEVICE", required=False,
+    help='VLC slave audio device to be used, e.g. "alsa://"'
+)
 STREAM_DEVICE_PATH_OPTION = click.option(
     '--stream-device', '-d', "video_device", show_envvar=True,
     type=str, envvar=f"{ENV_PREFIX}_STREAM_DEVICE_PATH", required=False,
@@ -618,6 +628,8 @@ def quick_run(
 @HEARTBEAT_SECONDS_OPTION
 @IS_STREAM_EXISTING_OPTION
 @STREAM_URL_OPTION
+@STREAM_VLC_OPTION
+@STREAM_AUDIO_DEVICE_OPTION
 @STREAM_DEVICE_PATH_OPTION
 @STREAM_WIDTH_OPTION
 @STREAM_HEIGHT_OPTION
@@ -632,6 +644,8 @@ def agent_hardware_video(
     heartbeat_seconds: int,
     is_stream_existing: bool,
     stream_url_str: Optional[str],
+    video_vlc: Optional[str],
+    audio_device: Optional[str],
     video_device: Optional[str],
     video_width: Optional[int],
     video_height: Optional[int],
@@ -650,6 +664,8 @@ def agent_hardware_video(
                 heartbeat_seconds,
                 is_stream_existing,
                 stream_url_str,
+                video_vlc,
+                audio_device,
                 video_device,
                 video_width,
                 video_height,

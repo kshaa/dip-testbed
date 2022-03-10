@@ -6,8 +6,6 @@ from typing import List, Optional, Union
 import aiohttp
 from aiohttp import ClientSession, ClientResponse
 from result import Result, Err, Ok
-
-from src.domain.death import Death
 from src.domain.dip_client_error import DIPClientError, GenericClientError
 from src.domain.existing_file_path import ExistingFilePath
 from src.service.managed_url import ManagedURL, ManagedURLBuildError
@@ -35,6 +33,8 @@ class ExistingStreamConfig(VideoStreamConfig):
 
 @dataclass
 class VLCStreamConfig(VideoStreamConfig):
+    video_vlc: str
+    audio_device: str
     video_device: ExistingFilePath
     video_width: int
     video_height: int
@@ -45,6 +45,8 @@ class VLCStreamConfig(VideoStreamConfig):
 
     @staticmethod
     def build(
+        video_vlc: Optional[str],
+        audio_device: Optional[str],
         video_device: ExistingFilePath,
         video_width: int,
         video_height: int,
@@ -54,6 +56,8 @@ class VLCStreamConfig(VideoStreamConfig):
         port: Optional[int]
     ):
         return VLCStreamConfig(
+            video_vlc if video_vlc is not None else "vlc",
+            audio_device if audio_device is not None else "",
             video_device,
             video_width,
             video_height,
@@ -69,6 +73,8 @@ class VLCStreamConfig(VideoStreamConfig):
             "bash",
             "-c",
             f"{vlc_script_path} "
+            f"-r \"{self.video_vlc}\" "
+            f"-z \"{self.audio_device}\" "
             f"-d \"{self.video_device.value}\" "
             f"-w \"{self.video_width}\" "
             f"-h \"{self.video_height}\" "

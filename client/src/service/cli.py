@@ -249,6 +249,8 @@ class CLIInterface:
         heartbeat_seconds: int,
         is_stream_existing: bool,
         stream_url_str: Optional[str],
+        video_vlc: Optional[str],
+        audio_device: Optional[str],
         video_device: Optional[str],
         video_width: Optional[int],
         video_height: Optional[int],
@@ -810,6 +812,8 @@ class CLI(CLIInterface):
     def parsed_video_config(
         is_stream_existing: bool,
         stream_url_str: Optional[str],
+        video_vlc: Optional[str],
+        audio_device: Optional[str],
         video_device: Optional[str],
         video_width: Optional[int],
         video_height: Optional[int],
@@ -830,6 +834,8 @@ class CLI(CLIInterface):
             if video_width is None: return Err(GenericClientError("Video stream width is required"))
             if video_height is None: return Err(GenericClientError("Video stream height is required"))
             return Ok(VLCStreamConfig.build(
+                video_vlc,
+                audio_device,
                 video_device_result.value,
                 video_width,
                 video_height,
@@ -846,6 +852,8 @@ class CLI(CLIInterface):
         heartbeat_seconds: int,
         is_stream_existing: bool,
         stream_url_str: Optional[str],
+        video_vlc: Optional[str],
+        audio_device: Optional[str],
         video_device: Optional[str],
         video_width: Optional[int],
         video_height: Optional[int],
@@ -866,6 +874,8 @@ class CLI(CLIInterface):
         video_config_result = CLI.parsed_video_config(
             is_stream_existing,
             stream_url_str,
+            video_vlc,
+            audio_device,
             video_device,
             video_width,
             video_height,
