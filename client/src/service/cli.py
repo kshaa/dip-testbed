@@ -548,8 +548,8 @@ class CLI(CLIInterface):
 
     @staticmethod
     async def agent_anvyl(
-        hardware_id_str: str,
         config_path_str: Optional[str],
+        hardware_id_str: str,
         control_server_str: Optional[str],
         static_server_str: Optional[str],
         username_str: Optional[str],
@@ -748,7 +748,7 @@ class CLI(CLIInterface):
         monitor_script_path_str: Optional[str]
     ) -> Result[MonitorSerial, DIPClientError]:
         # Build backend
-        backend_result = CLI.parsed_backend(control_server_str, None, None, None, None)
+        backend_result = CLI.parsed_backend(config_path_str, control_server_str, None, None, None)
         if isinstance(backend_result, Err): return Err(backend_result.value)
 
         # Hardware id
