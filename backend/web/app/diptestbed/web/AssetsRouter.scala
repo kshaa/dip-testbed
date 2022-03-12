@@ -7,6 +7,6 @@ import play.api.routing.sird._
 
 class AssetsRouter(assets: Assets) extends SimpleRouter {
   def routes: Routes = {
-    case GET(p"/${asset}") => assets.at(asset)
+    case GET(p"/${asset}*") => assets.at(asset)
   }
 }
