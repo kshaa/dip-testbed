@@ -2,11 +2,13 @@ package diptestbed.web
 
 import akka.actor.{ActorRef, ActorSystem}
 import akka.cluster.pubsub.DistributedPubSub
+
 import scala.concurrent.Future
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
 import play.api.ApplicationLoader.Context
-import play.api._
+import play.api.BuiltInComponentsFromContext
+import controllers.{Assets, AssetsComponents, AssetsConfiguration, AssetsMetadataProvider, DefaultAssetsMetadata}
 import play.api.cluster.sharding.typed.ClusterShardingComponents
 import play.api.db.evolutions.ThisClassLoaderEvolutionsReader.evolutions
 import play.api.db.{Database => PlayDatabase}
@@ -24,7 +26,7 @@ import diptestbed.database.services._
 import diptestbed.domain.DIPTestbedConfig
 import diptestbed.web.DIPTestbedModuleHelper.prepareDatabaseForTest
 import diptestbed.web.actors.CentralizedPubSubActor
-import diptestbed.web.controllers._
+import diptestbed.web.control._
 import diptestbed.web.config.DIPTestbedConfig._
 
 class DIPTestbedModule(context: Context)(implicit iort: IORuntime)
@@ -34,7 +36,7 @@ class DIPTestbedModule(context: Context)(implicit iort: IORuntime)
     with SlickComponents
     with SlickEvolutionsComponents
     with ClusterShardingComponents {
-  lazy val appConfig: DIPTestbedConfig = context.initialConfiguration.get[DIPTestbedConfig]("diptestbed")
+  lazy val appConfig: DIPTestbedConfig = configuration.get[DIPTestbedConfig]("diptestbed")
 
   lazy implicit val implicitActorSystem: ActorSystem = actorSystem
   lazy val pubSubMediator: ActorRef = if (appConfig.clusterized) {
@@ -55,27 +57,51 @@ class DIPTestbedModule(context: Context)(implicit iort: IORuntime)
   lazy val hardwareService = new HardwareService[IO](hardwareTable, userTable)
   lazy val softwareService = new SoftwareService[IO](softwareTable, userTable)
 
-  lazy val homeController = new HomeController(
+  lazy val apiHomeController = new ApiHomeController(
     controllerComponents,
     userService,
     hardwareService,
     softwareService,
   )
-  lazy val userController = new UserController(controllerComponents, userService)
-  lazy val hardwareController =
-    new HardwareController(controllerComponents, pubSubMediator, hardwareService, userService)
-  lazy val softwareController =
-    new SoftwareController(controllerComponents, softwareService, userService)
+  lazy val apiUserController = new ApiUserController(controllerComponents, userService)
+  lazy val apiHardwareController =
+    new ApiHardwareController(controllerComponents, pubSubMediator, hardwareService, userService)
+  lazy val apiSoftwareController =
+    new ApiSoftwareController(controllerComponents, softwareService, userService)
 
-  lazy val basePrefix = "/api"
-  lazy val v1Prefix = "/v1"
+  lazy val apiRouter = new APIRouter(
+    apiHomeController,
+    apiUserController,
+    apiHardwareController,
+    apiSoftwareController
+  )
+
+  lazy val assetsConfiguration: AssetsConfiguration =
+    AssetsConfiguration.fromConfiguration(configuration, environment.mode)
+  lazy val assetsMetadata: DefaultAssetsMetadata =
+    new AssetsMetadataProvider(environment, assetsConfiguration, fileMimeTypes, applicationLifecycle).get
+  lazy val assets = new Assets(httpErrorHandler, assetsMetadata)
+  lazy val assetsRouter = new AssetsRouter(assets)
+
+  lazy val appHomeController = new AppHomeController(
+    appConfig,
+    controllerComponents
+  )
+
+  lazy val appRouter = new AppRouter(
+    assets,
+    appHomeController
+  )
+
   lazy val router: Router =
     new DIPTestbedRouter(
-      homeController,
-      userController,
-      hardwareController,
-      softwareController,
-    ).withPrefix(f"${basePrefix}${v1Prefix}")
+      apiRouter,
+      appConfig.apiPrefix,
+      assetsRouter,
+      appConfig.assetsPrefix,
+      appRouter,
+      appConfig.appPrefix
+    )
 }
 
 object DIPTestbedModuleHelper {

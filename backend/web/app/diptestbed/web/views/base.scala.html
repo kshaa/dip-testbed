@@ -1,0 +1,11 @@
+@import diptestbed.web.views.html._
+@import diptestbed.domain.DIPTestbedConfig
+
+@(appConfig: DIPTestbedConfig, title: String, contentHTML: Html)
+<html>
+    @head(appConfig, title)
+    <body>
+        @header(appConfig)
+        @content(appConfig, contentHTML)
+    </body>
+</html>
