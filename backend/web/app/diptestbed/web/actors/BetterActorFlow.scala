@@ -6,7 +6,6 @@ import akka.NotUsed
 import akka.actor._
 import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
 import akka.stream.{Materializer, OverflowStrategy}
-
 import scala.annotation.nowarn
 
 object BetterActorFlow {

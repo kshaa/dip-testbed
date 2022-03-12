@@ -1,0 +1,10 @@
+@import diptestbed.domain.DIPTestbedConfig
+
+@(appConfig: DIPTestbedConfig, title: String)
+<head>
+    <title>@(title)</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="@(appConfig.withAssetPath("bootstrap.min.css"))" rel="stylesheet">
+    <script src="@(appConfig.withAssetPath("bootstrap.bundle.min.js"))"></script>
+</head>

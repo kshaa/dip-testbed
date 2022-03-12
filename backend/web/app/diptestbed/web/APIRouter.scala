@@ -1,22 +1,22 @@
 package diptestbed.web
 
 import diptestbed.domain._
-import diptestbed.web.controllers._
+import diptestbed.web.control._
 import diptestbed.web.sird.UUIDBinding.uuid
 import play.api.routing.Router.Routes
 import play.api.routing.SimpleRouter
 import play.api.routing.sird._
 
 class APIRouter(
-  homeController: HomeController,
-  userController: UserController,
-  hardwareController: HardwareController,
-  softwareController: SoftwareController,
+  homeController: ApiHomeController,
+  userController: ApiUserController,
+  hardwareController: ApiHardwareController,
+  softwareController: ApiSoftwareController,
 ) extends SimpleRouter {
   def routes: Routes = {
-    case GET(p"/")       => homeController.indexJSON
-    case GET(p"/status") => homeController.statusJSON
-    case GET(p"/auth-check") => homeController.authCheckJSON
+    case GET(p"/")       => homeController.index
+    case GET(p"/status") => homeController.status
+    case GET(p"/auth-check") => homeController.authCheck
 
     // Users
     case POST(p"/user")                => userController.createUser

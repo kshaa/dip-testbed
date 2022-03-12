@@ -1,10 +1,23 @@
-@import controllers.AssetsFinder
+@import diptestbed.domain.DIPTestbedConfig
 
-@()(implicit assetsFinder: AssetsFinder)
-<html>
-    <body>
-        <div>
-            Mic check
-        </div>
-    </body>
-</html>
+@(appConfig: DIPTestbedConfig)
+@content = {
+  <div class="px-4 py-5 my-5 text-center">
+    <h1 class="display-5 fw-bold">DIP Testbed Platform</h1>
+    <div class="col-lg-6 mx-auto">
+      <p class="lead mb-4">
+        Quickly design and test embedded hardware. Remotely interact with your hardware designs.
+        The platform supports soft real-time communications, hardware debugging web-cam video streams and several embedded boards.
+      </p>
+      <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+        <a href="https://github.com/kshaa/dip-testbed-dist">
+          <button type="button" class="btn btn-dark btn-lg px-4 gap-3">See GitHub</button>
+        </a>
+        <a href="@(appConfig.withAppPath("/register"))">
+          <button type="button" class="btn btn-primary btn-lg px-4">Register and start testing!</button>
+        </a>
+      </div>
+    </div>
+  </div>
+}
+@base(appConfig, appConfig.makeTitle("Home"), content)

@@ -10,8 +10,10 @@ object DIPTestbedConfig {
     val config: Configuration = Configuration(rootConfig.getConfig(path))
 
     DomainDIPTestbedConfig.fromConfig(
-      testConfig = config.get[DomainTestConfig]("test"),
-      clusterized = config.getOptional[Boolean]("clusterized"),
+      config.get[DomainTestConfig]("test"),
+      config.getOptional[Boolean]("clusterized"),
+      config.get[String]("title"),
+      config.get[String]("basePath")
     )
   }
 }

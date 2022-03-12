@@ -24,7 +24,6 @@ object Settings {
     scalacOptions := Seq(
       "-feature",
       "-deprecation",
-      "-Xfatal-warnings",
       "-Ywarn-unused",
     ),
   )
