@@ -98,7 +98,7 @@ class DIPTestbedModule(context: Context)(implicit iort: IORuntime)
   lazy val router: Router =
     new DIPTestbedRouter(
       apiRouter,
-      appConfig.withBase(appConfig.apiPrefix),
+      appConfig.withBase(appConfig.withVersionApiPrefix("v1")),
       assetsRouter,
       appConfig.withBase(appConfig.assetsPrefix),
       appRouter,

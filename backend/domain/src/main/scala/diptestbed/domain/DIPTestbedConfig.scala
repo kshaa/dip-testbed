@@ -12,6 +12,7 @@ case class DIPTestbedConfig(
   def appPrefix = s"/app"
   def assetsPrefix = s"/app/assets"
 
+  def withVersionApiPrefix(version: String) = s"${apiPrefix}/${version}"
   def withBase(path: String): String = s"${basePath}/${path.stripPrefix("/")}"
   def withAppPath(path: String): String = withBase(s"${appPrefix}/${path.stripPrefix("/")}")
   def withAssetPath(path: String): String = withBase(s"${assetsPrefix}/${path.stripPrefix("/")}")
