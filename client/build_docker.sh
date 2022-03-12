@@ -11,13 +11,9 @@ cd "${SCRIPT_DIR}"
 rm -rf docker/
 rm -rf dist/
 
-# Build amd64 locally (supposing that we're building on amd64)
-pipenv install && pipenv run ./build.sh &
-LOCAL_INSTALL_PID="$!"
-
 ## Build amd64 & arm64 in docker w/ buildx i.e. moby/buildkit i.e. QEMU
 ## Multi-platform docs: https://github.com/moby/buildkit/blob/master/docs/multi-platform.md
-export TARGET_PLATFORMS=linux/arm64 #,linux/amd64 # Currently Kivy (used in amd64) doesn't comply with docker builds
+export TARGET_PLATFORMS=linux/arm64,linux/amd64
 docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 docker buildx create --name multiarch --driver docker-container --use || true
 docker buildx build \
@@ -25,10 +21,7 @@ docker buildx build \
   -o type=local,dest=docker \
   .
 
-# Wait for local stuff to finish
-wait "${LOCAL_INSTALL_PID}"
-
-# Clean up dist
-mv dist/dip_client dist/dip_client_amd64
-#mv docker/linux_arm64/app/dist/dip_client dist/dip_client_arm64
-mv docker/app/dist/dip_client dist/dip_client_arm64
+# Create dist
+mkdir dist
+mv docker/linux_arm64/app/dist/dip_client dist/dip_client_arm64
+mv docker/linux_amd64/app/dist/dip_client dist/dip_client_amd64

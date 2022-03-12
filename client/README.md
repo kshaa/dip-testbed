@@ -16,15 +16,15 @@
 - Run `./dist/dip_client --help` to print built client CLI usage definition
 
 ### File tree
-- `dip_client.py` is just an entrypoint for the CLI interface from `cli.py`
-- `cli.py` defines a CLI interface for all possible DIP client commands:
-    - Generic one-off client commands are defined in `backend_util.py`
-    - Microcontroller agent commands are defined in `agent_entrypoints.py`
+- `main.py` is just an entrypoint for the CLI interface from `service/click.py`
+- `service/click.py` and `service/cli.py` define a CLI interface for all possible DIP client commands:
+    - Generic one-off client commands are defined mostly in `service/backend.py`
+    - Persistent event engine agent commands are defined in `agent/*`, `monitor/*`, `engine/*`
 - `agent_entrypoints.py` prepare and run a configured agent `agent.py`
-- `agent.py` runs using an `AgentConfig`, `Engine`, serialization `Encoder`/`Decoder`
-- `agent_util.py` defines a base `AgentConfig`
-- `engine.py` defines a base `Engine`
-- `agent_*.py` define custom `Engine`s and `AgentConfig`s
+- `agent/agent.py` runs using an `AgentConfig` i.e. an `Engine` attached to `SocketInterface` with the help of message `Codec`s
+- `engine/engine.py` defines a base `Engine` which starts, stops, receives messages, processes events, executes side-effects
+- `engine/board/*` define engines to handle hardware board lifecycle - heartbeats, firmware uploads, monitoring
+- `engine/video/*` define video streaming engines using VLC
+- `monitor/*` define serial monitoring interfaces
 - Agents use `ws.py` to exchange WebSocket messages
-- Agents use `s11n_*.py` to serialize messages
-- Agents use `Engine` for stateful actions & resulting messages
+- Agents more specifically SocketInterfaces use `protocol/*` to encode/decode messages

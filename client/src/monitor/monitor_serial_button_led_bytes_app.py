@@ -1,8 +1,14 @@
 """Module for functionality related to serial socket monitor as button/led byte stream, specifically graphics/UI"""
-
 import asyncio
 import sys
-from typing import Callable, Optional, Any
+from typing import Callable, Optional
+
+from result import Err
+from textual import events
+from textual.app import App
+from textual.views import GridView
+from textual.widgets import Button
+from src.domain.fancy_byte import FancyByte
 from src.util import log
 from src.domain.death import Death
 
@@ -11,35 +17,50 @@ LOGGER = log.timed_named_logger("monitor_button_led_bytes_app")
 
 class AppState:
     death = Death()
-    on_indexed_button_click = None
-    on_indexed_led_change = None
+    on_indexed_button_click = []
+    on_indexed_led_change = []
+    last_byte_in: FancyByte = FancyByte(0)
+    last_byte_out: FancyByte = FancyByte(0)
+    bytes_in = 0
+    bytes_out = 0
+
+    def stats(self):
+        quit = "Quit with CTRL-C or Esc"
+        i = str(int(self.bytes_in) - 1) if self.bytes_in > 0 else "?"
+        o = str(int(self.bytes_out) - 1) if self.bytes_out > 0 else "?"
+        lbi = f"last byte #{i} in: {self.last_byte_in.to_hex_str()}"
+        lbo = f"last byte #{o} out: {self.last_byte_out.to_hex_str()}"
+        return f"{quit}, {lbi}, {lbo}"
 
     def set_on_indexed_button_click(
             self,
             on_indexed_button_click: Callable[[int], None]
     ):
-        self.on_indexed_button_click = on_indexed_button_click
+        self.on_indexed_button_click.append(on_indexed_button_click)
 
     def indexed_button_click(
             self,
             button_index: int
     ):
         if self.on_indexed_button_click is not None:
-            self.on_indexed_button_click(button_index)
+            for c in self.on_indexed_button_click:
+                c(button_index)
 
     def set_on_indexed_led_change(
             self,
-            on_indexed_led_change: Callable[[int, bool], None]
+            on_indexed_led_change: Callable[[FancyByte, int, bool], None]
     ):
-        self.on_indexed_led_change = on_indexed_led_change
+        self.on_indexed_led_change.append(on_indexed_led_change)
 
     def indexed_led_change(
             self,
+            fancy_byte: FancyByte,
             led_index: int,
             led_on: bool
     ):
         if self.on_indexed_led_change is not None:
-            self.on_indexed_led_change(led_index, led_on)
+            for c in self.on_indexed_led_change:
+                c(fancy_byte, led_index, led_on)
 
 
 class AppStateStorage:
@@ -51,148 +72,109 @@ class AppStateStorage:
 
 hacked_global_app_state_storage = AppStateStorage()
 
+# Buttons
+button_keys = [
+    "q", "w", "e", "r", "t", "y", "u", "i",
+    "a", "s", "d", "f", "g", "h", "j", "k",
+    "z", "x", "c", "v", "b", "n", "m", ",",
+]
 
-def is_kivy_available() -> bool:
-    try:
-        import kivy
-        return True
-    except ImportError:
-        return False
+class ButtonLEDScreen(GridView):
+    """Screen for interacting with LEDs and buttons"""
 
+    # Colors
+    DARK = "white on rgb(51,51,51)"
+    LIGHT = "black on rgb(165,165,165)"
+    RED = "white on rgb(215,0,0)"
 
-def define_app():
-    if not is_kivy_available():
-        raise Exception("Kivy graphics library not available")
-
-    import kivy
-    from kivy.app import App
-    from kivy.uix.button import Button
-    from kivy.uix.gridlayout import GridLayout
-    from kivy.uix.label import Label
-    from kivy.core.window import Window
-    from kivy.properties import NumericProperty
-
-    kivy.require("2.0.0")
-
-    class MyButton(Button):
-        key_index = NumericProperty()
-
-        def __init__(self, **kwargs):
-            super(MyButton, self).__init__(**kwargs)
-
-        def on_press(self):
-            self.background_color = (1, 1, 1, 0.7)
-
-        def on_release(self):
-            hacked_global_app_state_storage.state.indexed_button_click(self.key_index)
-            self.background_color = (1, 1, 1, 0.9)
-
-    class ButtonLEDScreen(GridLayout):
-        """Kivy screen for interacting with LEDs and buttons"""
-        leds = [
-            Button(
-                background_down='',
-                background_normal='',
-                background_color=(1, 0, 0, 0.2),
-                text=f'LED{i}',
-                font_size=14,
-                outline_color=(1, 1, 1, 1))
+    def on_mount(self, event: events.Mount) -> None:
+        """Event when widget is first mounted (added to a parent view)."""
+        # Make all the LEDs
+        self.leds = [
+            Button(f"LED{7 - i} | off", style=self.DARK, name=f"LED{7 - i}")
             for i in range(0, 8)
         ]
-        button_keys = [
-            "q", "w", "e", "r", "t", "y", "u", "i",
-            "a", "s", "d", "f", "g", "h", "j", "k",
-            "z", "x", "c", "v", "b", "n", "m", ",",
-        ]
-        buttons = [
-            MyButton(
-                background_down='',
-                background_normal='',
-                background_color=(1, 1, 1, 0.9),
-                key_index=i,
-                text=f'BTN{i} [{k}]',
-                font_size=14,
-                color=(0, 0, 0, 1))
+
+        # Make all the buttons
+        self.buttons = [
+            Button(f"BTN{i} | {k}", style=self.LIGHT, name=f"BTN{i} | {k}")
             for (i, k) in enumerate(button_keys)
         ]
 
-        def __init__(self, **kwargs):
-            # Initialize Kivy GridLayout
-            super(ButtonLEDScreen, self).__init__(**kwargs)
+        # Set basic grid settings
+        self.grid.set_gap(2, 1)
+        self.grid.set_gutter(1)
+        self.grid.set_align("center", "center")
 
-            # Set grid column count
-            self.cols = 8
+        # Create rows / columns / areas
+        self.grid.add_column("col", max_size=30, repeat=8)
+        self.grid.add_row("buttons", max_size=15, repeat=4)
+        self.grid.add_row("statsrow", max_size=30, repeat=1)
+        self.grid.add_areas(
+            stats="col1-start|col8-end,statsrow",
+        )
 
-            # Add all LEDs
-            for led in self.leds:
-                self.add_widget(led)
+        # Place out widgets in to the layout
+        for led in self.leds:
+            self.grid.place(led)
 
-            # Bind LED state handler
-            def on_led_change(led_index: int, led_on: bool):
-                led: Label = self.leds[led_index]
-                LOGGER.debug(f"LED{led_index}: {led_on}")
-                if led_on:
-                    led.background_color = (1, 0, 0, 0.8)
-                else:
-                    led.background_color = (1, 0, 0, 0.2)
+        for button in self.buttons:
+            self.grid.place(button)
 
-            hacked_global_app_state_storage.state.set_on_indexed_led_change(on_led_change)
+        self.stats = Button(hacked_global_app_state_storage.state.stats(), style=self.DARK, name=f"stats")
 
-            # Add all buttons
-            for button in self.buttons:
-                self.add_widget(button)
+        def on_button_click(button_index: int):
+            hacked_global_app_state_storage.state.last_byte_out = FancyByte.fromInt(button_index).value
+            hacked_global_app_state_storage.state.bytes_out += 1
+            self.stats.label = hacked_global_app_state_storage.state.stats()
+        hacked_global_app_state_storage.state.set_on_indexed_button_click(on_button_click)
 
-            # Bind keyboard button handler
-            def on_key_up(_window, key, _scancode):
-                self.on_key_action(True, key)
-            Window.bind(on_key_up=on_key_up)
+        def on_led_change(fancy_byte: FancyByte, led_index: int, led_on: bool):
+            if 0 <= led_index < len(self.leds):
+                self.leds[led_index].button_style = self.RED if led_on else self.DARK
+                i = str(7 - led_index)
+                s = "on" if led_on else "off"
+                self.leds[led_index].label = f"LED{i} | {s}"
+                hacked_global_app_state_storage.state.last_byte_in = fancy_byte
+                hacked_global_app_state_storage.state.bytes_in += 1 / 8
+                self.stats.label = hacked_global_app_state_storage.state.stats()
 
-            def on_key_down(_window, key, _scancode, _codepoint, _modifier):
-                self.on_key_action(False, key)
-            Window.bind(on_key_down=on_key_down)
+        hacked_global_app_state_storage.state.set_on_indexed_led_change(on_led_change)
 
-        def on_key_action(self, is_up: bool, key: int):
-            def handle(button: Button):
-                if is_up:
-                    button.on_release()
-                else:
-                    button.on_press()
-
-            try:
-                key_index = self.button_keys.index(chr(key))
-                handle(self.buttons[key_index])
-            except ValueError as _e:
-                pass
+        self.grid.place(stats=self.stats)
 
 
-    class ButtonLEDApp(App):
-        """GUI app for interacting with LEDs and buttons"""
+class ButtonLEDApp(App):
+    """TUI app for interacting with LEDs and buttons"""
 
-        def build(self):
-            return ButtonLEDScreen()
+    async def on_mount(self) -> None:
+        """Mount the calculator widget."""
+        await self.view.dock(ButtonLEDScreen())
 
-    def run_button_led_app(app_state: AppState):
+    async def on_load(self):
+        await self.bind("escape", "quit")
+
+    def on_key(self, event):
+        if event.key in button_keys:
+            button_index = button_keys.index(event.key)
+            hacked_global_app_state_storage.state.indexed_button_click(button_index)
+
+    @staticmethod
+    async def run_with_state(app_state: AppState):
         hacked_global_app_state_storage.update(app_state)
         app = ButtonLEDApp()
 
-        async def app_lifecycle():
-            LOGGER.info("Starting app")
-            await app.async_run()
-            app.stop()
-            LOGGER.info("Stopping app")
-            app_state.death.grace()
-
-        asyncio_loop = asyncio.get_event_loop()
-        asyncio_loop.create_task(app_lifecycle())
-
-    return (ButtonLEDApp, run_button_led_app)
+        LOGGER.info("Starting app")
+        res = await app_state.death.or_awaitable(app.process_messages())
+        if isinstance(res, Err):
+            await app.shutdown()
+            LOGGER.info("Force stopping app")
+        LOGGER.info("App finished")
+        app_state.death.grace()
 
 
 if __name__ == '__main__':
     app_state = AppState()
-    hacked_global_app_state_storage.update(app_state)
-    (ButtonLEDApp, _run_button_led_app) = define_app()
-    app = ButtonLEDApp()
-    asyncio_loop = asyncio.get_event_loop()
-    asyncio_loop.run_until_complete(app.async_run())
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(ButtonLEDApp.run_with_state(app_state))
     sys.exit(0)

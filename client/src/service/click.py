@@ -164,7 +164,7 @@ STREAM_PORT_OPTION = click.option(
     help='Port number for VLC video source (if not is_stream_existing), default: 8081'
 )
 
-@click.group()
+@click.group(context_settings=dict(max_content_width=300))
 def cli_client():
     """DIP Testbed Agent is a command line tool that serves as a remote
      microcontroller management middleman for the DIP Testbed Backend
@@ -583,7 +583,6 @@ def hardware_serial_monitor(
 @SOFTWARE_NAME_OPTION
 @HARDWARE_ID_OPTION
 @MONITOR_TYPE_OPTION
-@MONITOR_SCRIPT_PATH_OPTION
 def quick_run(
     config_path_str: Optional[str],
     control_server_str: Optional[str],
@@ -594,7 +593,6 @@ def quick_run(
     software_name: Optional[str],
     hardware_id_str: str,
     monitor_type_str: str,
-    monitor_script_path_str: str
 ):
     """Upload, forward & monitor board software"""
     async def exec():
@@ -608,8 +606,7 @@ def quick_run(
                 software_file_path,
                 software_name,
                 hardware_id_str,
-                monitor_type_str,
-                monitor_script_path_str
+                monitor_type_str
             ), "Finished quick run")
     asyncio.run(exec())
 
@@ -646,7 +643,7 @@ def agent_hardware_video(
     audio_buffer_size: Optional[int],
     port: Optional[int]
 ):
-    """Hardware video stream broadcast"""
+    """Video stream broadcast (Linux specific)"""
     async def exec():
         return await CLI.execute_runnable_result(
             await CLI.agent_hardware_camera(

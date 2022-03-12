@@ -1,23 +1,23 @@
 """Module for functionality related to serial socket monitor as button/led byte stream"""
 
 import asyncio
-from typing import Any, Callable, Optional
+from typing import Callable, Optional
 import signal
 from pprint import pformat
-from result import Ok, Err, Result
+from result import Err, Result
 from websockets.exceptions import ConnectionClosedError
-
 from src.domain.dip_client_error import DIPClientError, GenericClientError
+from src.domain.fancy_byte import FancyByte
 from src.domain.monitor_message import MONITOR_LISTENER_INCOMING_MESSAGE, SerialMonitorMessageToClient, \
     MonitorUnavailable, SerialMonitorMessageToAgent, MONITOR_LISTENER_OUTGOING_MESSAGE
 from src.monitor.monitor_serial import MonitorSerial
-from src.monitor.monitor_serial_button_led_bytes_app import AppState, define_app
+from src.monitor.monitor_serial_button_led_bytes_app import AppState
+from src.monitor.monitor_serial_button_led_bytes_app import ButtonLEDApp
 from src.util import log
 from src.protocol.codec import CodecParseException
 from src.service.ws import SocketInterface
 from src.domain.death import Death
 from functools import partial
-from bitstring import BitArray
 
 LOGGER = log.timed_named_logger("monitor_button_led_bytes")
 
@@ -36,11 +36,13 @@ class MonitorSerialButtonLedBytes(MonitorSerial):
 
     @staticmethod
     def render_incoming_message(app_state: AppState, incoming_message: SerialMonitorMessageToClient):
-        for byte_int in incoming_message.content_bytes:
-            bit_array_instance = BitArray(hex=hex(byte_int))
-            bits = bit_array_instance.bin.zfill(8)
-            for i, c in enumerate(bits):
-                app_state.indexed_led_change(i, c == '1')
+        for byte in incoming_message.content_bytes:
+            fancy_byte_result = FancyByte.fromInt(byte)
+            if isinstance(fancy_byte_result, Err): return
+            fancy_byte = fancy_byte_result.value
+            bits = fancy_byte.to_binary_bits()
+            for index, is_on in enumerate(bits):
+                app_state.indexed_led_change(fancy_byte, index, is_on)
 
     @staticmethod
     def render_message_data_or_finish(
@@ -53,6 +55,7 @@ class MonitorSerialButtonLedBytes(MonitorSerial):
 
         # Handle message failures
         if death.gracing:
+            handle_finish()
             return None
         elif isinstance(incoming_message_result, Err) \
                 and isinstance(incoming_message_result.value, ConnectionClosedError):
@@ -108,8 +111,8 @@ class MonitorSerialButtonLedBytes(MonitorSerial):
             asyncio_loop.add_signal_handler(getattr(signal, signame), handle_finish)
 
         # Start app
-        (_ButtonLEDApp, run_button_led_app) = define_app()
-        run_button_led_app(state)
+        loop = asyncio.get_event_loop()
+        loop.create_task(ButtonLEDApp.run_with_state(state))
 
         # Run monitor loop
         while not state.death.gracing:
@@ -124,6 +127,3 @@ class MonitorSerialButtonLedBytes(MonitorSerial):
             result = self.render_message_data_or_finish(state, state.death, handle_finish, incoming_message_result)
             if result is not None:
                 return result
-
-# Export class as 'monitor' for explicit importing
-monitor = MonitorSerialButtonLedBytes

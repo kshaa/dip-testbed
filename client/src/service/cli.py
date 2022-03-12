@@ -236,7 +236,6 @@ class CLIInterface:
         software_name: Optional[str],
         hardware_id_str: str,
         monitor_type_str: str,
-        monitor_script_path_str: Optional[str]
     ) -> Result[DIPRunnable, DIPClientError]:
         pass
 
@@ -781,7 +780,6 @@ class CLI(CLIInterface):
         software_name: Optional[str],
         hardware_id_str: str,
         monitor_type_str: str,
-        monitor_script_path_str: Optional[str]
     ) -> Result[DIPRunnable, DIPClientError]:
         # Upload software to platform
         LOGGER.info("Uploading software to platform")
@@ -797,7 +795,7 @@ class CLI(CLIInterface):
         # Create serial monitor connection to board
         LOGGER.info("Configuring serial connection monitor with board")
         monitor_result = CLI.hardware_serial_monitor(
-            config_path_str, control_server_str, hardware_id_str, monitor_type_str, monitor_script_path_str)
+            config_path_str, control_server_str, hardware_id_str, monitor_type_str)
         if isinstance(monitor_result, Err): return Err(monitor_result.value)
         # Open stream in background
         LOGGER.info("Opening video stream in browser")
@@ -912,7 +910,7 @@ class CLI(CLIInterface):
             print_error(runnable_result.value.text())
             return sys.exit(1)
         runtime_result = await runnable_result.value.run()
-        await asyncio.sleep(0.1) # Hacks to yield to event loop
+        await asyncio.sleep(0.5) # Hacks to yield to event loop
         if runtime_result is not None:
             print_error(runtime_result.text())
             return sys.exit(1)

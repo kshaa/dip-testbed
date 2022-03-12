@@ -6,18 +6,17 @@ name = "pypi"
 [packages]
 websockets = "*"
 mypy = "*"
-coloredlogs = "*"
 pylint = "*"
 result = "*"
 click = "*"
 requests = "*"
 rich = "*"
 pyserial = "*"
-kivy = { version = "*", platform_machine = "!= 'aarch64'" }
 bitstring = "*"
 pyyaml = "*"
 appdirs = "*"
 aiohttp = "*"
+textual = "*"
 
 [dev-packages]
 pyinstaller = "*"
