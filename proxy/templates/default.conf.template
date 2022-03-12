@@ -6,8 +6,8 @@ map $http_upgrade $connection_upgrade {
     '' close;
 }
 
-upstream api {
-    server ${API_SERVER};
+upstream backend {
+    server ${BACKEND_SERVER};
 }
 
 server {
@@ -15,8 +15,8 @@ server {
     listen ${NGINX_PORT};
     server_name ${SERVER_NAME};
 
-    location /api {
-        proxy_pass http://api;
+    location / {
+        proxy_pass http://backend;
 
         # Forwarded "Host" header
         # Akka HTTP must be upgraded? https://github.com/akka/akka-http/issues/3112
