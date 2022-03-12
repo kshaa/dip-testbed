@@ -9,10 +9,12 @@ class DIPTestbedRouter(
   assetsRouter: AssetsRouter,
   assetsPrefix: String,
   appRouter: AppRouter,
-  appPrefix: String
+  appPrefix: String,
+  redirectRouter: RedirectRouter
 ) extends SimpleRouter {
   def routes: Routes =
     apiRouter.withPrefix(apiPrefix).routes
       .orElse(appRouter.withPrefix(appPrefix).routes)
       .orElse(assetsRouter.withPrefix(assetsPrefix).routes)
+      .orElse(redirectRouter.routes)
 }

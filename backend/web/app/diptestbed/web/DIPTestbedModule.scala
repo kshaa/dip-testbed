@@ -93,14 +93,17 @@ class DIPTestbedModule(context: Context)(implicit iort: IORuntime)
     appHomeController
   )
 
+  lazy val redirectRouter = new RedirectRouter(appHomeController)
+
   lazy val router: Router =
     new DIPTestbedRouter(
       apiRouter,
-      appConfig.apiPrefix,
+      appConfig.withBase(appConfig.apiPrefix),
       assetsRouter,
-      appConfig.assetsPrefix,
+      appConfig.withBase(appConfig.assetsPrefix),
       appRouter,
-      appConfig.appPrefix
+      appConfig.withBase(appConfig.appPrefix),
+      redirectRouter
     )
 }
 

@@ -11,4 +11,5 @@ class AppHomeController(
   def index: Action[AnyContent] =
     Action(Ok(diptestbed.web.views.html.index(appConfig)))
 
+  def redirect(path: String): Action[AnyContent] = Action(Redirect(path))
 }

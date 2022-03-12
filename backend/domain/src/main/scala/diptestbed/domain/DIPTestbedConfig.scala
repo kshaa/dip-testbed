@@ -12,8 +12,9 @@ case class DIPTestbedConfig(
   def appPrefix = s"/app"
   def assetsPrefix = s"/app/assets"
 
-  def withAppPath(path: String) = s"${appPrefix}/${path.stripPrefix("/")}"
-  def withAssetPath(path: String) = s"${assetsPrefix}/${path.stripPrefix("/")}"
+  def withBase(path: String): String = s"${basePath}/${path.stripPrefix("/")}"
+  def withAppPath(path: String): String = withBase(s"${appPrefix}/${path.stripPrefix("/")}")
+  def withAssetPath(path: String): String = withBase(s"${assetsPrefix}/${path.stripPrefix("/")}")
 }
 
 object DIPTestbedConfig {
