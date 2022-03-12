@@ -221,8 +221,7 @@ class CLIInterface:
         config_path_str: Optional[str],
         control_server_str: Optional[str],
         hardware_id_str: str,
-        monitor_type_str: str,
-        monitor_script_path_str: Optional[str]
+        monitor_type_str: str
     ):
         pass
 
@@ -746,8 +745,7 @@ class CLI(CLIInterface):
         config_path_str: Optional[str],
         control_server_str: Optional[str],
         hardware_id_str: str,
-        monitor_type_str: str,
-        monitor_script_path_str: Optional[str]
+        monitor_type_str: str
     ) -> Result[MonitorSerial, DIPClientError]:
         # Build backend
         backend_result = CLI.parsed_backend(config_path_str, control_server_str, None, None, None)
@@ -770,7 +768,7 @@ class CLI(CLIInterface):
         decoder = s11n_hybrid.MONITOR_LISTENER_INCOMING_MESSAGE_DECODER
         encoder = s11n_hybrid.MONITOR_LISTENER_OUTGOING_MESSAGE_ENCODER
         websocket = WebSocket(url_result.value, decoder, encoder)
-        return monitor_serial.resolve(websocket, monitor_script_path_str)
+        return monitor_serial.resolve(websocket)
 
     @staticmethod
     async def quick_run(

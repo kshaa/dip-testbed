@@ -85,11 +85,6 @@ MONITOR_TYPE_OPTION = click.option(
     "--monitor-type", "-t", "monitor_type_str", type=click.Choice([t.name for t in MonitorType]),
     show_envvar=True, envvar=f"{ENV_PREFIX}_MONITOR_TYPE", required=False, default=MonitorType.buttonleds.name,
     help="Sets the type of monitor implementation to be used")
-MONITOR_SCRIPT_PATH_OPTION = click.option(
-    "--monitor-script-path", "-s", "monitor_script_path_str", type=str, default=None,
-    show_envvar=True, envvar=f"{ENV_PREFIX}_MONITOR_SCRIPT_PATH", required=False,
-    help="File path to the monitor implementation script e.g. './monitor-script.py'")
-
 
 # Formatting
 JSON_OUTPUT_OPTION = click.option(
@@ -562,13 +557,11 @@ def hardware_software_upload(
 @CONTROL_SERVER_OPTION
 @HARDWARE_ID_OPTION
 @MONITOR_TYPE_OPTION
-@MONITOR_SCRIPT_PATH_OPTION
 def hardware_serial_monitor(
     config_path_str: Optional[str],
     control_server_str: Optional[str],
     hardware_id_str: str,
-    monitor_type_str: str,
-    monitor_script_path_str: str
+    monitor_type_str: str
 ):
     """Monitor hardware's serial port"""
     async def exec():
@@ -576,8 +569,7 @@ def hardware_serial_monitor(
             config_path_str,
             control_server_str,
             hardware_id_str,
-            monitor_type_str,
-            monitor_script_path_str), "Finished monitoring")
+            monitor_type_str), "Finished monitoring")
     asyncio.run(exec())
 
 

@@ -41,7 +41,6 @@ class MonitorType(Enum):
     """Choices of available monitor implementations"""
     hexbytes = 0
     buttonleds = 1
-    script = 2
 
     @staticmethod
     def build(value: str) -> Result['MonitorType', MonitorTypeBuildError]:
@@ -53,8 +52,7 @@ class MonitorType(Enum):
 
     def resolve(
         self,
-        socket: SocketInterface,
-        monitor_script_path: Optional[ExistingFilePath]
+        socket: SocketInterface
     ) -> Result[MonitorSerial, MonitorResolutionError]:
         # Monitor implementation resolution
         monitor: Optional[MonitorSerial] = None
@@ -62,16 +60,4 @@ class MonitorType(Enum):
             monitor = MonitorSerialHexbytes(MonitorSerialHelper(), socket)
         elif self is MonitorType.buttonleds:
             monitor = MonitorSerialButtonLedBytes(MonitorSerialHelper(), socket)
-        elif self is MonitorType.script:
-            # Script file path
-            if monitor_script_path is None:
-                return Err(MonitorResolutionError(f"Monitor script path is required"))
-            # Script file import
-            script_result = pymodules.import_path_module(monitor_script_path.value)
-            if isinstance(script_result, Err):
-                return Err(MonitorResolutionError(f"Monitor script could not be imported", reason=script_result.value))
-            # Script method import
-            if not hasattr(script_result.value, 'monitor'):
-                return Err(MonitorResolutionError(f"Monitor script does not contain attribute 'monitor'"))
-            monitor = script_result.value.monitor
         return Ok(monitor)
