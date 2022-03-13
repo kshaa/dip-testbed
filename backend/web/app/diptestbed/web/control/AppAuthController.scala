@@ -34,7 +34,8 @@ class AppAuthController(
   )
 
   def validateLogin(username: String, password: String): Option[User] = {
-    EitherT(userService.getUserWithPassword(username, password)).toOption.value.unsafeRunSync().flatten
+    AuthController.validateLogin(username, password, userService, appConfig)
+      .map(_.toOption.flatten).unsafeRunSync()
   }
 
   val loginForm: Form[(String, String)] =
@@ -60,8 +61,8 @@ class AppAuthController(
     }
 
   def createUser(username: String, password: String): Option[User] = {
-    EitherT(userService.createUser(username, HashedPassword.fromPassword(password)))
-      .toOption.value.unsafeRunSync().flatten
+    AuthController.validateRegistration(username, password, userService, appConfig)
+      .map(_.toOption.flatten).unsafeRunSync()
   }
 
   val registerForm: Form[(String, String)] =

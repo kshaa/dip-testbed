@@ -19,11 +19,14 @@ class AppSoftwareController(
     with IOController
     with ResultsController[IO]
     with AuthController[IO] {
-  
+  implicit val ac: DIPTestbedConfig = appConfig
+
   def list: Action[AnyContent] =
-    Action { implicit request =>
-      val softwareList = softwareService.getSoftwareMetas.map(_.toOption.sequence.flatten.toList)
-      Ok(diptestbed.web.views.html.softwareList(
-        appConfig, contextUser.unsafeRunSync(), softwareList.unsafeRunSync()))
+    Action { implicit r =>
+      withRequestAuthnOrLoginRedirect[AnyContent] { case (_, user) =>
+        val softwareList = softwareService.getSoftwareMetas.map(_.toOption.sequence.flatten.toList)
+        Ok(diptestbed.web.views.html.softwareList(
+          appConfig, Some(user), softwareList.unsafeRunSync()))
+      }.unsafeRunSync()
     }
 }

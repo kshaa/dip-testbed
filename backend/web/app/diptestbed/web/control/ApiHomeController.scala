@@ -8,6 +8,7 @@ import cats.effect.unsafe.IORuntime
 import cats.effect.IO
 import play.api.mvc._
 import diptestbed.database.services._
+import diptestbed.domain.DIPTestbedConfig
 import diptestbed.web.ioControls.PipelineOps._
 import diptestbed.web.ioControls._
 import diptestbed.protocol.{Hello, ServiceStatus}
@@ -15,6 +16,7 @@ import diptestbed.protocol.Codecs._
 import diptestbed.protocol.WebResult._
 
 class ApiHomeController(
+  val appConfig: DIPTestbedConfig,
   val cc: ControllerComponents,
   val userService: UserService[IO],
   val hardwareService: HardwareService[IO],

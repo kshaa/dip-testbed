@@ -1,10 +1,15 @@
 package diptestbed.domain
 
+import java.util.UUID
+
 case class DIPTestbedConfig(
   testConfig: TestConfig,
   clusterized: Boolean,
   title: String,
-  basePath: String
+  basePath: String,
+  adminUsername: Option[String],
+  adminPassword: Option[String],
+  adminEnabled: Boolean
 ) {
   def makeTitle(contentTitle: String) = s"${contentTitle} · ${title}"
 
@@ -16,6 +21,8 @@ case class DIPTestbedConfig(
   def withBase(path: String): String = s"${basePath}/${path.stripPrefix("/")}"
   def withAppPath(path: String): String = withBase(s"${appPrefix}/${path.stripPrefix("/")}")
   def withAssetPath(path: String): String = withBase(s"${assetsPrefix}/${path.stripPrefix("/")}")
+
+  def adminUser: Option[User] = adminUsername.map(User(UserId(UUID.randomUUID()), _))
 }
 
 object DIPTestbedConfig {
@@ -23,11 +30,17 @@ object DIPTestbedConfig {
     testConfig: TestConfig,
     clusterized: Option[Boolean],
     title: String,
-    basePath: String
+    basePath: String,
+    adminUsername: Option[String],
+    adminPassword: Option[String],
+    adminEnabled: Option[Boolean]
   ): DIPTestbedConfig =
     DIPTestbedConfig(
       testConfig,
       clusterized.getOrElse(false),
       title,
-      basePath.stripSuffix("/"))
+      basePath.stripSuffix("/"),
+      adminUsername,
+      adminPassword,
+      adminEnabled.getOrElse(false))
 }

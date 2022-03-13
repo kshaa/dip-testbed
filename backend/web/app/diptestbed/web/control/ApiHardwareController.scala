@@ -1,6 +1,7 @@
 package diptestbed.web.control
 
 import akka.actor.{ActorRef, ActorSystem}
+
 import scala.annotation.unused
 import akka.stream.Materializer
 import akka.util.Timeout
@@ -9,7 +10,7 @@ import cats.effect.IO
 import cats.effect.unsafe.IORuntime
 import cats.implicits._
 import diptestbed.database.services.{HardwareService, UserService}
-import diptestbed.domain.{HardwareCameraMessage, HardwareControlMessage, HardwareId, HardwareSerialMonitorMessage, SerialConfig, SoftwareId}
+import diptestbed.domain.{DIPTestbedConfig, HardwareCameraMessage, HardwareControlMessage, HardwareId, HardwareSerialMonitorMessage, SerialConfig, SoftwareId}
 import diptestbed.protocol._
 import diptestbed.protocol.Codecs._
 import diptestbed.protocol.WebResult._
@@ -21,9 +22,11 @@ import diptestbed.web.ioControls.PipelineOps._
 import diptestbed.web.ioControls._
 import play.api.mvc.WebSocket.MessageFlowTransformer
 import play.api.mvc._
+
 import scala.concurrent.duration.DurationInt
 
 class ApiHardwareController(
+  val appConfig: DIPTestbedConfig,
   val cc: ControllerComponents,
   val pubSubMediator: ActorRef,
   val hardwareService: HardwareService[IO],

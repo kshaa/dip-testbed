@@ -18,11 +18,14 @@ class AppUserController(
     with IOController
     with ResultsController[IO]
     with AuthController[IO] {
-  
+  implicit val ac: DIPTestbedConfig = appConfig
+
   def list: Action[AnyContent] =
     Action { implicit request =>
-      val userList = userService.getUsers.map(_.toOption.sequence.flatten.toList)
-      Ok(diptestbed.web.views.html.userList(
-        appConfig, contextUser.unsafeRunSync(), userList.unsafeRunSync()))
+      withRequestAuthnOrLoginRedirect[AnyContent] { case (_, user) =>
+        val userList = userService.getUsers.map(_.toOption.sequence.flatten.toList)
+        Ok(diptestbed.web.views.html.userList(
+          appConfig, Some(user), userList.unsafeRunSync()))
+      }.unsafeRunSync()
     }
 }

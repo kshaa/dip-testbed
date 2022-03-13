@@ -13,7 +13,10 @@ object DIPTestbedConfig {
       config.get[DomainTestConfig]("test"),
       config.getOptional[Boolean]("clusterized"),
       config.get[String]("title"),
-      config.get[String]("basePath")
+      config.get[String]("basePath"),
+      config.get[Option[String]]("adminUsername"),
+      config.get[Option[String]]("adminPassword"),
+      config.get[Option[Boolean]]("adminEnabled"),
     )
   }
 }

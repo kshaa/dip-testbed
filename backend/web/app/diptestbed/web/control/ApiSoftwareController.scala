@@ -6,7 +6,7 @@ import cats.effect.IO
 import cats.effect.unsafe.IORuntime
 import cats.implicits._
 import diptestbed.database.services.{SoftwareService, UserService}
-import diptestbed.domain.SoftwareId
+import diptestbed.domain.{DIPTestbedConfig, SoftwareId}
 import diptestbed.protocol.Codecs._
 import diptestbed.protocol.WebResult._
 import diptestbed.web.ioControls.PipelineOps._
@@ -17,9 +17,10 @@ import scala.annotation.unused
 import scala.concurrent.ExecutionContext
 import scala.reflect.io.File
 import scala.util.Try
-import java.io.{FileInputStream, BufferedInputStream}
+import java.io.{BufferedInputStream, FileInputStream}
 
 class ApiSoftwareController(
+  val appConfig: DIPTestbedConfig,
   val cc: ControllerComponents,
   val softwareService: SoftwareService[IO],
   val userService: UserService[IO],
