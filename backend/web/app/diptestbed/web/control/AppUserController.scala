@@ -2,12 +2,13 @@ package diptestbed.web.control
 
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
-import diptestbed.database.services.UserService
+import cats.implicits.toTraverseOps
+import diptestbed.database.services.{SoftwareService, UserService}
 import diptestbed.domain.DIPTestbedConfig
 import diptestbed.web.ioControls.IOController
 import play.api.mvc._
 
-class AppHomeController(
+class AppUserController(
   val appConfig: DIPTestbedConfig,
   val cc: ControllerComponents,
   val userService: UserService[IO]
@@ -17,11 +18,11 @@ class AppHomeController(
     with IOController
     with ResultsController[IO]
     with AuthController[IO] {
-
-  def index: Action[AnyContent] =
+  
+  def list: Action[AnyContent] =
     Action { implicit request =>
-      Ok(diptestbed.web.views.html.index(appConfig, contextUser.unsafeRunSync()))
+      val userList = userService.getUsers.map(_.toOption.sequence.flatten.toList)
+      Ok(diptestbed.web.views.html.userList(
+        appConfig, contextUser.unsafeRunSync(), userList.unsafeRunSync()))
     }
-
-  def redirect(path: String): Action[AnyContent] = Action(Redirect(path))
 }

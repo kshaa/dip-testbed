@@ -51,4 +51,17 @@ class UserService[F[_]: Async](
       .map(_.map(row => (userToDomain(row), HashedPassword.fromSerializedString(row.hashedPassword).get)))
       .tryRunDBIO(dbDriver)
 
+  def getUserWithPassword(username: String, password: String): F[DatabaseResult[Option[User]]] =
+    UserQuery
+      .filter(_.username === username)
+      .result
+      .headOption
+      .map(_.flatMap(row => {
+        val user = userToDomain(row)
+        val hashedPassword = HashedPassword.fromSerializedString(row.hashedPassword).get
+        val supposedPassword = HashedPassword.fromPassword(password, hashedPassword.salt)
+        Option.when(hashedPassword == supposedPassword)(user)
+      }))
+      .tryRunDBIO(dbDriver)
+
 }

@@ -1,6 +1,7 @@
 @import diptestbed.domain.DIPTestbedConfig
+@import diptestbed.domain.User
 
-@(appConfig: DIPTestbedConfig)
+@(appConfig: DIPTestbedConfig, user: Option[User])
 <header class="p-3 bg-dark text-white">
     <div class="container">
         <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
@@ -8,23 +9,44 @@
                 <li><a href="@(appConfig.withAppPath("/"))" class="nav-link px-2 text-white">
                     Home
                 </a></li>
-                <li><a href="https://github.com/kshaa/dip-testbed-dist/releases" class="nav-link px-2 text-white">
+                <li><a target="_blank" href="https://github.com/kshaa/dip-testbed-dist/releases" class="nav-link px-2 text-white">
                     <span>Downloads</span>
                     <i class="mx-2 fa-solid fa-arrow-up-right-from-square"></i>
                 </a></li>
-                <li><a href="https://github.com/kshaa/dip-testbed-dist/blob/master/README.md#dip-testbed" class="nav-link px-2 text-white">
+                <li><a target="_blank" href="https://github.com/kshaa/dip-testbed-dist/blob/master/README.md#dip-testbed" class="nav-link px-2 text-white">
                     <span>About</span>
                     <i class="mx-2 fa-solid fa-arrow-up-right-from-square"></i>
                 </a></li>
+                @if(user.isDefined) {
+                    <li><a href="@(appConfig.withAppPath("/hardware"))" class="nav-link px-2 text-white">
+                        Hardware
+                    </a></li>
+                    <li><a href="@(appConfig.withAppPath("/software"))" class="nav-link px-2 text-white">
+                        Software
+                    </a></li>
+                    <li><a href="@(appConfig.withAppPath("/user"))" class="nav-link px-2 text-white">
+                        Users
+                    </a></li>
+                }
             </ul>
 
             <div class="text-end">
-@*                <a href="@(appConfig.withAppPath("/login"))">*@
-@*                    <button type="button" class="btn btn-outline-light me-2">Login</button>*@
-@*                </a>*@
-@*                <a href="@(appConfig.withAppPath("/register"))">*@
-@*                    <button type="button" class="btn btn-warning">Register</button>*@
-@*                </a>*@
+                @user match {
+                    case None => {
+                        <a class="text-body" href="@(appConfig.withAppPath("/login"))">
+                            <button type="button" class="btn btn-outline-light me-2">Login</button>
+                        </a>
+                        <a class="text-body" href="@(appConfig.withAppPath("/register"))">
+                            <button type="button" class="btn btn-warning">Register</button>
+                        </a>
+                    }
+                    case Some(user) => {
+                        <span>Hello, @(user.username)</span>
+                        <a class="mx-4 text-body" href="@(appConfig.withAppPath("/logout"))">
+                            <button type="button" class="btn btn-outline-light me-2">Logout</button>
+                        </a>
+                    }
+                }
             </div>
         </div>
     </div>

@@ -1,6 +1,12 @@
 @import diptestbed.domain.DIPTestbedConfig
 
-@(appConfig: DIPTestbedConfig)
+@import diptestbed.domain.User
+@(
+  appConfig: DIPTestbedConfig,
+  user: Option[User]
+)(implicit
+  request: Request[_]
+)
 @content = {
   <div class="px-4 py-5 my-5 text-center">
     <h1 class="display-5 fw-bold">DIP Testbed Platform</h1>
@@ -10,20 +16,22 @@
         The platform supports soft real-time communications, hardware debugging web-cam video streams and several embedded boards.
       </p>
       <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-        <a href="https://github.com/kshaa/dip-testbed-dist">
+        <a target="_blank" href="https://github.com/kshaa/dip-testbed-dist">
           <button type="button" class="btn btn-dark btn-lg px-4 gap-3">
             <i class="fa-brands fa-github"></i>
             <span class="px-2">See GitHub</span>
           </button>
         </a>
-@*        <a href="@(appConfig.withAppPath("/register"))">*@
-@*          <button type="button" class="btn btn-primary btn-lg px-4">*@
-@*            <i class="fa-solid fa-right-to-bracket"></i>*@
-@*            <span class="px-2">Register and start testing!</span>*@
-@*          </button>*@
-@*        </a>*@
+        @if(user.isEmpty) {
+          <a href="@(appConfig.withAppPath("/register"))">
+            <button type="button" class="btn btn-primary btn-lg px-4">
+              <i class="fa-solid fa-right-to-bracket"></i>
+              <span class="px-2">Register!</span>
+            </button>
+          </a>
+        }
       </div>
     </div>
   </div>
 }
-@base(appConfig, appConfig.makeTitle("Home"), content)
+@base(appConfig, appConfig.makeTitle("Home"), user, content)

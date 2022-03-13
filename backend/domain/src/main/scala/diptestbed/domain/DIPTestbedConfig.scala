@@ -6,7 +6,7 @@ case class DIPTestbedConfig(
   title: String,
   basePath: String
 ) {
-  def makeTitle(suffix: String) = s"${title} - ${suffix}"
+  def makeTitle(contentTitle: String) = s"${contentTitle} · ${title}"
 
   def apiPrefix = s"/api"
   def appPrefix = s"/app"

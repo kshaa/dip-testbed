@@ -28,6 +28,7 @@ import diptestbed.web.DIPTestbedModuleHelper.prepareDatabaseForTest
 import diptestbed.web.actors.CentralizedPubSubActor
 import diptestbed.web.control._
 import diptestbed.web.config.DIPTestbedConfig._
+import play.api.i18n.{Lang, Messages, MessagesImpl}
 
 class DIPTestbedModule(context: Context)(implicit iort: IORuntime)
     extends BuiltInComponentsFromContext(context)
@@ -85,12 +86,42 @@ class DIPTestbedModule(context: Context)(implicit iort: IORuntime)
 
   lazy val appHomeController = new AppHomeController(
     appConfig,
-    controllerComponents
+    controllerComponents,
+    userService
+  )
+
+  lazy val lang: Lang = Lang(java.util.Locale.ENGLISH)
+  lazy implicit val messages: Messages = MessagesImpl(lang, messagesApi)
+  lazy val appAuthController = new AppAuthController(
+    appConfig,
+    controllerComponents,
+    userService
+  )
+  lazy val appHardwareController = new AppHardwareController(
+    appConfig,
+    controllerComponents,
+    hardwareService,
+    userService
+  )
+  lazy val appSoftwareController = new AppSoftwareController(
+    appConfig,
+    controllerComponents,
+    softwareService,
+    userService
+  )
+  lazy val appUserController = new AppUserController(
+    appConfig,
+    controllerComponents,
+    userService
   )
 
   lazy val appRouter = new AppRouter(
     assets,
-    appHomeController
+    appHomeController,
+    appAuthController,
+    appHardwareController,
+    appSoftwareController,
+    appUserController
   )
 
   lazy val redirectRouter = new RedirectRouter(appHomeController)

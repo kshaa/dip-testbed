@@ -1,11 +1,12 @@
 @import diptestbed.web.views.html._
 @import diptestbed.domain.DIPTestbedConfig
+@import diptestbed.domain.User
 
-@(appConfig: DIPTestbedConfig, title: String, contentHTML: Html)
+@(appConfig: DIPTestbedConfig, title: String, user: Option[User], contentHTML: Html)
 <html>
     @head(appConfig, title)
     <body>
-        @header(appConfig)
+        @header(appConfig, user)
         @content(appConfig, contentHTML)
     </body>
 </html>
