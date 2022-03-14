@@ -35,6 +35,9 @@
   }
 }
 @content = {
-  @entityList(headerRow, dataRows, softwares.isEmpty, "Software")
+  <div class="px-4">
+    <h1 class="display-5 fw-bold">Software list</h1>
+    @entityList(headerRow, dataRows, softwares.isEmpty, "Software")
+  </div>
 }
 @base(appConfig, appConfig.makeTitle("Software list"), user, content)

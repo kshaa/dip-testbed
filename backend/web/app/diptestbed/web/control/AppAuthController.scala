@@ -1,10 +1,9 @@
 package diptestbed.web.control
 
-import cats.data.EitherT
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
 import diptestbed.database.services.UserService
-import diptestbed.domain.{DIPTestbedConfig, HashedPassword, User}
+import diptestbed.domain.{DIPTestbedConfig, User}
 import diptestbed.web.ioControls._
 import play.api.data.Form
 import play.api.data.Forms.{text, tuple}

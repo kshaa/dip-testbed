@@ -25,8 +25,9 @@ class AppRouter(
     case POST(p"/register") => appAuthController.registerRequest
     case GET(p"/logout")    => appAuthController.logout
 
-    case GET(p"/hardware") => appHardwareController.list
-    case GET(p"/software") => appSoftwareController.list
-    case GET(p"/user")     => appUserController.list
+    case GET(p"/hardware")          => appHardwareController.list
+    case GET(p"/software")          => appSoftwareController.list
+    case GET(p"/user")              => appUserController.list
+    case POST(p"/user/permissions") => appUserController.permissionsRequest
   }
 }

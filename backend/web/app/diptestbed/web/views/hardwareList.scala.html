@@ -26,6 +26,9 @@
   }
 }
 @content = {
-  @entityList(headerRow, dataRows, hardwares.isEmpty, "Hardware")
+  <div class="px-4">
+    <h1 class="display-5 fw-bold">Hardware list</h1>
+    @entityList(headerRow, dataRows, hardwares.isEmpty, "Hardware")
+  </div>
 }
 @base(appConfig, appConfig.makeTitle("Hardware list"), user, content)

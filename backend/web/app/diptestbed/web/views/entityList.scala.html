@@ -4,22 +4,19 @@
   empty: Boolean,
   name: String
 )
-<div class="px-4">
-  <h1 class="display-5 fw-bold">@(name) list</h1>
-  @if(empty) {
-    <div class="col-lg-6 my-5 mx-auto">
-      <p class="lead py-5 mb-5">
-        No @(name.toLowerCase())s found. Maybe you need permissions. Maybe make more @(name.toLowerCase())s.
-      </p>
-    </div>
-  } else {
-    <table class="table my-4 table-striped">
-      <thead class="table-dark">
-        @(headerRow)
-      </thead>
-      <tbody>
-        @(dataRows)
-      </tbody>
-    </table>
-  }
-</div>
+@if(empty) {
+  <div class="col-lg-6 my-5 mx-auto">
+    <p class="lead py-5 mb-5">
+      No @(name.toLowerCase())s found. Maybe you need permissions. Maybe make more @(name.toLowerCase())s.
+    </p>
+  </div>
+} else {
+  <table class="table my-4 table-striped">
+    <thead class="table-dark">
+      @(headerRow)
+    </thead>
+    <tbody>
+      @(dataRows)
+    </tbody>
+  </table>
+}

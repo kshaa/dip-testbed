@@ -86,4 +86,16 @@ class UserService[F[_]: Async](
       }))
       .tryRunDBIO(dbDriver)
 
+  def setPermissions(
+    userId: UserId,
+    isManager: Boolean,
+    isLabOwner: Boolean,
+    isDeveloper: Boolean
+  ): F[DatabaseResult[Int]] =
+    UserQuery
+      .filter(_.uuid === userId.value)
+      .map(u => (u.isManager, u.isLabOwner, u.isDeveloper))
+      .update((isManager, isLabOwner, isDeveloper))
+      .tryRunDBIO(dbDriver)
+
 }
