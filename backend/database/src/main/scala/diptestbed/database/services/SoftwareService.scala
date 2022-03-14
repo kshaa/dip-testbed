@@ -48,6 +48,7 @@ class SoftwareService[F[_]: Async](
     requester match {
       // If no requester, then assuming full accessibility
       case None => SoftwareQuery
+      case Some(user) if user.isManager => SoftwareQuery
       case Some(user) => SoftwareQuery.filter(s => s.ownerUuid === user.id.value)
     }
 

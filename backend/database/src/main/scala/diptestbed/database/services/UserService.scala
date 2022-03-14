@@ -4,6 +4,7 @@ import scala.concurrent.ExecutionContext
 import slick.dbio.DBIOAction.sequenceOption
 import cats.effect.Async
 import cats.implicits._
+import diptestbed.database.catalog.SoftwareCatalog.SoftwareRow
 import diptestbed.domain.{HashedPassword, User, UserId}
 import diptestbed.database.catalog.UserCatalog.{UserRow, UserTable, toDomain => userToDomain}
 import diptestbed.database.driver.DatabaseDriverOps._
@@ -42,13 +43,22 @@ class UserService[F[_]: Async](
       .map(dbioAction => dbioAction.map(userId => userId.map(_ => userToDomain(row))))
   }
 
-  def getUsers: F[DatabaseResult[Seq[User]]] =
-    UserQuery.result
+  def accessibleUserQuery(requester: Option[User]): Query[userTable.UserTable, UserRow, Seq] =
+    requester match {
+      // If no requester, then assuming full accessibility
+      case None => UserQuery
+      case Some(user) if user.isManager => UserQuery
+      case Some(user) => UserQuery.filter(s => s.uuid === user.id.value)
+    }
+
+  def getUsers(requester: Option[User]): F[DatabaseResult[Seq[User]]] =
+    accessibleUserQuery(requester)
+      .result
       .map(_.map(userToDomain))
       .tryRunDBIO(dbDriver)
 
-  def getUser(id: UserId): F[DatabaseResult[Option[User]]] =
-    UserQuery
+  def getUser(requester: Option[User], id: UserId): F[DatabaseResult[Option[User]]] =
+    accessibleUserQuery(requester)
       .filter(_.uuid === id.value)
       .result
       .headOption

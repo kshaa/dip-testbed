@@ -23,7 +23,8 @@ class AppUserController(
   def list: Action[AnyContent] =
     Action { implicit request =>
       withRequestAuthnOrLoginRedirect[AnyContent] { case (_, user) =>
-        val userList = userService.getUsers.map(_.toOption.sequence.flatten.toList)
+        val userList = userService.getUsers(Some(user))
+          .map(_.toOption.sequence.flatten.toList.filter(_ => user.isManager))
         Ok(diptestbed.web.views.html.userList(
           appConfig, Some(user), userList.unsafeRunSync()))
       }.unsafeRunSync()

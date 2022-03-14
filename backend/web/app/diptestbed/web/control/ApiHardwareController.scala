@@ -78,6 +78,7 @@ class ApiHardwareController(
         _ <- EitherT.fromEither[IO](Either.cond(
             user.canAccessHardware, (), permissionErrorResult("Hardware access")))
         hardware <- EitherT(hardwareService.getHardware(Some(user), hardwareId)).leftMap(databaseErrorResult)
+        _ <- EitherT.fromEither[IO](hardware.toRight(unknownIdErrorResult))
         result = Success(hardware).withHttpStatus(OK)
       } yield result
     ))
@@ -98,9 +99,9 @@ class ApiHardwareController(
       implicit val timeout: Timeout = 60.seconds
       for {
         hardware <- EitherT(hardwareService.getHardware(Some(user), hardwareId)).leftMap(databaseErrorResult)
-        accessible = user.canAccessHardware
+        _ <- EitherT.fromEither[IO](hardware.toRight(unknownIdErrorResult))
         _ <- EitherT.fromEither[IO](Either.cond(
-          accessible, (), permissionErrorResult("Hardware access")))
+          user.canAccessHardware, (), permissionErrorResult("Hardware access")))
         uploadResult <- HardwareControlActor.requestSoftwareUpload(hardwareId, softwareId).bimap(
           errorMessage => Failure(errorMessage).withHttpStatus(BAD_REQUEST),
           result => Success(result.toString).withHttpStatus(OK),
@@ -143,6 +144,7 @@ class ApiHardwareController(
     IOActionAny(withRequestAuthnOrFail(_)((request, user) => {
       for {
         hardware <- EitherT(hardwareService.getHardware(Some(user), hardwareId)).leftMap(databaseErrorResult)
+        _ <- EitherT.fromEither[IO](hardware.toRight(unknownIdErrorResult))
         _ <- EitherT.fromEither[IO](Either.cond(
           user.canAccessHardware, (), permissionErrorResult("Hardware access")))
         source <- HardwareCameraListenerActor.spawnCameraSource(pubSubMediator, hardwareId)

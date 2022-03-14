@@ -9,7 +9,7 @@ import cats.effect.unsafe.IORuntime
 import cats.implicits._
 import play.api.mvc._
 import diptestbed.database.services.UserService
-import diptestbed.domain.{HashedPassword, UserId}
+import diptestbed.domain.{DIPTestbedConfig, HashedPassword, UserId}
 import diptestbed.protocol._
 import diptestbed.protocol.Codecs._
 import diptestbed.protocol.WebResult._
@@ -17,6 +17,7 @@ import diptestbed.web.ioControls.PipelineOps._
 import diptestbed.web.ioControls._
 
 class ApiUserController(
+  val appConfig: DIPTestbedConfig,
   val cc: ControllerComponents,
   val userService: UserService[IO],
 )(implicit
@@ -25,7 +26,8 @@ class ApiUserController(
   @unused materializer: Materializer,
 ) extends AbstractController(cc)
     with IOController
-    with ResultsController[IO] {
+    with ResultsController[IO]
+    with AuthController[IO] {
 
   def createUser: Action[CreateUser] = {
     IOActionJSON[CreateUser] { request =>
@@ -47,27 +49,26 @@ class ApiUserController(
   }
 
   def getUsers: Action[AnyContent] =
-    IOActionAny { _ =>
-      EitherT(userService.getUsers)
-        .bimap(
-          error => Failure(error.message).withHttpStatus(INTERNAL_SERVER_ERROR),
-          users => Success(users).withHttpStatus(OK),
-        )
-    }
+    IOActionAny(withRequestAuthnOrFail(_)((_, user) =>
+      for {
+        _ <- EitherT.fromEither[IO](Either.cond(
+          user.isManager, (), permissionErrorResult("User access")))
+        result <- EitherT(userService.getUsers(Some(user)))
+          .bimap(
+            error => Failure(error.message).withHttpStatus(INTERNAL_SERVER_ERROR),
+            users => Success(users).withHttpStatus(OK),
+          )
+      } yield result
+    ))
 
   def getUser(userId: UserId): Action[AnyContent] =
-    IOActionAny { _ =>
-      EitherT(userService.getUser(userId))
-        .leftMap(error => Failure(error.message).withHttpStatus(INTERNAL_SERVER_ERROR))
-        .flatMap(get =>
-          EitherT.fromEither(
-            get
-              .toRight("User with that id doesn't exist")
-              .bimap(
-                errorMessage => Failure(errorMessage).withHttpStatus(BAD_REQUEST),
-                user => Success(user).withHttpStatus(OK),
-              ),
-          ),
-        )
-    }
+    IOActionAny(withRequestAuthnOrFail(_)((_, user) =>
+      for {
+        searchedUser <- EitherT(userService.getUser(Some(user), userId)).leftMap(databaseErrorResult)
+        existingUser <- EitherT.fromEither[IO](searchedUser.toRight(unknownIdErrorResult))
+        _ <- EitherT.fromEither[IO](Either.cond(
+          user.isManager, (), permissionErrorResult("User access")))
+        result = Success(existingUser).withHttpStatus(OK)
+      } yield result
+    ))
 }

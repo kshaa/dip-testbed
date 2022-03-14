@@ -67,7 +67,7 @@ class DIPTestbedModule(context: Context)(implicit iort: IORuntime)
     hardwareService,
     softwareService,
   )
-  lazy val apiUserController = new ApiUserController(controllerComponents, userService)
+  lazy val apiUserController = new ApiUserController(appConfig, controllerComponents, userService)
   lazy val apiHardwareController =
     new ApiHardwareController(appConfig, controllerComponents, pubSubMediator, hardwareService, userService)
   lazy val apiSoftwareController =

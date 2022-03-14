@@ -44,8 +44,8 @@ class HardwareService[F[_]: Async](
 
   def accessibleHardwareQuery(requester: Option[User]): Query[hardwareTable.HardwareTable, HardwareRow, Seq] =
     requester match {
-      // If no requester, then assuming full accessibility
       case None => HardwareQuery
+      case Some(user) if user.isManager => HardwareQuery
       case Some(user) =>
         HardwareQuery
           // Requester must be a hardware owner or have explicit hardware access
