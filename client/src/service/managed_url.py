@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Module for managing URLs"""
+import base64
 import dataclasses
 from dataclasses import dataclass
 import tempfile
@@ -7,6 +8,7 @@ import urllib.request
 import urllib.parse
 from typing import Optional
 from urllib.parse import ParseResult
+from urllib.request import Request
 from result import Result, Ok, Err
 from requests import Response
 from src.domain.dip_client_error import DIPClientError
@@ -68,16 +70,42 @@ class ManagedURL:
         except Exception as e:
             return Err(e)
 
+    def with_basic_auth(self, username: str, password: str) -> Result['ManagedURL', Exception]:
+        """Append an additional string path to a parsed URL"""
+        try:
+            copy = dataclasses.replace(self)
+            result = copy.value._replace(netloc=f"{username}:{password}@{copy.value.netloc}")
+            return Ok(ManagedURL(result))
+        except Exception as e:
+            return Err(e)
+
     def downloaded_file_in_path(self, path: str) -> Result[ExistingFilePath, str]:
         """Download file and return file path"""
         try:
-            url_result = self.text()
-            if isinstance(url_result, Err):
-                return url_result
-            url_text: str = url_result.value
-            LOGGER.debug(f"HTTP download. URL: {url_text}, file: {path}")
-            urllib.request.urlretrieve(url_text, path)
-            return Ok(ExistingFilePath(path))
+            # Don't even comment, I know this is bad, it makes me cry too
+            basic_auth_index = self.value.netloc.find("@")
+            has_basic_auth = basic_auth_index != -1
+            if has_basic_auth:
+                basic_auth = self.value.netloc[0:basic_auth_index]
+                basic_auth_b64 = base64.b64encode(basic_auth.encode()).decode("utf-8")
+                url_without_basic_auth = ManagedURL(self.value._replace(netloc=self.value.netloc[basic_auth_index + 1:]))
+
+                req = Request(url_without_basic_auth.text().value)
+                req.add_header("Authorization", f"Basic {basic_auth_b64}")
+                with urllib.request.urlopen(req) as url:
+                    contents = url.read()
+                f = open(path, "wb")
+                f.write(contents)
+                f.close()
+                return Ok(ExistingFilePath(path))
+            else:
+                url_result = self.text()
+                if isinstance(url_result, Err):
+                    return url_result
+                url_text: str = url_result.value
+                LOGGER.debug(f"HTTP download. URL: {url_text}, file: {path}")
+                urllib.request.urlretrieve(url_text, path)
+                return Ok(ExistingFilePath(path))
         except Exception as e:
             return Err(e)
 

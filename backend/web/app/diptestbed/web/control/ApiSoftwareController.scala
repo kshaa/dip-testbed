@@ -41,6 +41,8 @@ class ApiSoftwareController(
           maybeUser
             .leftMap(databaseErrorResult)
             .flatMap(_.toRight(authorizationErrorResult)))
+        _ <- EitherT.fromEither[IO](Either.cond(
+          user.canCreateSoftware, (), permissionErrorResult("Software access")))
         software <- EitherT.fromEither[IO](
             (request.body.file("software"), request.body.dataParts.get("name").flatMap(_.headOption))
               .tupled
@@ -66,8 +68,6 @@ class ApiSoftwareController(
   def getSoftwareMetas: Action[AnyContent] =
     IOActionAny(withRequestAuthnOrFail(_)((_, user) =>
       for {
-        _ <- EitherT.fromEither[IO](Either.cond(
-          user.canAccessSoftware, (), permissionErrorResult("Software access")))
         result <- EitherT(softwareService.getSoftwareMetas(Some(user), write = false))
           .leftMap(databaseErrorResult)
           .map(softwareMetas => Success(softwareMetas).withHttpStatus(OK))
@@ -77,8 +77,6 @@ class ApiSoftwareController(
   def getSoftware(softwareId: SoftwareId): Action[AnyContent] =
     IOActionAny(withRequestAuthnOrFail(_)((_, user) =>
       for {
-        _ <- EitherT.fromEither[IO](Either.cond(
-          user.canAccessSoftware, (), permissionErrorResult("Software access")))
         software <- EitherT(softwareService.getSoftware(Some(user), softwareId, write = false)).leftMap(databaseErrorResult)
         existingSoftware <- EitherT.fromEither[IO](software.toRight(unknownIdErrorResult))
         result = {

@@ -150,7 +150,9 @@ class CLIInterface:
     @staticmethod
     def user_list(
         config_path_str: Optional[str],
-        static_server_str: Optional[str]
+        static_server_str: Optional[str],
+        username_str: Optional[str],
+        password_str: Optional[str]
     ) -> Result[List[User], DIPClientError]:
         pass
 
@@ -166,7 +168,9 @@ class CLIInterface:
     @staticmethod
     def hardware_list(
         config_path_str: Optional[str],
-        static_server_str: Optional[str]
+        static_server_str: Optional[str],
+        username_str: Optional[str],
+        password_str: Optional[str]
     ) -> Result[List[Hardware], DIPClientError]:
         pass
 
@@ -181,9 +185,21 @@ class CLIInterface:
         pass
 
     @staticmethod
+    def hardware_stream_open(
+        config_path_str: Optional[str],
+        static_server_str: Optional[str],
+        hardware_id_str: str,
+        username_str: Optional[str],
+        password_str: Optional[str],
+    ) -> Optional[DIPClientError]:
+        pass
+
+    @staticmethod
     def software_list(
         config_path_str: Optional[str],
-        static_server_str: str
+        static_server_str: str,
+        username_str: Optional[str],
+        password_str: Optional[str],
     ) -> Result[List[Software], DIPClientError]:
         pass
 
@@ -203,7 +219,9 @@ class CLIInterface:
         config_path_str: Optional[str],
         static_server_str: Optional[str],
         software_id_str: str,
-        file_path: str
+        file_path: str,
+        username_str: Optional[str],
+        password_str: Optional[str],
     ) -> Result[ExistingFilePath, DIPClientError]:
         pass
 
@@ -212,7 +230,9 @@ class CLIInterface:
         config_path_str: Optional[str],
         static_server_str: Optional[str],
         hardware_id_str: str,
-        software_id_str: str
+        software_id_str: str,
+        username_str: Optional[str],
+        password_str: Optional[str],
     ) -> Optional[DIPClientError]:
         pass
 
@@ -623,9 +643,11 @@ class CLI(CLIInterface):
     @staticmethod
     def user_list(
         config_path_str: Optional[str],
-        static_server_str: Optional[str]
+        static_server_str: Optional[str],
+        username_str: Optional[str],
+        password_str: Optional[str]
     ) -> Result[List[User], DIPClientError]:
-        backend_result = CLI.parsed_backend(config_path_str, None, static_server_str, None, None)
+        backend_result = CLI.parsed_backend(config_path_str, None, static_server_str, username_str, password_str)
         if isinstance(backend_result, Err): return Err(backend_result.value)
         return backend_result.value.user_list()
 
@@ -643,9 +665,11 @@ class CLI(CLIInterface):
     @staticmethod
     def hardware_list(
         config_path_str: Optional[str],
-        static_server_str: Optional[str]
+        static_server_str: Optional[str],
+        username_str: Optional[str],
+        password_str: Optional[str]
     ) -> Result[List[Hardware], DIPClientError]:
-        backend_result = CLI.parsed_backend(config_path_str, None, static_server_str, None, None)
+        backend_result = CLI.parsed_backend(config_path_str, None, static_server_str, username_str, password_str)
         if isinstance(backend_result, Err): return Err(backend_result.value)
         return backend_result.value.hardware_list()
 
@@ -665,9 +689,11 @@ class CLI(CLIInterface):
     def hardware_stream_open(
         config_path_str: Optional[str],
         static_server_str: Optional[str],
-        hardware_id_str: str
+        hardware_id_str: str,
+        username_str: Optional[str],
+        password_str: Optional[str],
     ) -> Optional[DIPClientError]:
-        backend_result = CLI.parsed_backend(config_path_str, None, static_server_str, None, None)
+        backend_result = CLI.parsed_backend(config_path_str, None, static_server_str, username_str, password_str)
         if isinstance(backend_result, Err): return backend_result.value
         hardware_id_result = ManagedUUID.build(hardware_id_str)
         if isinstance(hardware_id_result, Err): return hardware_id_result.value.of_type("hardware")
@@ -682,9 +708,11 @@ class CLI(CLIInterface):
     @staticmethod
     def software_list(
         config_path_str: Optional[str],
-        static_server_str: Optional[str]
+        static_server_str: Optional[str],
+        username_str: Optional[str],
+        password_str: Optional[str],
     ) -> Result[List[Software], DIPClientError]:
-        backend_result = CLI.parsed_backend(config_path_str, None, static_server_str, None, None)
+        backend_result = CLI.parsed_backend(config_path_str, None, static_server_str, username_str, password_str)
         if isinstance(backend_result, Err): return Err(backend_result.value)
         return backend_result.value.software_list()
 
@@ -708,22 +736,28 @@ class CLI(CLIInterface):
         config_path_str: Optional[str],
         static_server_str: Optional[str],
         software_id_str: str,
-        file_path: str
-    ) -> Result[ExistingFilePath, DIPClientError]:
-        backend_result = CLI.parsed_backend(config_path_str, None, static_server_str, None, None)
-        if isinstance(backend_result, Err): return Err(backend_result.value)
+        file_path: str,
+        username_str: Optional[str],
+        password_str: Optional[str],
+    ) -> Optional[DIPClientError]:
+        backend_result = CLI.parsed_backend(config_path_str, None, static_server_str, username_str, password_str)
+        if isinstance(backend_result, Err): return backend_result.value
         software_id_result = ManagedUUID.build(software_id_str)
-        if isinstance(software_id_result, Err): return Err(software_id_result.value.of_type("software"))
-        return backend_result.value.software_download(software_id_result.value, file_path)
+        if isinstance(software_id_result, Err): return software_id_result.value.of_type("software")
+        download_result = backend_result.value.software_download(software_id_result.value, file_path)
+        if isinstance(download_result, Err): return download_result.value
+        return None
 
     @staticmethod
     def hardware_software_upload(
         config_path_str: Optional[str],
         static_server_str: Optional[str],
         hardware_id_str: str,
-        software_id_str: str
+        software_id_str: str,
+        username_str: Optional[str],
+        password_str: Optional[str],
     ) -> Optional[DIPClientError]:
-        backend_result = CLI.parsed_backend(config_path_str, None, static_server_str, None, None)
+        backend_result = CLI.parsed_backend(config_path_str, None, static_server_str, username_str, password_str)
         if isinstance(backend_result, Err): return backend_result.value
         software_id_result = ManagedUUID.build(software_id_str)
         if isinstance(software_id_result, Err): return software_id_result.value.of_type("software")
@@ -790,7 +824,7 @@ class CLI(CLIInterface):
         # Forward software to board
         LOGGER.info("Forwarding software to board")
         forward_error = CLI.hardware_software_upload(
-            config_path_str, static_server_str, hardware_id_str, str(software.id.value))
+            config_path_str, static_server_str, hardware_id_str, str(software.id.value), username_str, password_str)
         if forward_error is not None: return Err(forward_error)
         # Create serial monitor connection to board
         LOGGER.info("Configuring serial connection monitor with board")

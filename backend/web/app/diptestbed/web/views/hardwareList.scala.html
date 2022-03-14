@@ -39,6 +39,12 @@
             @if(user.map(_.id).contains(hardware.ownerId) || user.exists(_.isManager)) {
               <button type="submit" class="btn btn-sm btn-primary mx-2">Save publicity</button>
             }
+            <a target="_blank" href="@(appConfig.withApiPath(s"/hardware/video/sink/${hardware.id.value}.ogg"))">
+              <button type="button" class="btn btn-sm btn-primary">
+                <span>Video stream</span>
+                <i class="mx-2 fa-solid fa-arrow-up-right-from-square"></i>
+              </button>
+            </a>
           </div>
         </td>
       }

@@ -65,8 +65,6 @@ class ApiHardwareController(
   def getHardwares: Action[AnyContent] =
     IOActionAny(withRequestAuthnOrFail(_)((_, user) =>
       for {
-        _ <- EitherT.fromEither[IO](Either.cond(
-          user.canAccessHardware, (), permissionErrorResult("Hardware access")))
         hardwares <- EitherT(hardwareService.getHardwares(Some(user), write = false)).leftMap(databaseErrorResult)
         result = Success(hardwares).withHttpStatus(OK)
       } yield result
@@ -75,8 +73,6 @@ class ApiHardwareController(
   def getHardware(hardwareId: HardwareId): Action[AnyContent] =
     IOActionAny(withRequestAuthnOrFail(_)((_, user) =>
       for {
-        _ <- EitherT.fromEither[IO](Either.cond(
-            user.canAccessHardware, (), permissionErrorResult("Hardware access")))
         hardware <- EitherT(hardwareService.getHardware(Some(user), hardwareId, write = false)).leftMap(databaseErrorResult)
         _ <- EitherT.fromEither[IO](hardware.toRight(unknownIdErrorResult))
         result = Success(hardware).withHttpStatus(OK)
@@ -101,7 +97,7 @@ class ApiHardwareController(
         hardware <- EitherT(hardwareService.getHardware(Some(user), hardwareId, write = false)).leftMap(databaseErrorResult)
         _ <- EitherT.fromEither[IO](hardware.toRight(unknownIdErrorResult))
         _ <- EitherT.fromEither[IO](Either.cond(
-          user.canAccessHardware, (), permissionErrorResult("Hardware access")))
+          user.canInteractHardware, (), permissionErrorResult("Hardware access")))
         uploadResult <- HardwareControlActor.requestSoftwareUpload(hardwareId, softwareId).bimap(
           errorMessage => Failure(errorMessage).withHttpStatus(BAD_REQUEST),
           result => Success(result.toString).withHttpStatus(OK),
@@ -146,14 +142,16 @@ class ApiHardwareController(
         hardware <- EitherT(hardwareService.getHardware(Some(user), hardwareId, write = false)).leftMap(databaseErrorResult)
         _ <- EitherT.fromEither[IO](hardware.toRight(unknownIdErrorResult))
         _ <- EitherT.fromEither[IO](Either.cond(
-          user.canAccessHardware, (), permissionErrorResult("Hardware access")))
-        source <- HardwareCameraListenerActor.spawnCameraSource(pubSubMediator, hardwareId)
-          .leftMap(Failure(_).withHttpStatus(BAD_REQUEST))
-        content = request.headers.get("Range") match {
-          case None => Ok("")
-          case Some(_) => Ok.chunked(source)
-        }
-        result <- EitherT.fromEither[IO](Right(withStreamHeaders(content)))
+          user.canInteractHardware, (), permissionErrorResult("Hardware access")))
+        result <-
+          request.headers.get("Range") match {
+            case None => EitherT.fromEither[IO](Right[Result, Result](withStreamHeaders(Ok(""))))
+            case Some(_) => HardwareCameraListenerActor.spawnCameraSource(pubSubMediator, hardwareId).bimap[Result, Result](
+              errorMessage => Failure(errorMessage).withHttpStatus(BAD_REQUEST),
+              source =>
+                withStreamHeaders(Ok.chunked(source)),
+            )
+          }
       } yield result
     }))
 

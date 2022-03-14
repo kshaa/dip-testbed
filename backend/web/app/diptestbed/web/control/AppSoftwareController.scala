@@ -49,7 +49,7 @@ class AppSoftwareController(
 
   def dbSoftware(sessionUser: User): IO[List[SoftwareMeta]] =
     softwareService.getSoftwareMetas(Some(sessionUser), write = false)
-      .map(_.toOption.sequence.flatten.toList.filter(_ => sessionUser.canAccessSoftware))
+      .map(_.toOption.sequence.flatten.toList)
 
   def list: Action[AnyContent] =
     Action { implicit r =>

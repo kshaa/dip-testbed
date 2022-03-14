@@ -48,7 +48,7 @@ class AppHardwareController(
 
   def dbHardware(sessionUser: User): IO[List[Hardware]] =
     hardwareService.getHardwares(Some(sessionUser), write = false)
-      .map(_.toOption.sequence.flatten.toList.filter(_ => sessionUser.canAccessHardware))
+      .map(_.toOption.sequence.flatten.toList)
 
   def list: Action[AnyContent] =
     Action { implicit request =>
@@ -57,7 +57,6 @@ class AppHardwareController(
           appConfig, Some(user), dbHardware(user).unsafeRunSync(), publicForm(user)))
       }.unsafeRunSync()
     }
-
 
   def publicRequest: Action[AnyContent] =
     Action { implicit request =>

@@ -1,5 +1,6 @@
 """Module for backend management service definitions"""
 import os
+import urllib.request
 from typing import List, TypeVar, Dict, Optional
 from dataclasses import dataclass
 import base64
@@ -134,12 +135,14 @@ class BackendService(BackendServiceInterface):
         return self.control_url(f"{self.config.api_prefix}/hardware/video/source?hardware={hardware_id.value}")
 
     def hardware_video_sink_url(self, hardware_id: ManagedUUID) -> Result[ManagedURL, BackendManagementError]:
-        return self.static_url(f"{self.config.api_prefix}/hardware/video/sink/{hardware_id.value}.ogg")
+        url_result = self.static_url(f"{self.config.api_prefix}/hardware/video/sink/{hardware_id.value}.ogg")
+        if isinstance(url_result, Err):
+            return Err(BackendManagementError("Control server URL build failed", exception=url_result.value))
+        return url_result.value.with_basic_auth(self.config.auth.username, self.config.auth.password) # Bad hack
 
     def hardware_serial_monitor_url(self, hardware_id: ManagedUUID) -> Result[ManagedURL, BackendManagementError]:
         """Build hardware serial monitor URL"""
         return self.control_url(f"{self.config.api_prefix}/hardware/{hardware_id.value}/monitor/serial")
-
 
     @staticmethod
     def response_to_result(
@@ -236,7 +239,7 @@ class BackendService(BackendServiceInterface):
         """Fetch a list of users"""
         path = f"{self.config.api_prefix}/user"
         decoder = s11n_json.list_decoder_json(s11n_json.USER_DECODER_JSON)
-        return self.static_get_json_result(path, decoder)
+        return self.static_get_json_result(path, decoder, headers=self.config.auth.auth_headers())
 
     def user_create(self, username: str, password: str) -> Result[User, str]:
         """Create a new user"""
@@ -251,7 +254,7 @@ class BackendService(BackendServiceInterface):
         """Fetch a list of hardware"""
         path = f"{self.config.api_prefix}/hardware"
         decoder = s11n_json.list_decoder_json(s11n_json.HARDWARE_DECODER_JSON)
-        return self.static_get_json_result(path, decoder)
+        return self.static_get_json_result(path, decoder, headers=self.config.auth.auth_headers())
 
     def hardware_create(
         self,
@@ -273,7 +276,7 @@ class BackendService(BackendServiceInterface):
     ) -> Optional[BackendManagementError]:
         """Upload a given software to a given hardware"""
         path = f"{self.config.api_prefix}/hardware/{hardware_id.value}/upload/software/{software_id.value}"
-        result = self.static_post_json_result(path)
+        result = self.static_post_json_result(path, headers=self.config.auth.auth_headers())
         if isinstance(result, Err):
             return result.value
         return None
@@ -283,7 +286,7 @@ class BackendService(BackendServiceInterface):
         """Fetch a list of software"""
         path = f"{self.config.api_prefix}/software"
         decoder = s11n_json.list_decoder_json(s11n_json.SOFTWARE_DECODER_JSON)
-        return self.static_get_json_result(path, decoder)
+        return self.static_get_json_result(path, decoder, headers=self.config.auth.auth_headers())
 
     def software_upload(
         self,
@@ -309,12 +312,14 @@ class BackendService(BackendServiceInterface):
         # Build URL
         url_result = self.static_url(f"{self.config.api_prefix}/software/{software_id.value}/download")
         if isinstance(url_result, Err): return Err(url_result.value)
+        url_with_auth_result = url_result.value.with_basic_auth(self.config.auth.username, self.config.auth.password) # Bad hack
+        if isinstance(url_with_auth_result, Err): return Err(url_with_auth_result.value)
 
         # Download file
         if file_path is None:
-            file_result = url_result.value.downloaded_file_in_temp()
+            file_result = url_with_auth_result.value.downloaded_file_in_temp()
         else:
-            file_result = url_result.value.downloaded_file_in_path(file_path)
+            file_result = url_with_auth_result.value.downloaded_file_in_path(file_path)
 
         # Handle file download
         if isinstance(file_result, Err):

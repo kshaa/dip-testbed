@@ -390,15 +390,19 @@ def agent_fake(
 @CONFIG_PATH_OPTION
 @JSON_OUTPUT_OPTION
 @STATIC_SERVER_OPTION
+@USERNAME_OPTION
+@PASSWORD_OPTION
 def user_list(
     config_path_str: Optional[str],
     json_output: bool,
-    static_server_str: Optional[str]
+    static_server_str: Optional[str],
+    username_str: Optional[str],
+    password_str: Optional[str]
 ):
     """Fetch list of users"""
     CLI.execute_table_result(
         json_output,
-        CLI.user_list(config_path_str, static_server_str),
+        CLI.user_list(config_path_str, static_server_str, username_str, password_str),
         s11n_json.list_encoder_json(s11n_json.USER_ENCODER_JSON),
         s11n_rich.RichUserEncoder()
     )
@@ -430,15 +434,19 @@ def user_create(
 @CONFIG_PATH_OPTION
 @JSON_OUTPUT_OPTION
 @STATIC_SERVER_OPTION
+@USERNAME_OPTION
+@PASSWORD_OPTION
 def hardware_list(
     config_path_str: Optional[str],
     json_output: bool,
-    static_server_str: Optional[str]
+    static_server_str: Optional[str],
+    username_str: Optional[str],
+    password_str: Optional[str]
 ):
     """Fetch list of hardware"""
     CLI.execute_table_result(
         json_output,
-        CLI.hardware_list(config_path_str, static_server_str),
+        CLI.hardware_list(config_path_str, static_server_str, username_str, password_str),
         s11n_json.list_encoder_json(s11n_json.HARDWARE_ENCODER_JSON),
         s11n_rich.RichHardwareEncoder()
     )
@@ -473,15 +481,19 @@ def hardware_create(
 @CONFIG_PATH_OPTION
 @JSON_OUTPUT_OPTION
 @STATIC_SERVER_OPTION
+@USERNAME_OPTION
+@PASSWORD_OPTION
 def software_list(
     config_path_str: Optional[str],
     json_output: bool,
-    static_server_str: Optional[str]
+    static_server_str: Optional[str],
+    username_str: Optional[str],
+    password_str: Optional[str],
 ):
     """Fetch list of software"""
     CLI.execute_table_result(
         json_output,
-        CLI.software_list(config_path_str, static_server_str),
+        CLI.software_list(config_path_str, static_server_str, username_str, password_str),
         s11n_json.list_encoder_json(s11n_json.SOFTWARE_ENCODER_JSON),
         s11n_rich.RichSoftwareEncoder()
     )
@@ -519,16 +531,20 @@ def software_upload(
 @STATIC_SERVER_OPTION
 @SOFTWARE_ID_OPTION
 @SOFTWARE_FILE_PATH_OPTION
+@USERNAME_OPTION
+@PASSWORD_OPTION
 def software_download(
     config_path_str: Optional[str],
     static_server_str: Optional[str],
     software_id_str: str,
-    software_file_path: str
+    software_file_path: str,
+    username_str: Optional[str],
+    password_str: Optional[str],
 ):
     """Download existing software"""
     CLI.execute_optional_result(
         False,
-        CLI.software_download(config_path_str, static_server_str, software_id_str, software_file_path),
+        CLI.software_download(config_path_str, static_server_str, software_id_str, software_file_path, username_str, password_str),
         f"Downloaded software at '{software_file_path}'"
     )
 
@@ -538,16 +554,20 @@ def software_download(
 @STATIC_SERVER_OPTION
 @HARDWARE_ID_OPTION
 @SOFTWARE_ID_OPTION
+@USERNAME_OPTION
+@PASSWORD_OPTION
 def hardware_software_upload(
     config_path_str: Optional[str],
     static_server_str: Optional[str],
     hardware_id_str: str,
-    software_id_str: str
+    software_id_str: str,
+    username_str: Optional[str],
+    password_str: Optional[str],
 ):
     """Upload software to hardware"""
     CLI.execute_optional_result(
         False,
-        CLI.hardware_software_upload(config_path_str, static_server_str, hardware_id_str, software_id_str),
+        CLI.hardware_software_upload(config_path_str, static_server_str, hardware_id_str, software_id_str, username_str, password_str),
         f"Uploaded software '{software_id_str}' to hardware '{hardware_id_str}'"
     )
 
@@ -669,14 +689,18 @@ def agent_hardware_video(
 @CONFIG_PATH_OPTION
 @HARDWARE_ID_OPTION
 @STATIC_SERVER_OPTION
+@USERNAME_OPTION
+@PASSWORD_OPTION
 def hardware_stream_open(
     config_path_str: Optional[str],
     hardware_id_str: str,
-    static_server_str: Optional[str]
+    static_server_str: Optional[str],
+    username_str: Optional[str],
+    password_str: Optional[str],
 ):
     """Open hardware video stream in a browser"""
     CLI.execute_optional_result(
         False,
-        CLI.hardware_stream_open(config_path_str, static_server_str, hardware_id_str),
+        CLI.hardware_stream_open(config_path_str, static_server_str, hardware_id_str, username_str, password_str),
         f"Opening hardware stream for '{hardware_id_str}'"
     )
