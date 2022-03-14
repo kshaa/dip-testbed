@@ -1,7 +1,7 @@
 @import diptestbed.domain.DIPTestbedConfig
 @import diptestbed.domain.User
 @import diptestbed.domain.SoftwareMeta
-
+@import diptestbed.web.views.html._
 @(
   appConfig: DIPTestbedConfig,
   user: Option[User],
@@ -9,35 +9,23 @@
 )(implicit
   request: Request[_]
 )
+@headerRow = {
+  <tr>
+    <th scope="col">ID</th>
+    <th scope="col">Name</th>
+    <th scope="col">Owner ID</th>
+  </tr>
+}
+@dataRows = {
+  @for(software <- softwares) {
+    <tr>
+      <th scope="row">@(software.id.value.toString)</th>
+      <td>@(software.name)</td>
+      <td>@(software.ownerId.value.toString)</td>
+    </tr>
+  }
+}
 @content = {
-  <div class="px-4">
-    <h1 class="display-5 fw-bold">Software list</h1>
-    @if(softwares.isEmpty) {
-      <div class="col-lg-6 my-4 mx-auto">
-        <p class="lead mb-4">
-          No software found. Maybe you need permissions. Maybe make more software.
-        </p>
-      </div>
-    } else {
-      <table class="table my-4 table-striped">
-        <thead class="table-dark">
-          <tr>
-            <th scope="col">ID</th>
-            <th scope="col">Name</th>
-            <th scope="col">Owner ID</th>
-          </tr>
-        </thead>
-        <tbody>
-            @for(software <- softwares) {
-              <tr>
-                <th scope="row">@(software.id.value.toString)</th>
-                <td>@(software.name)</td>
-                <td>@(software.ownerId.value.toString)</td>
-              </tr>
-            }
-        </tbody>
-      </table>
-    }
-  </div>
+  @entityList(headerRow, dataRows, softwares.isEmpty, "Software")
 }
 @base(appConfig, appConfig.makeTitle("Software list"), user, content)

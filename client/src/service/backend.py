@@ -208,7 +208,7 @@ class BackendService(BackendServiceInterface):
 
         # Send request and receive response
         if headers is None: headers = {}
-        if files is None: headers = {}
+        if files is None: files = {}
         try:
             if payload is None:
                 LOGGER.debug(f"HTTP POST JSON: {url_text_result.value}, headers: {headers}, files:{ files }")
@@ -258,7 +258,7 @@ class BackendService(BackendServiceInterface):
         hardware_name: str
     ) -> Result[Hardware, BackendManagementError]:
         """Create a new hardware"""
-        path = f"{self.config.api_prefix}/user"
+        path = f"{self.config.api_prefix}/hardware"
         encoder = s11n_json.CREATE_HARDWARE_MESSAGE_ENCODER_JSON
         decoder = s11n_json.HARDWARE_DECODER_JSON
         payload = CreateHardwareMessage(hardware_name)

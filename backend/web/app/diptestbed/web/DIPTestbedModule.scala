@@ -8,7 +8,8 @@ import cats.effect.IO
 import cats.effect.unsafe.IORuntime
 import play.api.ApplicationLoader.Context
 import play.api.BuiltInComponentsFromContext
-import controllers.{Assets, AssetsComponents, AssetsConfiguration, AssetsMetadataProvider, DefaultAssetsMetadata}
+import controllers.{Assets, AssetsConfiguration, AssetsMetadataProvider, DefaultAssetsMetadata}
+import diptestbed.database.catalog.HardwareAccessCatalog.HardwareAccessTable
 import play.api.cluster.sharding.typed.ClusterShardingComponents
 import play.api.db.evolutions.ThisClassLoaderEvolutionsReader.evolutions
 import play.api.db.{Database => PlayDatabase}
@@ -52,10 +53,11 @@ class DIPTestbedModule(context: Context)(implicit iort: IORuntime)
 
   lazy val userTable = new UserTable(defaultDatabaseDriver)
   lazy val hardwareTable = new HardwareTable(defaultDatabaseDriver)
+  lazy val hardwareAccessTable = new HardwareAccessTable(defaultDatabaseDriver)
   lazy val softwareTable = new SoftwareTable(defaultDatabaseDriver)
 
   lazy val userService = new UserService[IO](userTable)
-  lazy val hardwareService = new HardwareService[IO](hardwareTable, userTable)
+  lazy val hardwareService = new HardwareService[IO](hardwareTable, hardwareAccessTable, userTable)
   lazy val softwareService = new SoftwareService[IO](softwareTable, userTable)
 
   lazy val apiHomeController = new ApiHomeController(

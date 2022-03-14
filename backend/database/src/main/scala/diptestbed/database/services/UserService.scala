@@ -18,8 +18,20 @@ class UserService[F[_]: Async](
   def countUsers(): F[DatabaseResult[Int]] =
     UserQuery.length.result.tryRunDBIO(dbDriver)
 
-  def createUser(username: String, hashedPassword: HashedPassword): F[DatabaseResult[Option[User]]] = {
-    val row: UserRow = UserRow(username = username, hashedPassword = hashedPassword.toSerializedString)
+  def createUser(
+    username: String,
+    hashedPassword: HashedPassword,
+    isManager: Boolean,
+    isLabOwner: Boolean,
+    isDeveloper: Boolean
+  ): F[DatabaseResult[Option[User]]] = {
+    val row: UserRow = UserRow(
+      username = username,
+      hashedPassword = hashedPassword.toSerializedString,
+      isManager = isManager,
+      isLabOwner = isLabOwner,
+      isDeveloper = isDeveloper
+    )
     val userCreation: DBIOAction[Option[Int], NoStream, Effect.Read with Effect.Write] = for {
       userUniqueCheck <- UserQuery.filter(_.username === username).result.headOption
       userCreation <- sequenceOption(Option.when(userUniqueCheck.isEmpty)(UserQuery += row))

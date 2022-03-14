@@ -13,12 +13,14 @@ object HardwareCatalog {
       def uuid: Rep[UUID] = column[UUID]("uuid", O.PrimaryKey)
       def name: Rep[String] = column[String]("name")
       def ownerUuid: Rep[UUID] = column[UUID]("owner_uuid")
+      def isPublic: Rep[Boolean] = column[Boolean]("is_public")
 
       def * : ProvenShape[HardwareRow] =
         (
           uuid,
           name,
           ownerUuid,
+          isPublic
         ) <> ((HardwareRow.apply _).tupled, HardwareRow.unapply)
     }
 
@@ -29,6 +31,7 @@ object HardwareCatalog {
     id: UUID = UUID.randomUUID(),
     name: String,
     ownerId: UUID,
+    isPublic: Boolean
   )
 
   def fromDomain(hardware: Hardware): HardwareRow =
@@ -36,6 +39,7 @@ object HardwareCatalog {
       hardware.id.value,
       hardware.name,
       hardware.ownerId.value,
+      hardware.isPublic
     )
 
   def toDomain(hardware: HardwareRow): Hardware =
@@ -43,5 +47,6 @@ object HardwareCatalog {
       HardwareId(hardware.id),
       hardware.name,
       UserId(hardware.ownerId),
+      hardware.isPublic
     )
 }

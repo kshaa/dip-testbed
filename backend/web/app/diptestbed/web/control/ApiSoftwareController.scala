@@ -70,7 +70,7 @@ class ApiSoftwareController(
 
       val pipeline = authWithSoftwareBytes.flatMap {
         case (bytes, name, user) =>
-          EitherT(softwareService.createSoftware(name, user.id, bytes))
+          EitherT(softwareService.createSoftware(name, user.id, isPublic = false, bytes))
             .leftMap(databaseErrorResult)
             .map(meta => Success(meta).withHttpStatus(OK))
       }

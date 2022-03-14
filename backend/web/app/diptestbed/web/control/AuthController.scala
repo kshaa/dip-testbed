@@ -2,8 +2,6 @@ package diptestbed.web.control
 
 import cats.Monad
 import cats.data.EitherT
-import cats.effect.IO
-import cats.effect.unsafe.IORuntime
 import diptestbed.database.driver.DatabaseOutcome.{DatabaseException, DatabaseResult}
 import diptestbed.database.services.UserService
 import diptestbed.domain.{DIPTestbedConfig, HashedPassword, User}
@@ -28,16 +26,14 @@ trait AuthController[F[_]] { self: ResultsController[F] =>
     .withHttpStatus(UNAUTHORIZED)
     .withHeaders("WWW-Authenticate" -> "Basic")
 
+  def requestAuthn[R](request: Request[R]): F[DatabaseResult[Option[User]]] = {
+    implicit val implicitEffectMonad: Monad[F] = effectMonad
+    AuthController.extractRequestUser(request, userService.getUserByName, appConfig)
+  }
+
   def withRequestAuthn[R, H](request: Request[R])(handler: (Request[R], DatabaseResult[Option[User]]) => F[H]): F[H] = {
     implicit val implicitEffectMonad: Monad[F] = effectMonad
-
-    AuthController
-      .extractRequestUser(
-        request,
-        userService.getUserByName,
-        appConfig
-      )
-      .flatMap(handler(request, _))
+    requestAuthn(request).flatMap(handler(request, _))
   }
 
   def withRequestAuthnOrFail[R](request: Request[R])(handler: (Request[R], User) => PipelineRes[F]): PipelineRes[F] = {
@@ -110,7 +106,12 @@ object AuthController {
   ): F[DatabaseResult[Option[User]]] = {
       val overridesAdmin = config.adminUsername.contains(username)
       if (overridesAdmin) implicitly[Monad[F]].pure(Right(None))
-      else userService.createUser(username, HashedPassword.fromPassword(password))
+      else userService.createUser(
+        username,
+        HashedPassword.fromPassword(password),
+        isManager = false,
+        isLabOwner = false,
+        isDeveloper = false)
   }
 
   def extractRequestBasicAuth[R](request: Request[R]): Option[(Username, Password)] = {

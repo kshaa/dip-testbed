@@ -24,9 +24,9 @@ class AppHardwareController(
   def list: Action[AnyContent] =
     Action { implicit request =>
       withRequestAuthnOrLoginRedirect[AnyContent] { case (_, user) =>
-        val hardwareList = hardwareService.getHardwares.map(_.toOption.sequence.flatten.toList)
+        val hardwareList = hardwareService.getHardwares(Some(user)).map(_.toOption.sequence.flatten.toList)
         Ok(diptestbed.web.views.html.hardwareList(
-          appConfig, contextUser.unsafeRunSync(), hardwareList.unsafeRunSync()))
+          appConfig, Some(user), hardwareList.unsafeRunSync()))
       }.unsafeRunSync()
     }
 }

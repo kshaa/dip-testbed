@@ -29,7 +29,12 @@ class ApiUserController(
 
   def createUser: Action[CreateUser] = {
     IOActionJSON[CreateUser] { request =>
-      EitherT(userService.createUser(request.body.username, HashedPassword.fromPassword(request.body.password)))
+      EitherT(userService.createUser(
+        request.body.username,
+        HashedPassword.fromPassword(request.body.password),
+        isManager = false,
+        isLabOwner = false,
+        isDeveloper = false))
         .leftMap(databaseErrorResult)
         .subflatMap(
           _.toRight("Username already taken")

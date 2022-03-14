@@ -1,5 +1,5 @@
 @import diptestbed.domain.DIPTestbedConfig
-
+@import diptestbed.web.views.html._
 @(
   appConfig: DIPTestbedConfig,
   loginForm: Form[(String, String)],
@@ -9,7 +9,6 @@
   messages: play.api.i18n.Messages,
   request: Request[_]
 )
-
 @content = {
   <div class="px-4 py-5 my-5">
     <div class="col-lg-6 mx-auto">

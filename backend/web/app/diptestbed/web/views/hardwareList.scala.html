@@ -1,7 +1,7 @@
 @import diptestbed.domain.DIPTestbedConfig
 @import diptestbed.domain.User
 @import diptestbed.domain.Hardware
-
+@import diptestbed.web.views.html._
 @(
   appConfig: DIPTestbedConfig,
   user: Option[User],
@@ -9,35 +9,23 @@
 )(implicit
   request: Request[_]
 )
+@headerRow = {
+  <tr>
+    <th scope="col">ID</th>
+    <th scope="col">Name</th>
+    <th scope="col">Owner ID</th>
+  </tr>
+}
+@dataRows = {
+  @for(hardware <- hardwares) {
+    <tr>
+      <th scope="row">@(hardware.id.value.toString)</th>
+      <td>@(hardware.name)</td>
+      <td>@(hardware.ownerId.value.toString)</td>
+    </tr>
+  }
+}
 @content = {
-  <div class="px-4">
-    <h1 class="display-5 fw-bold">Hardware list</h1>
-    @if(hardwares.isEmpty) {
-      <div class="col-lg-6 my-4 mx-auto">
-        <p class="lead mb-4">
-          No boards found. Maybe you need permissions. Maybe make more boards.
-        </p>
-      </div>
-    } else {
-      <table class="table my-4 table-striped">
-        <thead class="table-dark">
-          <tr>
-            <th scope="col">ID</th>
-            <th scope="col">Name</th>
-            <th scope="col">Owner ID</th>
-          </tr>
-        </thead>
-        <tbody>
-            @for(hardware <- hardwares) {
-              <tr>
-                <th scope="row">@(hardware.id.value.toString)</th>
-                <td>@(hardware.name)</td>
-                <td>@(hardware.ownerId.value.toString)</td>
-              </tr>
-            }
-        </tbody>
-      </table>
-    }
-  </div>
+  @entityList(headerRow, dataRows, hardwares.isEmpty, "Hardware")
 }
 @base(appConfig, appConfig.makeTitle("Hardware list"), user, content)

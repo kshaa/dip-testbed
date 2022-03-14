@@ -8,9 +8,11 @@ import akka.util.Timeout
 import cats.data.EitherT
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
+import cats.syntax._
 import cats.implicits._
+import diptestbed.database.driver.DatabaseOutcome.DatabaseException
 import diptestbed.database.services.{HardwareService, UserService}
-import diptestbed.domain.{DIPTestbedConfig, HardwareCameraMessage, HardwareControlMessage, HardwareId, HardwareSerialMonitorMessage, SerialConfig, SoftwareId}
+import diptestbed.domain.{DIPTestbedConfig, Hardware, HardwareCameraMessage, HardwareControlMessage, HardwareId, HardwareSerialMonitorMessage, SerialConfig, SoftwareId}
 import diptestbed.protocol._
 import diptestbed.protocol.Codecs._
 import diptestbed.protocol.WebResult._
@@ -44,9 +46,12 @@ class ApiHardwareController(
     IOActionJSON[CreateHardware](
       withRequestAuthnOrFail(_)((request, user) =>
         for {
-          creation <- EitherT(hardwareService.createHardware(request.body.name, user.id)).leftMap(databaseErrorResult)
+          _ <- EitherT.fromEither[IO](Either.cond(
+            user.isLabOwner, (), permissionErrorResult("Lab owner")))
+          creation = hardwareService.createHardware(request.body.name, user.id, isPublic = false)
+          creationOrError <- EitherT(creation).leftMap(databaseErrorResult)
           result <-
-            creation
+            creationOrError
               .toRight("Authenticated user was removed while executing request")
               .bimap(
                 errorMessage => Failure(errorMessage).withHttpStatus(BAD_REQUEST),
@@ -58,24 +63,24 @@ class ApiHardwareController(
     )
 
   def getHardwares: Action[AnyContent] =
-    IOActionAny { _ =>
-      EitherT(hardwareService.getHardwares)
-        .leftMap(databaseErrorResult)
-        .map(hardwares => Success(hardwares).withHttpStatus(OK))
-    }
+    IOActionAny(withRequestAuthnOrFail(_)((_, user) =>
+      for {
+        _ <- EitherT.fromEither[IO](Either.cond(
+          user.canAccessHardware, (), permissionErrorResult("Hardware access")))
+        hardwares <- EitherT(hardwareService.getHardwares(Some(user))).leftMap(databaseErrorResult)
+        result = Success(hardwares).withHttpStatus(OK)
+      } yield result
+    ))
 
   def getHardware(hardwareId: HardwareId): Action[AnyContent] =
-    IOActionAny { _ =>
-      EitherT(hardwareService.getHardware(hardwareId))
-        .leftMap(databaseErrorResult)
-        .subflatMap(
-          _.toRight("Hardware with that id doesn't exist")
-            .bimap(
-              errorMessage => Failure(errorMessage).withHttpStatus(BAD_REQUEST),
-              hardware => Success(hardware).withHttpStatus(OK),
-            ),
-        )
-    }
+    IOActionAny(withRequestAuthnOrFail(_)((_, user) =>
+      for {
+        _ <- EitherT.fromEither[IO](Either.cond(
+            user.canAccessHardware, (), permissionErrorResult("Hardware access")))
+        hardware <- EitherT(hardwareService.getHardware(Some(user), hardwareId)).leftMap(databaseErrorResult)
+        result = Success(hardware).withHttpStatus(OK)
+      } yield result
+    ))
 
   def controlHardware(hardwareId: HardwareId): WebSocket = {
     implicit val transformer: MessageFlowTransformer[HardwareControlMessage, HardwareControlMessage] =
@@ -89,18 +94,21 @@ class ApiHardwareController(
   }
 
   def uploadHardwareSoftware(hardwareId: HardwareId, softwareId: SoftwareId): Action[AnyContent] =
-    IOActionAny { _ =>
-      {
-        implicit val timeout: Timeout = 60.seconds
-        val uploadResult = HardwareControlActor.requestSoftwareUpload(hardwareId, softwareId)
-
-        uploadResult.bimap(
+    IOActionAny(withRequestAuthnOrFail(_)((_, user) => {
+      implicit val timeout: Timeout = 60.seconds
+      for {
+        hardware <- EitherT(hardwareService.getHardware(Some(user), hardwareId)).leftMap(databaseErrorResult)
+        accessible = user.canAccessHardware
+        _ <- EitherT.fromEither[IO](Either.cond(
+          accessible, (), permissionErrorResult("Hardware access")))
+        uploadResult <- HardwareControlActor.requestSoftwareUpload(hardwareId, softwareId).bimap(
           errorMessage => Failure(errorMessage).withHttpStatus(BAD_REQUEST),
           result => Success(result.toString).withHttpStatus(OK),
         )
-      }
-    }
+      } yield uploadResult
+    }))
 
+  // TODO: Secure with auth
   def listenHardwareSerialMonitor(hardwareId: HardwareId, serialConfig: Option[SerialConfig]): WebSocket = {
     implicit val transformer: MessageFlowTransformer[HardwareControlMessage, HardwareSerialMonitorMessage] =
       controlListenerTransformer
@@ -112,6 +120,7 @@ class ApiHardwareController(
     })
   }
 
+  // TODO: Secure with auth
   def cameraSource(hardwareIds: List[HardwareId]): WebSocket = {
     implicit val transformer: MessageFlowTransformer[HardwareCameraMessage, HardwareCameraMessage] =
       cameraControlTransformer
@@ -122,27 +131,28 @@ class ApiHardwareController(
     })
   }
 
-  def cameraSink(hardwareId: HardwareId): Action[AnyContent] =
-    IOActionAny { request: Request[AnyContent] =>
-      {
-        val sourceResult = HardwareCameraListenerActor.spawnCameraSource(pubSubMediator, hardwareId)
-        def withStreamHeaders(x: Result): Result =
-          x.as("application/ogg").withHeaders(
-            // We don't accept range requests, WYSIWYG
-            "Accept-Ranges" -> "none",
-            // This content shouldn't be cached by the client
-            "Cache-Control" -> "no-cache"
-          )
+  private def withStreamHeaders(x: Result): Result =
+    x.as("application/ogg").withHeaders(
+      // We don't accept range requests, WYSIWYG
+      "Accept-Ranges" -> "none",
+      // This content shouldn't be cached by the client
+      "Cache-Control" -> "no-cache"
+    )
 
-        request.headers.get("Range") match {
-          case None => EitherT.fromEither(Right(withStreamHeaders(Ok(""))))
-          case Some(_) => sourceResult.bimap(
-            errorMessage => Failure(errorMessage).withHttpStatus(BAD_REQUEST),
-            source =>
-              withStreamHeaders(Ok.chunked(source)),
-          )
+  def cameraSink(hardwareId: HardwareId): Action[AnyContent] =
+    IOActionAny(withRequestAuthnOrFail(_)((request, user) => {
+      for {
+        hardware <- EitherT(hardwareService.getHardware(Some(user), hardwareId)).leftMap(databaseErrorResult)
+        _ <- EitherT.fromEither[IO](Either.cond(
+          user.canAccessHardware, (), permissionErrorResult("Hardware access")))
+        source <- HardwareCameraListenerActor.spawnCameraSource(pubSubMediator, hardwareId)
+          .leftMap(Failure(_).withHttpStatus(BAD_REQUEST))
+        content = request.headers.get("Range") match {
+          case None => Ok("")
+          case Some(_) => Ok.chunked(source)
         }
-      }
-    }
+        result <- EitherT.fromEither[IO](Right(withStreamHeaders(content)))
+      } yield result
+    }))
 
 }

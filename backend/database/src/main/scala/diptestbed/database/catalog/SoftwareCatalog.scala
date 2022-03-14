@@ -12,14 +12,22 @@ object SoftwareCatalog {
       def uuid: Rep[UUID] = column[UUID]("uuid", O.PrimaryKey)
       def ownerUuid: Rep[UUID] = column[UUID]("owner_uuid")
       def name: Rep[String] = column[String]("name")
+      def isPublic: Rep[Boolean] = column[Boolean]("is_public")
       def content: Rep[Array[Byte]] = column[Array[Byte]]("content")
 
       def * : ProvenShape[SoftwareRow] =
-        (uuid, ownerUuid, name, content) <> ((SoftwareRow.apply _).tupled, SoftwareRow.unapply)
+        (
+          uuid, ownerUuid, name, isPublic, content
+        ) <> ((SoftwareRow.apply _).tupled, SoftwareRow.unapply)
     }
 
     object SoftwareQuery extends TableQuery[SoftwareTable](new SoftwareTable(_))
   }
 
-  case class SoftwareRow(id: UUID = UUID.randomUUID(), ownerId: UUID, name: String, content: Array[Byte])
+  case class SoftwareRow(
+    id: UUID = UUID.randomUUID(),
+    ownerId: UUID,
+    name: String,
+    isPublic: Boolean,
+    content: Array[Byte])
 }

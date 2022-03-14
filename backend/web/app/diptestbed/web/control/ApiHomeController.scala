@@ -31,13 +31,15 @@ class ApiHomeController(
     with AuthController[IO] {
 
   def index: Action[AnyContent] =
-    Action(Success(Hello("diptestbed")).withHttpStatus(OK))
+    IOActionAny(withRequestAuthnOrFail(_)((_, _) =>
+      EitherT.liftF(IO.pure(Success(Hello("diptestbed")).withHttpStatus(OK)))
+    ))
 
   def status: Action[AnyContent] =
     IOActionAny { _ =>
       (for {
         userCount <- EitherT(userService.countUsers())
-        hardwareCount <- EitherT(hardwareService.countHardware())
+        hardwareCount <- EitherT(hardwareService.countAllHardware())
         softwareCount <- EitherT(softwareService.countSoftware())
         status = ServiceStatus(
           userCount,
@@ -52,6 +54,8 @@ class ApiHomeController(
     }
 
   def authCheck: Action[AnyContent] =
-    IOActionAny(withRequestAuthnOrFail(_)((_, _) => EitherT.liftF(IO.pure(Success(()).withHttpStatus(OK)))))
+    IOActionAny(withRequestAuthnOrFail(_)((_, user) =>
+      EitherT.liftF(IO.pure(Success(user).withHttpStatus(OK)))
+    ))
 
 }

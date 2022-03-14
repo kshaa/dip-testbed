@@ -22,7 +22,14 @@ case class DIPTestbedConfig(
   def withAppPath(path: String): String = withBase(s"${appPrefix}/${path.stripPrefix("/")}")
   def withAssetPath(path: String): String = withBase(s"${assetsPrefix}/${path.stripPrefix("/")}")
 
-  def adminUser: Option[User] = adminUsername.map(User(UserId(UUID.randomUUID()), _))
+  def adminUser: Option[User] =
+    adminUsername.map(User(
+      UserId(UUID.randomUUID()),
+      _,
+      isManager = true,
+      isLabOwner = true,
+      isDeveloper = true
+    ))
 }
 
 object DIPTestbedConfig {

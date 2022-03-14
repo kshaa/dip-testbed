@@ -1,7 +1,6 @@
 @import diptestbed.domain.DIPTestbedConfig
 @import diptestbed.domain.User
-@import diptestbed.domain.Hardware
-
+@import diptestbed.web.views.html._
 @(
   appConfig: DIPTestbedConfig,
   user: Option[User],
@@ -9,33 +8,27 @@
 )(implicit
   request: Request[_]
 )
+@headerRow = {
+  <tr>
+    <th scope="col">ID</th>
+    <th scope="col">Username</th>
+    <th scope="col">Is manager</th>
+    <th scope="col">Is lab owner</th>
+    <th scope="col">Is developer</th>
+  </tr>
+}
+@dataRows = {
+  @for(user <- users) {
+    <tr>
+      <th scope="row">@(user.id.value.toString)</th>
+      <td>@(user.username)</td>
+      <td>@(user.isManager)</td>
+      <td>@(user.isLabOwner)</td>
+      <td>@(user.isDeveloper)</td>
+    </tr>
+  }
+}
 @content = {
-  <div class="px-4">
-    <h1 class="display-5 fw-bold">User list</h1>
-    @if(users.isEmpty) {
-      <div class="col-lg-6 my-4 mx-auto">
-        <p class="lead mb-4">
-          No users found. Maybe you need permissions. Maybe make more users.
-        </p>
-      </div>
-    } else {
-      <table class="table my-4 table-striped">
-        <thead class="table-dark">
-          <tr>
-            <th scope="col">ID</th>
-            <th scope="col">Username</th>
-          </tr>
-        </thead>
-        <tbody>
-            @for(user <- users) {
-              <tr>
-                <th scope="row">@(user.id.value.toString)</th>
-                <td>@(user.username)</td>
-              </tr>
-            }
-        </tbody>
-      </table>
-    }
-  </div>
+  @entityList(headerRow, dataRows, users.isEmpty, "User")
 }
 @base(appConfig, appConfig.makeTitle("User list"), user, content)
