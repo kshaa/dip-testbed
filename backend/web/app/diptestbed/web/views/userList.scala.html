@@ -22,6 +22,12 @@
     <tr>
       <th scope="row">@(user.id.value.toString)</th>
       <td>@(user.username)</td>
+@*      <td>*@
+@*        <div class="d-flex align-items-center">*@
+@*          <span class="mx-2">@(user.isManager)</span>*@
+@*          <button type="submit" class="btn btn-sml btn-primary"><i class="alert-link fa-solid fa-shuffle"></i></button>*@
+@*        </div>*@
+@*      </td>*@
       <td>@(user.isManager)</td>
       <td>@(user.isLabOwner)</td>
       <td>@(user.isDeveloper)</td>

@@ -20,6 +20,8 @@ case class DIPTestbedConfig(
   def withVersionApiPrefix(version: String) = s"${apiPrefix}/${version}"
   def withBase(path: String): String = s"${basePath}/${path.stripPrefix("/")}"
   def withAppPath(path: String): String = withBase(s"${appPrefix}/${path.stripPrefix("/")}")
+  def withApiPath(path: String, version: String = "v1"): String =
+    withBase(s"${apiPrefix}/${version}/${path.stripPrefix("/")}")
   def withAssetPath(path: String): String = withBase(s"${assetsPrefix}/${path.stripPrefix("/")}")
 
   def adminUser: Option[User] =

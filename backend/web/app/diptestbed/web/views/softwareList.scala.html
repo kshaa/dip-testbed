@@ -14,6 +14,7 @@
     <th scope="col">ID</th>
     <th scope="col">Name</th>
     <th scope="col">Owner ID</th>
+    <th scope="col"></th>
   </tr>
 }
 @dataRows = {
@@ -22,6 +23,14 @@
       <th scope="row">@(software.id.value.toString)</th>
       <td>@(software.name)</td>
       <td>@(software.ownerId.value.toString)</td>
+      <td>
+        <a target="_blank" href="@(appConfig.withApiPath(s"/software/${software.id.value}/download"))">
+          <button type="button" class="btn btn-sm btn-primary">
+            <span>Download</span>
+            <i class="mx-2 fa-solid fa-arrow-up-right-from-square"></i>
+          </button>
+        </a>
+      </td>
     </tr>
   }
 }

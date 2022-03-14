@@ -35,69 +35,63 @@ class ApiSoftwareController(
   val maxBytes = 5242880L // 5 MiB
 
   def createSoftware: Action[MultipartFormData[Files.TemporaryFile]] =
-    Action(parse.multipartFormData)(withRequestAuthn(_)((request, maybeUser) => {
-      val authWithSoftwareData = EitherT.fromEither[IO](
-        maybeUser
-          .leftMap(databaseErrorResult)
-          .flatMap(_.toRight(authorizationErrorResult))
-          .flatMap(user => {
-            println(request.body.file("software"), request.body.dataParts.get("name"))
-            (request.body.file("software"), request.body.dataParts.get("name").flatMap(_.headOption)).tupled
-              .toRight(Failure("Request must contain 'software' file and 'name' field").withHttpStatus(BAD_REQUEST))
-              .flatMap {
-                case (data, name) =>
-                  Option
-                    .when(data.ref.length() < maxBytes)(data)
-                    .toRight(
-                      Failure("Request too large").withHttpStatus(BAD_REQUEST),
-                    )
-                    .map(_ => (data, name, user))
-              }
-          })
-      )
-
-      val authWithSoftwareBytes = authWithSoftwareData.flatMap {
-        case (data, name, user) =>
-          Try {
-            val file = data.ref.toFile
-            val bis = new BufferedInputStream(new FileInputStream(file))
-            bis.readAllBytes()
-          }.toEither
-            .leftMap(error => Failure(s"Failed to read file stream: ${error}").withHttpStatus(INTERNAL_SERVER_ERROR))
-            .toEitherT[IO]
-            .map((_, name, user))
-      }
-
-      val pipeline = authWithSoftwareBytes.flatMap {
-        case (bytes, name, user) =>
-          EitherT(softwareService.createSoftware(name, user.id, isPublic = false, bytes))
+    Action(parse.multipartFormData)(withRequestAuthn(_)((request, maybeUser) =>
+      (for {
+        user <- EitherT.fromEither[IO](
+          maybeUser
+            .leftMap(databaseErrorResult)
+            .flatMap(_.toRight(authorizationErrorResult)))
+        software <- EitherT.fromEither[IO](
+            (request.body.file("software"), request.body.dataParts.get("name").flatMap(_.headOption))
+              .tupled
+              .toRight(Failure("Request must contain 'software' file and 'name' field")
+              .withHttpStatus(BAD_REQUEST)))
+        (softwareData, softwareName) = software
+        sizedSoftwareData <- EitherT.fromEither[IO](Option
+          .when(softwareData.ref.length() < maxBytes)(softwareData)
+          .toRight(Failure("Request too large").withHttpStatus(BAD_REQUEST)))
+        softwareBytes <- Try {
+          val file = sizedSoftwareData.ref.toFile
+          val bis = new BufferedInputStream(new FileInputStream(file))
+          bis.readAllBytes()
+        }.toEither
+          .leftMap(error => Failure(s"Failed to read file stream: ${error}").withHttpStatus(INTERNAL_SERVER_ERROR))
+          .toEitherT[IO]
+        uploadMetaResult <-
+          EitherT(softwareService.createSoftware(softwareName, user.id, isPublic = false, softwareBytes))
             .leftMap(databaseErrorResult)
             .map(meta => Success(meta).withHttpStatus(OK))
-      }
-
-      pipeline.merge
-    }).unsafeRunSync())
+      } yield uploadMetaResult).merge).unsafeRunSync())
 
   def getSoftwareMetas: Action[AnyContent] =
-    IOActionAny { _ =>
-      EitherT(softwareService.getSoftwareMetas)
-        .leftMap(databaseErrorResult)
-        .map(softwareMetas => Success(softwareMetas).withHttpStatus(OK))
-    }
+    IOActionAny(withRequestAuthnOrFail(_)((_, user) =>
+      for {
+        _ <- EitherT.fromEither[IO](Either.cond(
+          user.canAccessSoftware, (), permissionErrorResult("Software access")))
+        result <- EitherT(softwareService.getSoftwareMetas(Some(user)))
+          .leftMap(databaseErrorResult)
+          .map(softwareMetas => Success(softwareMetas).withHttpStatus(OK))
+      } yield result
+    ))
 
   def getSoftware(softwareId: SoftwareId): Action[AnyContent] =
-    Action {
-      EitherT(softwareService.getSoftware(softwareId))
-        .leftMap(databaseErrorResult)
-        .subflatMap(_.toRight(unknownIdErrorResult))
-        .map(software => {
-          val tempFile = File.makeTemp()
-          val writeStream = tempFile.bufferedOutput()
-          writeStream.write(software.content)
-          writeStream.close()
-          Ok.sendFile(tempFile.jfile, inline = true, fileName = _ => software.meta.name.some, onClose = tempFile.delete)
-        })
-        .merge
-        .unsafeRunSync()
-    }
+    IOActionAny(withRequestAuthnOrFail(_)((_, user) =>
+      for {
+        _ <- EitherT.fromEither[IO](Either.cond(
+          user.canAccessSoftware, (), permissionErrorResult("Software access")))
+        software <- EitherT(softwareService.getSoftware(Some(user), softwareId)).leftMap(databaseErrorResult)
+        existingSoftware <- EitherT.fromEither[IO](software.toRight(unknownIdErrorResult))
+        result = {
+            val tempFile = File.makeTemp()
+            val writeStream = tempFile.bufferedOutput()
+            writeStream.write(existingSoftware.content)
+            writeStream.close()
+            Ok.sendFile(
+              tempFile.jfile,
+              inline = true,
+              fileName = _ => existingSoftware.meta.name.some,
+              onClose = tempFile.delete)
+        }
+      } yield result
+    ))
 }

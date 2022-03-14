@@ -6,8 +6,9 @@ import diptestbed.database.catalog.SoftwareCatalog.{SoftwareRow, SoftwareTable}
 import diptestbed.database.catalog.UserCatalog.UserTable
 import diptestbed.database.driver.DatabaseDriverOps._
 import diptestbed.database.driver.DatabaseOutcome.DatabaseResult
-import diptestbed.domain.{Software, SoftwareId, SoftwareMeta, UserId}
+import diptestbed.domain.{Software, SoftwareId, SoftwareMeta, User, UserId}
 import slick.dbio.DBIOAction.sequenceOption
+
 import scala.concurrent.ExecutionContext
 
 class SoftwareService[F[_]: Async](
@@ -18,7 +19,7 @@ class SoftwareService[F[_]: Async](
   import softwareTable.dbDriver.profile.api._
   import userTable.UserQuery
 
-  def countSoftware(): F[DatabaseResult[Int]] =
+  def countAllSoftware(): F[DatabaseResult[Int]] =
     SoftwareQuery.length.result.tryRunDBIO(dbDriver)
 
   def createSoftware(
@@ -43,8 +44,15 @@ class SoftwareService[F[_]: Async](
       )
   }
 
-  def getSoftware(id: SoftwareId): F[DatabaseResult[Option[Software]]] =
-    SoftwareQuery
+  def accessibleSoftwareQuery(requester: Option[User]): Query[softwareTable.SoftwareTable, SoftwareRow, Seq] =
+    requester match {
+      // If no requester, then assuming full accessibility
+      case None => SoftwareQuery
+      case Some(user) => SoftwareQuery.filter(s => s.ownerUuid === user.id.value)
+    }
+
+  def getSoftware(requester: Option[User], id: SoftwareId): F[DatabaseResult[Option[Software]]] =
+    accessibleSoftwareQuery(requester)
       .filter(_.uuid === id.value)
       .result
       .headOption
@@ -52,8 +60,8 @@ class SoftwareService[F[_]: Async](
         Software(SoftwareMeta(SoftwareId(row.id), UserId(row.ownerId), row.name, row.isPublic), row.content)))
       .tryRunDBIO(dbDriver)
 
-  def getSoftwareMeta(id: SoftwareId): F[DatabaseResult[Option[SoftwareMeta]]] =
-    SoftwareQuery
+  def getSoftwareMeta(requester: Option[User], id: SoftwareId): F[DatabaseResult[Option[SoftwareMeta]]] =
+    accessibleSoftwareQuery(requester)
       .filter(_.uuid === id.value)
       .map(row => (row.uuid, row.ownerUuid, row.name, row.isPublic))
       .result
@@ -64,8 +72,8 @@ class SoftwareService[F[_]: Async](
       })
       .tryRunDBIO(dbDriver)
 
-  def getSoftwareMetas: F[DatabaseResult[Seq[SoftwareMeta]]] =
-    SoftwareQuery
+  def getSoftwareMetas(requester: Option[User]): F[DatabaseResult[Seq[SoftwareMeta]]] =
+    accessibleSoftwareQuery(requester)
       .map(row => (row.uuid, row.ownerUuid, row.name, row.isPublic))
       .result
       .map(_.map {

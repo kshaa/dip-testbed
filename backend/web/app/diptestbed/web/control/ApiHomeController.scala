@@ -40,7 +40,7 @@ class ApiHomeController(
       (for {
         userCount <- EitherT(userService.countUsers())
         hardwareCount <- EitherT(hardwareService.countAllHardware())
-        softwareCount <- EitherT(softwareService.countSoftware())
+        softwareCount <- EitherT(softwareService.countAllSoftware())
         status = ServiceStatus(
           userCount,
           hardwareCount,

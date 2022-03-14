@@ -8,4 +8,5 @@ case class User(
   isDeveloper: Boolean // Developers can upload their own software
 ) {
   def canAccessHardware: Boolean = isLabOwner || isDeveloper
+  def canAccessSoftware: Boolean = isLabOwner || isDeveloper
 }

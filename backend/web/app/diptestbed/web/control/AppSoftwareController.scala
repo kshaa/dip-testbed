@@ -24,7 +24,8 @@ class AppSoftwareController(
   def list: Action[AnyContent] =
     Action { implicit r =>
       withRequestAuthnOrLoginRedirect[AnyContent] { case (_, user) =>
-        val softwareList = softwareService.getSoftwareMetas.map(_.toOption.sequence.flatten.toList)
+        val softwareList = softwareService.getSoftwareMetas(Some(user))
+          .map(_.toOption.sequence.flatten.toList.filter(_ => user.canAccessSoftware))
         Ok(diptestbed.web.views.html.softwareList(
           appConfig, Some(user), softwareList.unsafeRunSync()))
       }.unsafeRunSync()
