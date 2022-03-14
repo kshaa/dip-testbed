@@ -5,8 +5,10 @@
 @(
   appConfig: DIPTestbedConfig,
   user: Option[User],
-  softwares: List[SoftwareMeta]
+  softwares: List[SoftwareMeta],
+  publicationForm: Form[(String, Boolean)]
 )(implicit
+  messages: play.api.i18n.Messages,
   request: Request[_]
 )
 @headerRow = {
@@ -14,29 +16,47 @@
     <th scope="col">ID</th>
     <th scope="col">Name</th>
     <th scope="col">Owner ID</th>
+    <th scope="col">Is public</th>
     <th scope="col"></th>
   </tr>
 }
 @dataRows = {
   @for(software <- softwares) {
     <tr>
-      <th scope="row">@(software.id.value.toString)</th>
-      <td>@(software.name)</td>
-      <td>@(software.ownerId.value.toString)</td>
-      <td>
-        <a target="_blank" href="@(appConfig.withApiPath(s"/software/${software.id.value}/download"))">
-          <button type="button" class="btn btn-sm btn-primary">
-            <span>Download</span>
-            <i class="mx-2 fa-solid fa-arrow-up-right-from-square"></i>
-          </button>
-        </a>
-      </td>
+      @helper.form(action=Call("POST", appConfig.withAppPath(s"/software/public"))) {
+        <input type="text" name="software_id" value="@(software.id.value)" hidden>
+        @helper.CSRF.formField
+        <th scope="row">@(software.id.value.toString)</th>
+        <td>@(software.name)</td>
+        <td>@(software.ownerId.value.toString)</td>
+        <td>
+          <div class="d-flex align-items-center">
+            <input type="checkbox" name="is_public" @if(!user.map(_.id).contains(software.ownerId) && !user.exists(_.isManager)) { disabled } @if(software.isPublic) { checked }>
+          </div>
+        </td>
+        <td>
+          <div class="d-flex justify-content-end">
+            @if(user.map(_.id).contains(software.ownerId) || user.exists(_.isManager)) {
+              <button type="submit" class="btn btn-sm btn-primary mx-2">Save publicity</button>
+            }
+            <a target="_blank" href="@(appConfig.withApiPath(s"/software/${software.id.value}/download"))">
+              <button type="button" class="btn btn-sm btn-primary">
+                <span>Download</span>
+                <i class="mx-2 fa-solid fa-arrow-up-right-from-square"></i>
+              </button>
+            </a>
+          </div>
+        </td>
+      }
     </tr>
   }
 }
 @content = {
   <div class="px-4">
     <h1 class="display-5 fw-bold">Software list</h1>
+    @for(error <- publicationForm.errors) {
+      <div class="alert alert-danger" role="alert">@error.format</div>
+    }
     @entityList(headerRow, dataRows, softwares.isEmpty, "Software")
   </div>
 }

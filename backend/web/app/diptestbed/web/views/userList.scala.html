@@ -3,7 +3,7 @@
 @import diptestbed.web.views.html._
 @(
   appConfig: DIPTestbedConfig,
-  user: Option[User],
+  sessionUser: Option[User],
   users: List[User],
   permissionsForm: Form[(String, Boolean, Boolean, Boolean)]
 )(implicit
@@ -26,7 +26,15 @@
       @helper.form(action=Call("POST", appConfig.withAppPath("/user/permissions"))) {
         @helper.CSRF.formField
         <input type="text" name="user_id" value="@(user.id.value)" hidden>
-        <th scope="row">@(user.id.value.toString)</th>
+        <th scope="row">
+          @if(sessionUser.exists(u => u.isManager || u.isLabOwner)) {
+            <a class="link" href="@(appConfig.withAppPath(s"/user/${user.id.value}"))">
+              @(user.id.value.toString)
+            </a>
+          } else {
+            @(user.id.value.toString)
+          }
+        </th>
         <td>@(user.username)</td>
         <td>
             <div class="d-flex align-items-center">
@@ -44,7 +52,9 @@
           </div>
         </td>
         <td>
-          <button type="submit" class="btn btn-sml btn-primary">Save permissions</button>
+          <div class="d-flex justify-content-end">
+            <button type="submit" class="btn btn-sm btn-primary">Save permissions</button>
+          </div>
         </td>
       }
     </tr>
@@ -59,4 +69,4 @@
     @entityList(headerRow, dataRows, users.isEmpty, "User")
   </div>
 }
-@base(appConfig, appConfig.makeTitle("User list"), user, content)
+@base(appConfig, appConfig.makeTitle("User list"), sessionUser, content)

@@ -115,7 +115,8 @@ class DIPTestbedModule(context: Context)(implicit iort: IORuntime)
   lazy val appUserController = new AppUserController(
     appConfig,
     controllerComponents,
-    userService
+    userService,
+    hardwareService,
   )
 
   lazy val appRouter = new AppRouter(

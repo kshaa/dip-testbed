@@ -1,0 +1,106 @@
+@import diptestbed.domain.DIPTestbedConfig
+@import diptestbed.domain.User
+@import diptestbed.web.views.html._
+@import diptestbed.domain.Hardware
+@(
+  appConfig: DIPTestbedConfig,
+  sessionUser: Option[User],
+  user: User,
+  permissionsForm: Form[(String, Boolean, Boolean, Boolean)],
+  accessibleHardwares: List[(Hardware, Boolean)],
+  hardwareAccessForm: Form[(String, String, Boolean)]
+)(implicit
+  messages: play.api.i18n.Messages,
+  request: Request[_]
+)
+@permissionsHeader = {
+  <tr>
+    <th scope="col">Is manager</th>
+    <th scope="col">Is lab owner</th>
+    <th scope="col">Is developer</th>
+    <th scope="col"></th>
+  </tr>
+}
+@permissionsRow = {
+  <tr>
+  @helper.form(action=Call("POST", appConfig.withAppPath(s"/user/permissions/${user.id.value}"))) {
+    @helper.CSRF.formField
+    <input type="text" name="user_id" value="@(user.id.value)" hidden>
+    <td>
+      <div class="d-flex align-items-center">
+        <input type="checkbox" name="is_manager" @if(user.isManager) { checked }>
+      </div>
+    </td>
+    <td>
+      <div class="d-flex align-items-center">
+        <input type="checkbox" name="is_lab_owner" @if(user.isLabOwner) { checked }>
+      </div>
+    </td>
+    <td>
+      <div class="d-flex align-items-center">
+        <input type="checkbox" name="is_developer" @if(user.isDeveloper) { checked }>
+      </div>
+    </td>
+    <td>
+      <div class="d-flex justify-content-end">
+        <button type="submit" class="btn btn-sm btn-primary">Save permissions</button>
+      </div>
+    </td>
+  }
+  </tr>
+}
+@permissionsContent = {
+  @for(error <- permissionsForm.errors) {
+    <div class="alert alert-danger" role="alert">@error.format</div>
+  }
+  @entityList(permissionsHeader, permissionsRow, empty = false, user.username)
+}
+@hardwareAccessHeader = {
+  <tr>
+    <th scope="col">Hardware id</th>
+    <th scope="col">Hardware name</th>
+    <th scope="col">Is accessible</th>
+    <th scope="col"></th>
+  </tr>
+}
+@hardwareAccessRows = {
+  @for((hardware, isAccessible) <- accessibleHardwares) {
+    <tr>
+      @helper.form(action=Call("POST", appConfig.withAppPath(s"/user/hardware-access/${user.id.value}"))) {
+        <input type="text" name="user_id" value="@(user.id.value)" hidden>
+        <input type="text" name="hardware_id" value="@(hardware.id.value)" hidden>
+        @helper.CSRF.formField
+        <th scope="row">@(hardware.id.value.toString)</th>
+        <td>@(hardware.name)</td>
+        <td>
+          <div class="d-flex align-items-center">
+            <input type="checkbox" name="is_accessible" @if(isAccessible) { checked }>
+          </div>
+        </td>
+        <td>
+          <div class="d-flex justify-content-end">
+            <button type="submit" class="btn btn-sm btn-primary">Save access</button>
+          </div>
+        </td>
+      }
+    </tr>
+  }
+}
+@hardwareAccessContent = {
+  @for(error <- hardwareAccessForm.errors) {
+    <div class="alert alert-danger" role="alert">@error.format</div>
+  }
+  @entityList(hardwareAccessHeader, hardwareAccessRows, empty = false, user.username)
+}
+@content = {
+  <div class="px-4">
+    <h1 class="display-5 fw-bold">Profile for @(user.username)</h1>
+    @if(sessionUser.exists(_.isManager)) {
+      <h5>Permissions</h5>
+      @permissionsContent
+    }
+    <h5>Hardware access</h5>
+    @hardwareAccessContent
+  </div>
+}
+@base(appConfig, appConfig.makeTitle("User list"), sessionUser, content)

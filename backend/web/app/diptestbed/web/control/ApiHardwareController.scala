@@ -67,7 +67,7 @@ class ApiHardwareController(
       for {
         _ <- EitherT.fromEither[IO](Either.cond(
           user.canAccessHardware, (), permissionErrorResult("Hardware access")))
-        hardwares <- EitherT(hardwareService.getHardwares(Some(user))).leftMap(databaseErrorResult)
+        hardwares <- EitherT(hardwareService.getHardwares(Some(user), write = false)).leftMap(databaseErrorResult)
         result = Success(hardwares).withHttpStatus(OK)
       } yield result
     ))
@@ -77,7 +77,7 @@ class ApiHardwareController(
       for {
         _ <- EitherT.fromEither[IO](Either.cond(
             user.canAccessHardware, (), permissionErrorResult("Hardware access")))
-        hardware <- EitherT(hardwareService.getHardware(Some(user), hardwareId)).leftMap(databaseErrorResult)
+        hardware <- EitherT(hardwareService.getHardware(Some(user), hardwareId, write = false)).leftMap(databaseErrorResult)
         _ <- EitherT.fromEither[IO](hardware.toRight(unknownIdErrorResult))
         result = Success(hardware).withHttpStatus(OK)
       } yield result
@@ -98,7 +98,7 @@ class ApiHardwareController(
     IOActionAny(withRequestAuthnOrFail(_)((_, user) => {
       implicit val timeout: Timeout = 60.seconds
       for {
-        hardware <- EitherT(hardwareService.getHardware(Some(user), hardwareId)).leftMap(databaseErrorResult)
+        hardware <- EitherT(hardwareService.getHardware(Some(user), hardwareId, write = false)).leftMap(databaseErrorResult)
         _ <- EitherT.fromEither[IO](hardware.toRight(unknownIdErrorResult))
         _ <- EitherT.fromEither[IO](Either.cond(
           user.canAccessHardware, (), permissionErrorResult("Hardware access")))
@@ -143,7 +143,7 @@ class ApiHardwareController(
   def cameraSink(hardwareId: HardwareId): Action[AnyContent] =
     IOActionAny(withRequestAuthnOrFail(_)((request, user) => {
       for {
-        hardware <- EitherT(hardwareService.getHardware(Some(user), hardwareId)).leftMap(databaseErrorResult)
+        hardware <- EitherT(hardwareService.getHardware(Some(user), hardwareId, write = false)).leftMap(databaseErrorResult)
         _ <- EitherT.fromEither[IO](hardware.toRight(unknownIdErrorResult))
         _ <- EitherT.fromEither[IO](Either.cond(
           user.canAccessHardware, (), permissionErrorResult("Hardware access")))

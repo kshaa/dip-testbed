@@ -68,7 +68,7 @@ class ApiSoftwareController(
       for {
         _ <- EitherT.fromEither[IO](Either.cond(
           user.canAccessSoftware, (), permissionErrorResult("Software access")))
-        result <- EitherT(softwareService.getSoftwareMetas(Some(user)))
+        result <- EitherT(softwareService.getSoftwareMetas(Some(user), write = false))
           .leftMap(databaseErrorResult)
           .map(softwareMetas => Success(softwareMetas).withHttpStatus(OK))
       } yield result
@@ -79,7 +79,7 @@ class ApiSoftwareController(
       for {
         _ <- EitherT.fromEither[IO](Either.cond(
           user.canAccessSoftware, (), permissionErrorResult("Software access")))
-        software <- EitherT(softwareService.getSoftware(Some(user), softwareId)).leftMap(databaseErrorResult)
+        software <- EitherT(softwareService.getSoftware(Some(user), softwareId, write = false)).leftMap(databaseErrorResult)
         existingSoftware <- EitherT.fromEither[IO](software.toRight(unknownIdErrorResult))
         result = {
             val tempFile = File.makeTemp()

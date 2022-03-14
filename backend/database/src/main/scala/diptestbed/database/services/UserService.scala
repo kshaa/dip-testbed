@@ -47,7 +47,7 @@ class UserService[F[_]: Async](
     requester match {
       // If no requester, then assuming full accessibility
       case None => UserQuery
-      case Some(user) if user.isManager => UserQuery
+      case Some(user) if user.isManager || user.isLabOwner => UserQuery
       case Some(user) => UserQuery.filter(s => s.uuid === user.id.value)
     }
 

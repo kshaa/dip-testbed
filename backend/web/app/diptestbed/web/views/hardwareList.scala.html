@@ -5,8 +5,10 @@
 @(
   appConfig: DIPTestbedConfig,
   user: Option[User],
-  hardwares: List[Hardware]
+  hardwares: List[Hardware],
+  publicationForm: Form[(String, Boolean)]
 )(implicit
+  messages: play.api.i18n.Messages,
   request: Request[_]
 )
 @headerRow = {
@@ -14,14 +16,32 @@
     <th scope="col">ID</th>
     <th scope="col">Name</th>
     <th scope="col">Owner ID</th>
+    <th scope="col">Is public</th>
+    <th scope="col"></th>
   </tr>
 }
 @dataRows = {
   @for(hardware <- hardwares) {
     <tr>
-      <th scope="row">@(hardware.id.value.toString)</th>
-      <td>@(hardware.name)</td>
-      <td>@(hardware.ownerId.value.toString)</td>
+      @helper.form(action=Call("POST", appConfig.withAppPath(s"/hardware/public"))) {
+        <input type="text" name="hardware_id" value="@(hardware.id.value)" hidden>
+        @helper.CSRF.formField
+        <th scope="row">@(hardware.id.value.toString)</th>
+        <td>@(hardware.name)</td>
+        <td>@(hardware.ownerId.value.toString)</td>
+        <td>
+          <div class="d-flex align-items-center">
+            <input type="checkbox" name="is_public" @if(!user.map(_.id).contains(hardware.ownerId) && !user.exists(_.isManager)) { disabled } @if(hardware.isPublic) { checked }>
+          </div>
+        </td>
+        <td>
+          <div class="d-flex justify-content-end">
+            @if(user.map(_.id).contains(hardware.ownerId) || user.exists(_.isManager)) {
+              <button type="submit" class="btn btn-sm btn-primary mx-2">Save publicity</button>
+            }
+          </div>
+        </td>
+      }
     </tr>
   }
 }
