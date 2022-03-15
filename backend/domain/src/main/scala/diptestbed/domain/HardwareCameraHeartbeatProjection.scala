@@ -18,9 +18,10 @@ object HardwareCameraHeartbeatProjection {
     val stop = send(previousState.self, StopBroadcasting())
     val expectTimeout = previousState.listenerHeartbeatConfig.waitTimeout
     val scheduleTimeout = previousState.listenerHeartbeatConfig.nextTimeout
+    val heartbeatsInCycle = previousState.listenerHeartbeatConfig.heartbeatsInCycle
     event match {
       case Started() => Some(start)
-      case CameraListenerHeartbeatStarted() => Some(expectHeartbeats(request, finish, expectTimeout))
+      case CameraListenerHeartbeatStarted() => Some(expectHeartbeats(request, finish, expectTimeout, heartbeatsInCycle))
       case CameraListenerHeartbeatFinished() => Some(
         if (previousState.listenerHeartbeatsReceived == 0) stop
         else implicitly[Temporal[F]].sleep(scheduleTimeout) >> start)

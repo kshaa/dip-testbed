@@ -15,6 +15,7 @@ import scala.concurrent.duration.DurationInt
 import scala.util.Try
 
 class HardwareCameraListenerActor(
+  val appConfig: DIPTestbedConfig,
   val pubSubMediator: ActorRef,
   val hardwareId: HardwareId,
   val queue: SourceQueueWithComplete[Array[Byte]]
@@ -32,13 +33,15 @@ class HardwareCameraListenerActor(
   val endMessage: Option[HardwareCameraListenerMessage] = Some(EndLifecycle())
   var state: HardwareCameraListenerState[IO, ActorRef] =
     HardwareCameraListenerState(
+      None,
       self,
       pubSubMediator,
       hardwareId,
       bytes => IO.fromFuture(IO(queue.offer(bytes))).void,
       exception => IO(queue.fail(exception)) >> IO(self ! PoisonPill),
       IO(queue.complete()),
-      Some(15.minutes))
+      Some(appConfig.maxStreamTime),
+      appConfig.cameraInitTimeout)
 
   override def receiveMessage: PartialFunction[Any, (Some[ActorRef], HardwareCameraListenerMessage)] = {
     case message: HardwareCameraListenerMessage =>
@@ -59,14 +62,16 @@ class HardwareCameraListenerActor(
 
 object HardwareCameraListenerActor {
   def props(
+    appConfig: DIPTestbedConfig,
     pubSubMediator: ActorRef,
     hardwareId: HardwareId,
     queue: SourceQueueWithComplete[Array[Byte]]
   )(implicit
     iort: IORuntime,
-  ): Props = Props(new HardwareCameraListenerActor(pubSubMediator, hardwareId, queue))
+  ): Props = Props(new HardwareCameraListenerActor(appConfig, pubSubMediator, hardwareId, queue))
 
   def spawnCameraSource(
+    appConfig: DIPTestbedConfig,
     pubSubMediator: ActorRef,
     hardwareId: HardwareId)(implicit
     mat: Materializer,
@@ -84,7 +89,7 @@ object HardwareCameraListenerActor {
       // Spawn camera listener actor which forwards to the queue
       (queue, source) = prematerialized
       _ <- EitherT(IO {
-        Try(actorSystem.actorOf(HardwareCameraListenerActor.props(pubSubMediator, hardwareId, queue))).toEither
+        Try(actorSystem.actorOf(HardwareCameraListenerActor.props(appConfig, pubSubMediator, hardwareId, queue))).toEither
       }).leftMap(error => s"Failed to connect to camera, reason: ${error}")
 
       _ = source.recover(e => {

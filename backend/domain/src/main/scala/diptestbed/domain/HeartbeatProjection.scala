@@ -8,14 +8,14 @@ object HeartbeatProjection {
   def expectHeartbeats[F[_]: Temporal, A](
     requestHeartbeats: F[Unit],
     finishHeartbeats: F[Unit],
-    expectTimeout: FiniteDuration
+    expectTimeout: FiniteDuration,
+    heartbeatsInCycle: Int
   ): F[Unit] = {
     def requestAndWait(time: FiniteDuration) =
       requestHeartbeats >> implicitly[Temporal[F]].sleep(time)
 
-    requestAndWait(expectTimeout / 3) >>
-      requestAndWait(expectTimeout / 3) >>
-      requestAndWait(expectTimeout / 3) >>
-      finishHeartbeats
+    def partialRequestAndWait: F[Unit] = requestAndWait(expectTimeout / heartbeatsInCycle)
+
+    List.fill(heartbeatsInCycle)(partialRequestAndWait).sequence.void >> finishHeartbeats
   }
 }

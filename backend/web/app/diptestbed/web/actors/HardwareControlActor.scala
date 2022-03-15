@@ -22,6 +22,7 @@ import diptestbed.web.actors.ActorHelper._
 import diptestbed.web.actors.QueryActor.Promise
 
 class HardwareControlActor(
+  val appConfig: DIPTestbedConfig,
   val pubSubMediator: ActorRef,
   val agent: ActorRef,
   val hardwareId: HardwareId,
@@ -33,7 +34,11 @@ class HardwareControlActor(
   val startMessage: Option[HardwareControlMessage] = Some(StartLifecycle())
   val endMessage: Option[HardwareControlMessage] = Some(EndLifecycle())
   var state: HardwareControlState[ActorRef] =
-    HardwareControlState.initial(self, agent, hardwareId, HardwareListenerHeartbeatConfig.default())
+    HardwareControlState.initial(
+      self,
+      agent,
+      hardwareId,
+      HardwareListenerHeartbeatConfig.fromConfig(appConfig))
 
   override def receiveMessage: PartialFunction[Any, (Some[ActorRef], HardwareControlMessage)] = {
     case message: HardwareControlMessage =>
@@ -51,12 +56,13 @@ class HardwareControlActor(
 
 object HardwareControlActor {
   def props(
+    appConfig: DIPTestbedConfig,
     pubSubMediator: ActorRef,
     out: ActorRef,
     hardwareId: HardwareId,
   )(implicit
     iort: IORuntime,
-  ): Props = Props(new HardwareControlActor(pubSubMediator, out, hardwareId))
+  ): Props = Props(new HardwareControlActor(appConfig, pubSubMediator, out, hardwareId))
 
   val controlTransformer: MessageFlowTransformer[HardwareControlMessage, HardwareControlMessage] =
     websocketFlowTransformer(

@@ -17,9 +17,10 @@ object HardwareControlHeartbeatProjection {
     val stop = send(previousState.agent, SerialMonitorRequestStop())
     val expectTimeout = previousState.listenerHeartbeatConfig.waitTimeout
     val scheduleTimeout = previousState.listenerHeartbeatConfig.nextTimeout
+    val heartbeatsInCycle = previousState.listenerHeartbeatConfig.heartbeatsInCycle
     event match {
       case MonitorConfigurationFinished(_, None) => Some(start)
-      case ListenerHeartbeatStarted() => Some(expectHeartbeats(request, finish, expectTimeout))
+      case ListenerHeartbeatStarted() => Some(expectHeartbeats(request, finish, expectTimeout, heartbeatsInCycle))
       case ListenerHeartbeatFinished() => Some(
         if (previousState.listenerHeartbeatsReceived == 0) stop
         else implicitly[Temporal[F]].sleep(scheduleTimeout) >> start)

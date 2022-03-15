@@ -1,6 +1,7 @@
 package diptestbed.domain
 
 import java.util.UUID
+import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
 case class DIPTestbedConfig(
   testConfig: TestConfig,
@@ -9,7 +10,12 @@ case class DIPTestbedConfig(
   basePath: String,
   adminUsername: Option[String],
   adminPassword: Option[String],
-  adminEnabled: Boolean
+  adminEnabled: Boolean,
+  heartbeatingTime: FiniteDuration,
+  heartbeatingTimeout: FiniteDuration,
+  heartbeatsInCycle: Int,
+  maxStreamTime: FiniteDuration,
+  cameraInitTimeout: FiniteDuration
 ) {
   def makeTitle(contentTitle: String) = s"${contentTitle} · ${title}"
 
@@ -40,9 +46,14 @@ object DIPTestbedConfig {
     clusterized: Option[Boolean],
     title: String,
     basePath: String,
-    adminUsername: Option[String],
-    adminPassword: Option[String],
-    adminEnabled: Option[Boolean]
+    adminUsername: Option[String] = None,
+    adminPassword: Option[String] = None,
+    adminEnabled: Option[Boolean] = None,
+    heartbeatingTime: Option[FiniteDuration] = None,
+    heartbeatingTimeout: Option[FiniteDuration] = None,
+    heartbeatsInCycle: Option[Int] = None,
+    maxStreamTime: Option[FiniteDuration] = None,
+    cameraInitTimeout: Option[FiniteDuration] = None
   ): DIPTestbedConfig =
     DIPTestbedConfig(
       testConfig,
@@ -51,5 +62,11 @@ object DIPTestbedConfig {
       basePath.stripSuffix("/"),
       adminUsername,
       adminPassword,
-      adminEnabled.getOrElse(false))
+      adminEnabled.getOrElse(false),
+      heartbeatingTime.getOrElse(10.seconds),
+      heartbeatingTimeout.getOrElse(8.seconds),
+      heartbeatsInCycle.getOrElse(3),
+      maxStreamTime.getOrElse(15.minutes),
+      cameraInitTimeout.getOrElse(3.seconds)
+    )
 }

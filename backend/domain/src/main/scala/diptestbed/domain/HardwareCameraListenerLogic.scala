@@ -10,6 +10,7 @@ import diptestbed.domain.HardwareCameraMessage.{CameraListenersHeartbeatPong, Ca
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
 case class HardwareCameraListenerState[F[_], T](
+  auth: Option[User],
   self: T,
   pubSubMediator: T,
   hardwareId: HardwareId,
@@ -17,7 +18,7 @@ case class HardwareCameraListenerState[F[_], T](
   fail: Exception => F[Unit],
   complete: F[Unit],
   maxLifetime: Option[FiniteDuration],
-  initCheckTimeout: FiniteDuration = 3.seconds,
+  initCheckTimeout: FiniteDuration,
   initialized: Boolean = false,
   ending: Boolean = false,
 )

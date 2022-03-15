@@ -8,11 +8,9 @@ import akka.util.Timeout
 import cats.data.EitherT
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
-import cats.syntax._
 import cats.implicits._
-import diptestbed.database.driver.DatabaseOutcome.DatabaseException
 import diptestbed.database.services.{HardwareService, UserService}
-import diptestbed.domain.{DIPTestbedConfig, Hardware, HardwareCameraMessage, HardwareControlMessage, HardwareId, HardwareSerialMonitorMessage, SerialConfig, SoftwareId}
+import diptestbed.domain.{DIPTestbedConfig, HardwareCameraMessage, HardwareControlMessage, HardwareId, HardwareSerialMonitorMessage, SerialConfig, SoftwareId}
 import diptestbed.protocol._
 import diptestbed.protocol.Codecs._
 import diptestbed.protocol.WebResult._
@@ -24,7 +22,6 @@ import diptestbed.web.ioControls.PipelineOps._
 import diptestbed.web.ioControls._
 import play.api.mvc.WebSocket.MessageFlowTransformer
 import play.api.mvc._
-
 import scala.concurrent.duration.DurationInt
 
 class ApiHardwareController(
@@ -84,7 +81,7 @@ class ApiHardwareController(
       controlTransformer
     WebSocket.accept[HardwareControlMessage, HardwareControlMessage](_ => {
       BetterActorFlow.actorRef(
-        subscriber => HardwareControlActor.props(pubSubMediator, subscriber, hardwareId),
+        subscriber => HardwareControlActor.props(appConfig, pubSubMediator, subscriber, hardwareId),
         maybeName = hardwareId.actorId().text().some,
       )
     })
@@ -123,7 +120,7 @@ class ApiHardwareController(
       cameraControlTransformer
     WebSocket.accept[HardwareCameraMessage, HardwareCameraMessage](_ => {
       BetterActorFlow.actorRef(subscriber =>
-        HardwareCameraActor.props(pubSubMediator, subscriber, hardwareIds),
+        HardwareCameraActor.props(appConfig, pubSubMediator, subscriber, hardwareIds),
       )
     })
   }
@@ -146,7 +143,7 @@ class ApiHardwareController(
         result <-
           request.headers.get("Range") match {
             case None => EitherT.fromEither[IO](Right[Result, Result](withStreamHeaders(Ok(""))))
-            case Some(_) => HardwareCameraListenerActor.spawnCameraSource(pubSubMediator, hardwareId).bimap[Result, Result](
+            case Some(_) => HardwareCameraListenerActor.spawnCameraSource(appConfig, pubSubMediator, hardwareId).bimap[Result, Result](
               errorMessage => Failure(errorMessage).withHttpStatus(BAD_REQUEST),
               source =>
                 withStreamHeaders(Ok.chunked(source)),

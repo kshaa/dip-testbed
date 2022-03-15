@@ -17,6 +17,7 @@ import io.circe.syntax._
 import diptestbed.protocol.Codecs._
 
 class HardwareCameraActor(
+  val appConfig: DIPTestbedConfig,
   val pubSubMediator: ActorRef,
   val camera: ActorRef,
   val hardwareIds: List[HardwareId],
@@ -28,7 +29,12 @@ class HardwareCameraActor(
   val startMessage: Option[HardwareCameraMessage] = Some(StartLifecycle())
   val endMessage: Option[HardwareCameraMessage] = Some(EndLifecycle())
   var state: HardwareCameraState[ActorRef] =
-    HardwareCameraState.initial(self, camera, pubSubMediator, hardwareIds, HardwareListenerHeartbeatConfig.default())
+    HardwareCameraState.initial(
+      self,
+      camera,
+      pubSubMediator,
+      hardwareIds,
+      HardwareListenerHeartbeatConfig.fromConfig(appConfig))
 
   override def receiveMessage: PartialFunction[Any, (Some[ActorRef], HardwareCameraMessage)] = {
     case message: HardwareCameraMessage => (Some(sender()), message)
@@ -48,12 +54,13 @@ class HardwareCameraActor(
 
 object HardwareCameraActor {
   def props(
+    appConfig: DIPTestbedConfig,
     pubSubMediator: ActorRef,
     out: ActorRef,
     hardwareIds: List[HardwareId],
   )(implicit
     iort: IORuntime,
-  ): Props = Props(new HardwareCameraActor(pubSubMediator, out, hardwareIds))
+  ): Props = Props(new HardwareCameraActor(appConfig, pubSubMediator, out, hardwareIds))
 
   val cameraControlTransformer: MessageFlowTransformer[HardwareCameraMessage, HardwareCameraMessage] =
     websocketFlowTransformer({
