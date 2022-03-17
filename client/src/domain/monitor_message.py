@@ -3,6 +3,7 @@ import base64
 from typing import Union
 from dataclasses import dataclass
 
+from src.domain.hardware_shared_message import AuthRequest, AuthResult
 from src.domain.noisy_message import NoisyMessage
 
 
@@ -30,5 +31,5 @@ class SerialMonitorMessageToClient(MonitorMessage, NoisyMessage):
     content_bytes: bytes
 
 
-MONITOR_LISTENER_INCOMING_MESSAGE = Union[MonitorUnavailable, SerialMonitorMessageToClient]
-MONITOR_LISTENER_OUTGOING_MESSAGE = Union[SerialMonitorMessageToAgent]
+MONITOR_LISTENER_INCOMING_MESSAGE = Union[AuthResult, MonitorUnavailable, SerialMonitorMessageToClient]
+MONITOR_LISTENER_OUTGOING_MESSAGE = Union[AuthRequest, SerialMonitorMessageToAgent]

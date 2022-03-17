@@ -27,6 +27,7 @@ from src.engine.board.fake.engine_fake import EngineFakeBoardState, EngineFakeSt
 from src.engine.board.nrf52.engine_nrf52 import EngineNRF52
 from src.engine.board.nrf52.engine_nrf52_state import EngineNRF52State, EngineNRF52BoardState
 from src.engine.board.nrf52.engine_nrf52_upload import EngineNRF52Upload
+from src.engine.engine_auth import EngineAuth
 from src.engine.engine_lifecycle import EngineLifecycle
 from src.engine.engine_ping import EnginePing
 from src.engine.board.engine_serial_monitor import EngineSerialMonitor
@@ -241,7 +242,9 @@ class CLIInterface:
         config_path_str: Optional[str],
         control_server_str: Optional[str],
         hardware_id_str: str,
-        monitor_type_str: str
+        monitor_type_str: str,
+        username_str: Optional[str],
+        password_str: Optional[str],
     ):
         pass
 
@@ -275,7 +278,9 @@ class CLIInterface:
         video_buffer_size: Optional[int],
         audio_sample_rate: Optional[int],
         audio_buffer_size: Optional[int],
-        port: Optional[int]
+        port: Optional[int],
+        username_str: Optional[str],
+        password_str: Optional[str],
     ) -> Result[Agent, DIPClientError]:
         pass
 
@@ -552,12 +557,15 @@ class CLI(CLIInterface):
         # Engine
         base = await EngineBase.build()
         board_state = EngineNRF52BoardState(device_path)
-        engine_state = EngineNRF52State(base, hardware_id, backend, heartbeat_seconds, board_state)
+        engine_state = \
+            EngineNRF52State(base, hardware_id, backend, heartbeat_seconds, board_state, backend.config.auth)
         engine_lifecycle = EngineLifecycle()
         engine_upload = EngineNRF52Upload(backend)
         engine_ping = EnginePing()
         engine_serial_monitor = EngineSerialMonitor()
-        engine = EngineNRF52(engine_state, engine_lifecycle, engine_upload, engine_ping, engine_serial_monitor)
+        engine_auth = EngineAuth()
+        engine = \
+            EngineNRF52(engine_state, engine_lifecycle, engine_upload, engine_ping, engine_serial_monitor, engine_auth)
 
         # Agent with engine construction
         encoder = COMMON_OUTGOING_MESSAGE_ENCODER
@@ -590,12 +598,15 @@ class CLI(CLIInterface):
         # Engine
         base = await EngineBase.build()
         board_state = EngineAnvylBoardState(device_name_str, device_path, scan_chain_index)
-        engine_state = EngineAnvylState(base, hardware_id, backend, heartbeat_seconds, board_state)
+        engine_state = \
+            EngineAnvylState(base, hardware_id, backend, heartbeat_seconds, board_state, backend.config.auth)
         engine_lifecycle = EngineLifecycle()
         engine_upload = EngineAnvylUpload(backend)
         engine_ping = EnginePing()
         engine_serial_monitor = EngineSerialMonitor()
-        engine = EngineAnvyl(engine_state, engine_lifecycle, engine_upload, engine_ping, engine_serial_monitor)
+        engine_auth = EngineAuth()
+        engine = \
+            EngineAnvyl(engine_state, engine_lifecycle, engine_upload, engine_ping, engine_serial_monitor, engine_auth)
 
         # Agent with engine construction
         encoder = COMMON_OUTGOING_MESSAGE_ENCODER
@@ -626,12 +637,14 @@ class CLI(CLIInterface):
         # Engine
         base = await EngineBase.build()
         board_state = EngineFakeBoardState(device_path)
-        engine_state = EngineFakeState(base, hardware_id, backend, heartbeat_seconds, board_state)
+        engine_state = EngineFakeState(base, hardware_id, backend, heartbeat_seconds, board_state, backend.config.auth)
         engine_lifecycle = EngineLifecycle()
         engine_upload = EngineFakeUpload(backend)
         engine_ping = EnginePing()
         engine_serial_monitor = EngineFakeSerialMonitor()
-        engine = EngineFake(engine_state, engine_lifecycle, engine_upload, engine_ping, engine_serial_monitor)
+        engine_auth = EngineAuth()
+        engine = \
+            EngineFake(engine_state, engine_lifecycle, engine_upload, engine_ping, engine_serial_monitor, engine_auth)
 
         # Agent with engine construction
         encoder = COMMON_OUTGOING_MESSAGE_ENCODER
@@ -778,18 +791,21 @@ class CLI(CLIInterface):
         config_path_str: Optional[str],
         control_server_str: Optional[str],
         hardware_id_str: str,
-        monitor_type_str: str
+        monitor_type_str: str,
+        username_str: Optional[str],
+        password_str: Optional[str],
     ) -> Result[MonitorSerial, DIPClientError]:
         # Build backend
-        backend_result = CLI.parsed_backend(config_path_str, control_server_str, None, None, None)
+        backend_result = CLI.parsed_backend(config_path_str, control_server_str, None, username_str, password_str)
         if isinstance(backend_result, Err): return Err(backend_result.value)
+        backend = backend_result.value
 
         # Hardware id
         hardware_id_result = ManagedUUID.build(hardware_id_str)
         if isinstance(hardware_id_result, Err): return Err(hardware_id_result.value.of_type("hardware"))
 
         # Build URL
-        url_result = backend_result.value.hardware_serial_monitor_url(hardware_id_result.value)
+        url_result = backend.hardware_serial_monitor_url(hardware_id_result.value)
         if isinstance(url_result, Err): return Err(url_result.value)
 
         # Monitor type
@@ -801,7 +817,7 @@ class CLI(CLIInterface):
         decoder = s11n_hybrid.MONITOR_LISTENER_INCOMING_MESSAGE_DECODER
         encoder = s11n_hybrid.MONITOR_LISTENER_OUTGOING_MESSAGE_ENCODER
         websocket = WebSocket(url_result.value, decoder, encoder)
-        return monitor_serial.resolve(websocket)
+        return monitor_serial.resolve(websocket, backend.config.auth)
 
     @staticmethod
     async def quick_run(
@@ -890,11 +906,13 @@ class CLI(CLIInterface):
         video_buffer_size: Optional[int],
         audio_sample_rate: Optional[int],
         audio_buffer_size: Optional[int],
-        port: Optional[int]
+        port: Optional[int],
+        username_str: Optional[str],
+        password_str: Optional[str],
     ) -> Result[Agent, DIPClientError]:
         # Common agent input
         common_agent_input_result: Result = CLI.parsed_agent_input(
-            config_path_str, hardware_id_str, control_server_str, None, None, None,
+            config_path_str, hardware_id_str, control_server_str, None, username_str, password_str,
             heartbeat_seconds, None, True)
         if isinstance(common_agent_input_result, Err): return common_agent_input_result
         (hardware_id, heartbeat_seconds, backend, _, _) = \
@@ -922,11 +940,13 @@ class CLI(CLIInterface):
 
         # Engine
         base = await EngineBase.build()
-        engine_state = EngineVideoState(base, hardware_id, heartbeat_seconds, video_config_result.value, None, Death())
+        engine_state = EngineVideoState(
+            base, hardware_id, heartbeat_seconds, video_config_result.value, None, Death(), backend.config.auth)
         engine_lifecycle = EngineLifecycle()
         engine_ping = EnginePing()
         engine_video_stream = EngineVideoStream()
-        engine = EngineVideo(engine_state, engine_lifecycle, engine_ping, engine_video_stream)
+        engine_auth = EngineAuth()
+        engine = EngineVideo(engine_state, engine_lifecycle, engine_ping, engine_video_stream, engine_auth)
 
         # Agent with engine construction
         encoder = COMMON_OUTGOING_VIDEO_MESSAGE_ENCODER

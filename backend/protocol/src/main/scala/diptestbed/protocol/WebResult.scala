@@ -2,7 +2,7 @@ package diptestbed.protocol
 
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder}
-import diptestbed.protocol.Codecs._
+import diptestbed.protocol.DomainCodecs._
 
 sealed trait WebResult[A] {
   val value: A

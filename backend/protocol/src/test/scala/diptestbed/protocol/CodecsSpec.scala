@@ -1,13 +1,14 @@
 package diptestbed.protocol
 
-import diptestbed.domain.HardwareSerialMonitorMessage.MonitorUnavailable
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.freespec.AnyFreeSpec
 import io.circe.parser._
 import io.circe.syntax._
-import diptestbed.domain.{DomainTimeZoneId, HardwareControlMessage, HardwareSerialMonitorMessage, SerialConfig, SoftwareId}
+import diptestbed.domain._
+import diptestbed.protocol.DomainCodecs._
+import diptestbed.protocol.HardwareSerialMonitorCodecs._
+import diptestbed.protocol.HardwareControlCodecs._
 import diptestbed.protocol.WebResult._
-import diptestbed.protocol.Codecs._
 
 
 class CodecsSpec extends AnyFreeSpec with Matchers {
@@ -45,18 +46,18 @@ class CodecsSpec extends AnyFreeSpec with Matchers {
     val softwareUUID = "16d7ce54-2d10-11ec-a35e-d79560b12f04"
     val serialized = "{\"command\":\"uploadSoftwareRequest\",\"payload\":{\"softwareId\":\"" + softwareUUID + "\"}}"
     val softwareId = SoftwareId.fromString(softwareUUID).toOption.get
-    val unserialized: HardwareControlMessage = HardwareControlMessage.UploadSoftwareRequest(softwareId)
+    val unserialized: HardwareControlMessageNonBinary = HardwareControlMessageExternalNonBinary.UploadSoftwareRequest(softwareId)
     unserialized.asJson.noSpaces.shouldEqual(serialized)
-    decode[HardwareControlMessage](serialized).shouldEqual(Right(unserialized))
+    decode[HardwareControlMessageNonBinary](serialized).shouldEqual(Right(unserialized))
   }
 
   "hardware control upload result messages should encode and decode" in {
     // {"command":"uploadSoftwareResult","payload":{"error":null}}
     // {"command":"uploadSoftwareResult","payload":{"error":"lp0 on fire"}}
     val serialized = "{\"command\":\"uploadSoftwareResult\",\"payload\":{\"error\":null}}"
-    val unserialized: HardwareControlMessage = HardwareControlMessage.UploadSoftwareResult(None)
+    val unserialized: HardwareControlMessageNonBinary = HardwareControlMessageExternalNonBinary.UploadSoftwareResult(None)
     unserialized.asJson.noSpaces.shouldEqual(serialized)
-    decode[HardwareControlMessage](serialized).shouldEqual(Right(unserialized))
+    decode[HardwareControlMessageNonBinary](serialized).shouldEqual(Right(unserialized))
   }
 
   "hardware monitor request messages should encode and decode" in {
@@ -70,29 +71,37 @@ class CodecsSpec extends AnyFreeSpec with Matchers {
       "}" +
       "}" +
       "}"
-    val unserialized: HardwareControlMessage =
-      HardwareControlMessage.SerialMonitorRequest(Some(SerialConfig(115200, 1, 0.3f)))
+    val unserialized: HardwareControlMessageNonBinary =
+      HardwareControlMessageExternalNonBinary.SerialMonitorRequest(Some(SerialConfig(115200, 1, 0.3f)))
 
     unserialized.asJson.noSpaces.shouldEqual(serialized)
-    decode[HardwareControlMessage](serialized).shouldEqual(Right(unserialized))
+    decode[HardwareControlMessageNonBinary](serialized).shouldEqual(Right(unserialized))
   }
 
   "hardware monitor result messages should encode and decode" in {
     // {"command":"serialMonitorResult","payload":{"error":null}}
     // {"command":"serialMonitorResult","payload":{"error":"lp0 on fire"}}
     val serialized = "{\"command\":\"serialMonitorResult\",\"payload\":{\"error\":null}}"
-    val unserialized: HardwareControlMessage = HardwareControlMessage.SerialMonitorResult(None)
+    val unserialized: HardwareControlMessageNonBinary = HardwareControlMessageExternalNonBinary.SerialMonitorResult(None)
 
     unserialized.asJson.noSpaces.shouldEqual(serialized)
-    decode[HardwareControlMessage](serialized).shouldEqual(Right(unserialized))
+    decode[HardwareControlMessageNonBinary](serialized).shouldEqual(Right(unserialized))
   }
 
   "hardware control monitor unavailable messages should encode and decode" in {
     // {"command":"monitorUnavailable","payload":{"reason":"lp0 on fire"}}
     val serialized = "{\"command\":\"monitorUnavailable\",\"payload\":{\"reason\":\"lp0 on fire\"}}"
-    val unserialized: HardwareSerialMonitorMessage = MonitorUnavailable("lp0 on fire")
+    val unserialized: HardwareSerialMonitorMessageNonBinary = HardwareSerialMonitorMessageNonBinary.MonitorUnavailable("lp0 on fire")
     unserialized.asJson.noSpaces.shouldEqual(serialized)
-    decode[HardwareSerialMonitorMessage](serialized).shouldEqual(Right(unserialized))
+    decode[HardwareSerialMonitorMessageNonBinary](serialized).shouldEqual(Right(unserialized))
+  }
+
+  "hardware control auth messages should encode and decode" in {
+    // {"command":"authRequest","payload":{"username":"user","password":"pass"}}
+    val serialized = "{\"command\":\"authRequest\",\"payload\":{\"username\":\"user\",\"password\":\"pass\"}}"
+    val unserialized: HardwareControlMessageNonBinary = HardwareControlMessageExternalNonBinary.AuthRequest("user", "pass")
+    unserialized.asJson.noSpaces.shouldEqual(serialized)
+    decode[HardwareControlMessageNonBinary](serialized).shouldEqual(Right(unserialized))
   }
 
 }

@@ -7,6 +7,7 @@ from src.engine.board.engine_common_state import EngineCommonState
 from dataclasses import dataclass
 from src.engine.engine_state import EngineBase
 from src.service.backend import BackendServiceInterface
+from src.service.backend_config import UserPassAuthConfig
 from src.service.managed_serial import ManagedSerial
 
 
@@ -24,6 +25,8 @@ class EngineNRF52State(EngineCommonState):
     backend: BackendServiceInterface
     heartbeat_seconds: PositiveInteger
     board_state: EngineNRF52BoardState
+
+    auth: UserPassAuthConfig
 
     active_serial: Optional[ManagedSerial] = None
     serial_death: Death = None

@@ -11,6 +11,13 @@ sealed trait HardwareControlMessageNonBinary extends HardwareControlMessage
   */
 sealed trait HardwareControlMessageInternal extends HardwareControlMessageNonBinary
 object HardwareControlMessageInternal {
+  // Goes to agent
+  case class AuthResult(error: Option[String]) extends HardwareControlMessageInternal
+
+  // Goes back into actor
+  case class AuthSuccess(user: User) extends HardwareControlMessageInternal
+  case class AuthFailure(reason: String) extends HardwareControlMessageInternal
+
   case class StartLifecycle() extends HardwareControlMessageInternal
   case class EndLifecycle() extends HardwareControlMessageInternal
 
@@ -34,6 +41,7 @@ sealed trait HardwareControlMessageExternalNonBinary
     extends HardwareControlMessageExternal
     with HardwareControlMessageNonBinary
 object HardwareControlMessageExternalNonBinary {
+  case class AuthRequest(username: String, password: String) extends HardwareControlMessageExternalNonBinary
   case class UploadSoftwareRequest(softwareId: SoftwareId) extends HardwareControlMessageExternalNonBinary
   case class UploadSoftwareResult(error: Option[String]) extends HardwareControlMessageExternalNonBinary
   object UploadSoftwareResult {

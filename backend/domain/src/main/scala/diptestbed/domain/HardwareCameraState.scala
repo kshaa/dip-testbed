@@ -3,6 +3,7 @@ package diptestbed.domain
 case class HardwareCameraState[A](
   self: A,
   camera: A,
+  auth: Option[User],
   pubSubMediator: A,
   hardwareIds: List[HardwareId],
   listenerHeartbeatsReceived: Int,
@@ -27,6 +28,7 @@ object HardwareCameraState {
     HardwareCameraState(
       self,
       camera,
+      None,
       pubSubMediator,
       hardwareIds,
       0,

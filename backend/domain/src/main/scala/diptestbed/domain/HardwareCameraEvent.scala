@@ -5,6 +5,9 @@ object HardwareCameraEvent {
   // Lifecycle
   case class Started[A]() extends HardwareCameraEvent[A]
   case class Ended[A]() extends HardwareCameraEvent[A]
+  case class CheckingAuth[A](username: String, password: String) extends HardwareCameraEvent[A]
+  case class AuthSucceeded[A](user: User) extends HardwareCameraEvent[A]
+  case class AuthFailed[A](reason: String) extends HardwareCameraEvent[A]
 
   // Camera content
   case class ChunkReceived[A](chunk: Array[Byte]) extends HardwareCameraEvent[A]

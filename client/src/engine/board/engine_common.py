@@ -1,4 +1,4 @@
-"""Anvyl FPGA client functionality."""
+"""Generic board engine client functionality."""
 from dataclasses import dataclass
 from typing import List, TypeVar, Optional
 from result import Result
@@ -6,6 +6,7 @@ from src.domain.dip_client_error import DIPClientError
 from src.engine.engine import Engine
 from src.engine.board.engine_common_state import EngineCommonState
 from src.domain.hardware_control_event import COMMON_ENGINE_EVENT, log_event
+from src.engine.engine_auth import EngineAuth
 from src.engine.engine_lifecycle import EngineLifecycle
 from src.engine.engine_ping import EnginePing
 from src.domain.hardware_control_message import COMMON_INCOMING_MESSAGE, COMMON_OUTGOING_MESSAGE, log_hardware_message, \
@@ -29,6 +30,7 @@ class EngineCommon(Engine[PI, PO, S, E, X]):
     engine_upload: EngineUpload
     engine_ping: EnginePing
     engine_serial_monitor: EngineSerialMonitor
+    engine_auth: EngineAuth
 
     async def start(self):
         await self.state.base.incoming_message_queue.put(InternalStartLifecycle())
@@ -50,7 +52,8 @@ class EngineCommon(Engine[PI, PO, S, E, X]):
         return self.multi_message_project([
             self.engine_lifecycle.handle_message,
             self.engine_upload.handle_message,
-            self.engine_serial_monitor.handle_message
+            self.engine_serial_monitor.handle_message,
+            self.engine_auth.handle_message
         ], previous_state, message)
 
     def state_project(self, previous_state: EngineCommonState, event: COMMON_ENGINE_EVENT) -> S:
@@ -62,7 +65,8 @@ class EngineCommon(Engine[PI, PO, S, E, X]):
             self.engine_lifecycle.effect_project,
             self.engine_upload.effect_project,
             self.engine_ping.effect_project,
-            self.engine_serial_monitor.effect_project
+            self.engine_serial_monitor.effect_project,
+            self.engine_auth.effect_project
         ]
         return await Engine.multi_effect_project(projections, previous_state, event)
 

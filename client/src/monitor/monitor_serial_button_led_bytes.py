@@ -84,13 +84,24 @@ class MonitorSerialButtonLedBytes(MonitorSerial):
     async def run(self) -> Optional[DIPClientError]:
         """Receive serial monitor websocket messages & implement user interfacing"""
 
+        # Create UI app state
+        state = AppState()
+
+        # Handle signal interrupts
+        for signame in ('SIGINT', 'SIGTERM'):
+            asyncio_loop = asyncio.get_event_loop()
+            asyncio_loop.add_signal_handler(getattr(signal, signame), partial(state.death.grace))
+
         # Start socket
         connect_error = await self.socket.connect()
         if connect_error is not None:
             return GenericClientError(f"Failed connecting to control server, reason: {connect_error}")
 
-        # Create UI app state
-        state = AppState()
+        # Send auth request and wait for response
+        await self.helper.sendAuth(self.socket, self.auth)
+        auth_error = await self.helper.expectAuthResult(state.death, self.socket)
+        if auth_error is not None:
+            return auth_error
 
         # Register button click handler
         def send_on_button_click(button_index: int):

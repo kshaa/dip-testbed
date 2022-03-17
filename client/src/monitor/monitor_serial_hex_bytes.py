@@ -2,7 +2,7 @@
 
 import sys
 import asyncio
-from asyncio import Task
+from asyncio import Task, StreamReader
 from typing import Any, Callable, Optional
 import termios
 import tty
@@ -19,6 +19,10 @@ from src.protocol.codec import CodecParseException
 from src.service.ws import SocketInterface
 from src.domain.death import Death
 from functools import partial
+
+from src.util import log
+
+LOGGER = log.timed_named_logger("hexbytes_monitor")
 
 
 class MonitorSerialHexbytes(MonitorSerial):
@@ -41,14 +45,19 @@ class MonitorSerialHexbytes(MonitorSerial):
         termios.tcsetattr(stdin, termios.TCSANOW, tattr)
 
     @staticmethod
-    async def keep_transmitting_to_agent(
-        socketlike: SocketInterface[MONITOR_LISTENER_INCOMING_MESSAGE, MONITOR_LISTENER_OUTGOING_MESSAGE]
-    ):
-        """Send keyboard data from stdin straight to serial monitor socket"""
+    async def create_stdin_reader() -> StreamReader:
         asyncio_loop = asyncio.get_event_loop()
         stdin_reader = asyncio.StreamReader()
         stdin_protocol = asyncio.StreamReaderProtocol(stdin_reader)
         await asyncio_loop.connect_read_pipe(lambda: stdin_protocol, sys.stdin)
+        return stdin_reader
+
+    @staticmethod
+    async def keep_transmitting_to_agent(
+        stdin_reader: StreamReader,
+        socketlike: SocketInterface[MONITOR_LISTENER_INCOMING_MESSAGE, MONITOR_LISTENER_OUTGOING_MESSAGE]
+    ):
+        """Send keyboard data from stdin straight to serial monitor socket"""
         while True:
             read_bytes = await stdin_reader.read(1)
             message = SerialMonitorMessageToAgent(read_bytes)
@@ -112,29 +121,40 @@ class MonitorSerialHexbytes(MonitorSerial):
     async def run(self) -> Optional[DIPClientError]:
         """Receive serial monitor websocket messages & implement user interfacing"""
 
+        # Define end-of-monitor on sigkill/sigterm
+        asyncio_loop = asyncio.get_event_loop()
+        death = Death()
+        for signame in ('SIGINT', 'SIGTERM'):
+            asyncio_loop.add_signal_handler(getattr(signal, signame), partial(death.grace))
+
         # Start socket
         connect_error = await self.socket.connect()
         if connect_error is not None:
             return GenericClientError(f"Failed connecting to control server, reason: {connect_error}")
 
+        # Send auth request and wait for response
+        await self.helper.sendAuth(self.socket, self.auth)
+        auth_error = await self.helper.expectAuthResult(death, self.socket)
+        if auth_error is not None:
+            return auth_error
+
         # Silence stdin
         tattr = MonitorSerialHexbytes.silence_stdin()
 
         # Redirect stdin to serial monitor socket
-        asyncio_loop = asyncio.get_event_loop()
+        stdin_reader = await MonitorSerialHexbytes.create_stdin_reader()
+        silencer_code = await stdin_reader.read(7) # The first 7 bytes are the stdin silencer codes
+        LOGGER.debug(f"Suppressed 7 stdin silencer bytes: {silencer_code}")
         stdin_capture_task = asyncio_loop.create_task(
-            self.keep_transmitting_to_agent(self.socket))
+            self.keep_transmitting_to_agent(stdin_reader, self.socket))
 
-        # Define end-of-monitor handler
-        death = Death()
+        # Define end-of-hexbytes handler
         handle_finish = partial(
             MonitorSerialHexbytes.handle_finish,
             self.socket,
             death,
             stdin_capture_task,
             tattr)
-
-        # Handle signal interrupts
         for signame in ('SIGINT', 'SIGTERM'):
             asyncio_loop.add_signal_handler(getattr(signal, signame), handle_finish)
 

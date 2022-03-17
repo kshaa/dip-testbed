@@ -2,7 +2,8 @@
 from typing import TypeVar, Union, Optional, Any
 from dataclasses import dataclass
 from src.domain.dip_client_error import DIPClientError
-from src.domain.hardware_shared_message import InternalStartLifecycle, InternalEndLifecycle, PingMessage
+from src.domain.hardware_shared_message import InternalStartLifecycle, InternalEndLifecycle, PingMessage, AuthResult, \
+    AuthRequest
 from src.domain.noisy_message import NoisyMessage
 from src.service.managed_video_stream import ManagedVideoStream
 from src.util import log
@@ -72,9 +73,10 @@ class StopBroadcasting(ExternalHardwareVideoMessage):
 
 # Messages incoming and outgoing to and from control server
 COMMON_INCOMING_VIDEO_MESSAGE = Union[
+    AuthResult,
     CameraSubscription,
     StopBroadcasting]
-COMMON_OUTGOING_VIDEO_MESSAGE = Union[CameraChunk, PingMessage, CameraUnavailable]
+COMMON_OUTGOING_VIDEO_MESSAGE = Union[AuthRequest, CameraChunk, PingMessage, CameraUnavailable]
 
 
 def log_video_message(logger: LOGGER, message: Any):

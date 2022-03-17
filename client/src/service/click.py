@@ -577,11 +577,15 @@ def hardware_software_upload(
 @CONTROL_SERVER_OPTION
 @HARDWARE_ID_OPTION
 @MONITOR_TYPE_OPTION
+@USERNAME_OPTION
+@PASSWORD_OPTION
 def hardware_serial_monitor(
     config_path_str: Optional[str],
     control_server_str: Optional[str],
     hardware_id_str: str,
-    monitor_type_str: str
+    monitor_type_str: str,
+    username_str: Optional[str],
+    password_str: Optional[str],
 ):
     """Monitor hardware's serial port"""
     async def exec():
@@ -589,7 +593,9 @@ def hardware_serial_monitor(
             config_path_str,
             control_server_str,
             hardware_id_str,
-            monitor_type_str), "Finished monitoring")
+            monitor_type_str,
+            username_str,
+            password_str), "Finished monitoring")
     asyncio.run(exec())
 
 
@@ -646,6 +652,8 @@ def quick_run(
 @STREAM_SAMPLE_RATE_OPTION
 @STREAM_AUDIO_BUFFER_OPTION
 @STREAM_PORT_OPTION
+@USERNAME_OPTION
+@PASSWORD_OPTION
 def agent_hardware_video(
     config_path_str: Optional[str],
     hardware_id_str: str,
@@ -661,7 +669,9 @@ def agent_hardware_video(
     video_buffer_size: Optional[int],
     audio_sample_rate: Optional[int],
     audio_buffer_size: Optional[int],
-    port: Optional[int]
+    port: Optional[int],
+    username_str: Optional[str],
+    password_str: Optional[str],
 ):
     """Video stream broadcast (Linux specific)"""
     async def exec():
@@ -681,9 +691,12 @@ def agent_hardware_video(
                 video_buffer_size,
                 audio_sample_rate,
                 audio_buffer_size,
-                port
+                port,
+                username_str,
+                password_str,
             ), "Hardware camera agent finished work")
     asyncio.run(exec())
+
 
 @CLI_COMMAND
 @CONFIG_PATH_OPTION

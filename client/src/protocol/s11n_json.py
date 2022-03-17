@@ -313,7 +313,72 @@ def failure_message_decoder_json(
     return DecoderJSON(partial(failure_message_decode_json, decoder))
 
 
-# protocol.SerialMonitorRequest
+# hardware_shared_message.AuthRequest
+def auth_request_encode_json(value: hardware_shared_message.AuthRequest) -> JSON:
+    """Serialize AuthRequest to JSON"""
+    return {
+        "username": value.username,
+        "password": value.password
+    }
+
+
+def auth_request_decode_json(
+    value: JSON
+) -> Result[hardware_shared_message.AuthRequest, CodecParseException]:
+    """Un-serialize AuthRequest from JSON"""
+    if not isinstance(value, dict):
+        return Err(CodecParseException("AuthRequest must be an object"))
+
+    username = value.get("username")
+    if not isinstance(username, str):
+        return Err(CodecParseException("AuthRequest .username must be string"))
+
+    password = value.get("password")
+    if not isinstance(password, str):
+        return Err(CodecParseException("AuthRequest .password must be string"))
+
+    return Ok(hardware_shared_message.AuthRequest(username, password))
+
+
+AUTH_REQUEST_ENCODER_JSON: EncoderJSON[hardware_shared_message.AuthRequest] = \
+    EncoderJSON(auth_request_encode_json)
+AUTH_REQUEST_DECODER_JSON: DecoderJSON[hardware_shared_message.AuthRequest] = \
+    DecoderJSON(auth_request_decode_json)
+AUTH_REQUEST_CODEC_JSON: CodecJSON[hardware_shared_message.AuthRequest] = \
+    CodecJSON(AUTH_REQUEST_DECODER_JSON, AUTH_REQUEST_ENCODER_JSON)
+
+
+# hardware_shared_message.AuthResult
+def auth_result_encode_json(value: hardware_shared_message.AuthResult) -> JSON:
+    """Serialize AuthResult to JSON"""
+    return {
+        "error": value.error
+    }
+
+
+def auth_result_decode_json(
+    value: JSON
+) -> Result[hardware_shared_message.AuthResult, CodecParseException]:
+    """Un-serialize AuthResult from JSON"""
+    if not isinstance(value, dict):
+        return Err(CodecParseException("AuthRequest must be an object"))
+
+    error = value.get("error")
+    if not isinstance(error, str) and error is not None:
+        return Err(CodecParseException("AuthRequest .error must be string or null"))
+
+    return Ok(hardware_shared_message.AuthResult(error))
+
+
+AUTH_RESULT_ENCODER_JSON: EncoderJSON[hardware_shared_message.AuthResult] = \
+    EncoderJSON(auth_result_encode_json)
+AUTH_RESULT_DECODER_JSON: DecoderJSON[hardware_shared_message.AuthResult] = \
+    DecoderJSON(auth_result_decode_json)
+AUTH_RESULT_CODEC_JSON: CodecJSON[hardware_shared_message.AuthResult] = \
+    CodecJSON(AUTH_RESULT_DECODER_JSON, AUTH_RESULT_ENCODER_JSON)
+
+
+# hardware_control_message.SerialMonitorRequest
 def serial_monitor_request_encode_json(value: hardware_control_message.SerialMonitorRequest) -> JSON:
     """Serialize SerialMonitorRequest to JSON"""
     return {
@@ -441,12 +506,14 @@ MONITOR_UNAVAILABLE_CODEC_JSON: CodecJSON[monitor_message.MonitorUnavailable] = 
 
 # protocol.CommonIncomingMessage
 COMMON_INCOMING_MESSAGE_ENCODER_JSON = named_message_union_encoder_json({
+    hardware_shared_message.AuthResult: ("authResult", AUTH_RESULT_ENCODER_JSON),
     hardware_control_message.UploadMessage: ("uploadSoftwareRequest", UPLOAD_MESSAGE_ENCODER_JSON),
     hardware_control_message.SerialMonitorRequest: ("serialMonitorRequest", SERIAL_MONITOR_REQUEST_ENCODER_JSON),
     hardware_control_message.SerialMonitorRequestStop:
         ("serialMonitorRequestStop", SERIAL_MONITOR_REQUEST_STOP_ENCODER_JSON),
 })
 COMMON_INCOMING_MESSAGE_DECODER_JSON = named_message_union_decoder_json({
+    hardware_shared_message.AuthResult: ("authResult", AUTH_RESULT_DECODER_JSON),
     hardware_control_message.UploadMessage: ("uploadSoftwareRequest", UPLOAD_MESSAGE_DECODER_JSON),
     hardware_control_message.SerialMonitorRequest: ("serialMonitorRequest", SERIAL_MONITOR_REQUEST_DECODER_JSON),
     hardware_control_message.SerialMonitorRequestStop:
@@ -458,12 +525,14 @@ COMMON_INCOMING_MESSAGE_CODEC_JSON = CodecJSON(
 
 # protocol.CommonOutgoingMessage
 COMMON_OUTGOING_MESSAGE_ENCODER_JSON = named_message_union_encoder_json({
+    hardware_shared_message.AuthRequest: ("authRequest", AUTH_REQUEST_ENCODER_JSON),
     hardware_control_message.UploadResultMessage: ("uploadSoftwareResult", UPLOAD_RESULT_MESSAGE_ENCODER_JSON),
     hardware_shared_message.PingMessage: ("ping", PING_MESSAGE_ENCODER_JSON),
     hardware_control_message.SerialMonitorResult: ("serialMonitorResult", SERIAL_MONITOR_RESULT_ENCODER_JSON),
     monitor_message.MonitorUnavailable: ("monitorUnavailable", MONITOR_UNAVAILABLE_ENCODER_JSON)
 })
 COMMON_OUTGOING_MESSAGE_DECODER_JSON = named_message_union_decoder_json({
+    hardware_shared_message.AuthRequest: ("authRequest", AUTH_REQUEST_DECODER_JSON),
     hardware_control_message.UploadResultMessage: ("uploadSoftwareResult", UPLOAD_RESULT_MESSAGE_DECODER_JSON),
     hardware_shared_message.PingMessage: ("ping", PING_MESSAGE_DECODER_JSON),
     hardware_control_message.SerialMonitorResult: ("serialMonitorResult", SERIAL_MONITOR_RESULT_DECODER_JSON),
@@ -509,26 +578,41 @@ CAMERA_SUBSCRIPTION_MESSAGE_DECODER_JSON: DecoderJSON[hardware_video_message.Cam
 
 # protocol.CommonIncomingVideoMessage
 COMMON_INCOMING_VIDEO_MESSAGE_DECODER_JSON = named_message_union_decoder_json({
+    hardware_shared_message.AuthResult: ("authResult", AUTH_RESULT_DECODER_JSON),
     hardware_video_message.StopBroadcasting: ("stopBroadcasting", STOP_BROADCASTING_MESSAGE_DECODER_JSON),
     hardware_video_message.CameraSubscription: ("cameraSubscription", CAMERA_SUBSCRIPTION_MESSAGE_DECODER_JSON),
 })
 
 # protocol.CommonOutgoingVideoMessage
 COMMON_OUTGOING_VIDEO_MESSAGE_ENCODER_JSON = named_message_union_encoder_json({
+    hardware_shared_message.AuthRequest: ("authRequest", AUTH_REQUEST_ENCODER_JSON),
     hardware_shared_message.PingMessage: ("ping", PING_MESSAGE_ENCODER_JSON),
     hardware_video_message.CameraUnavailable: ("cameraUnavailable", CAMERA_UNAVAILABLE_ENCODER_JSON)
 })
 
 # protocol.MonitorListenerIncomingMessage
 MONITOR_LISTENER_INCOMING_MESSAGE_ENCODER_JSON = named_message_union_encoder_json({
+    hardware_shared_message.AuthResult: ("authResult", AUTH_RESULT_ENCODER_JSON),
     monitor_message.MonitorUnavailable: ("monitorUnavailable", MONITOR_UNAVAILABLE_ENCODER_JSON),
 })
 MONITOR_LISTENER_INCOMING_MESSAGE_DECODER_JSON = named_message_union_decoder_json({
+    hardware_shared_message.AuthResult: ("authResult", AUTH_RESULT_DECODER_JSON),
     monitor_message.MonitorUnavailable: ("monitorUnavailable", MONITOR_UNAVAILABLE_DECODER_JSON),
 })
 MONITOR_LISTENER_INCOMING_MESSAGE_CODEC_JSON = CodecJSON(
     MONITOR_LISTENER_INCOMING_MESSAGE_DECODER_JSON,
     MONITOR_LISTENER_INCOMING_MESSAGE_ENCODER_JSON)
+
+# protocol.MonitorListenerOutgoingMessage
+MONITOR_LISTENER_OUTGOING_MESSAGE_ENCODER_JSON = named_message_union_encoder_json({
+    hardware_shared_message.AuthRequest: ("authRequest", AUTH_REQUEST_ENCODER_JSON)
+})
+MONITOR_LISTENER_OUTGOING_MESSAGE_DECODER_JSON = named_message_union_decoder_json({
+    hardware_shared_message.AuthRequest: ("authRequest", AUTH_REQUEST_DECODER_JSON)
+})
+MONITOR_LISTENER_OUTGOING_MESSAGE_CODEC_JSON = CodecJSON(
+    MONITOR_LISTENER_OUTGOING_MESSAGE_DECODER_JSON,
+    MONITOR_LISTENER_OUTGOING_MESSAGE_ENCODER_JSON)
 
 
 # backend_domain.User

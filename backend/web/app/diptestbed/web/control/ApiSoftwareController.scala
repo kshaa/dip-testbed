@@ -7,8 +7,8 @@ import cats.effect.unsafe.IORuntime
 import cats.implicits._
 import diptestbed.database.services.{SoftwareService, UserService}
 import diptestbed.domain.{DIPTestbedConfig, SoftwareId}
-import diptestbed.protocol.Codecs._
 import diptestbed.protocol.WebResult._
+import diptestbed.protocol.DomainCodecs._
 import diptestbed.web.ioControls.PipelineOps._
 import diptestbed.web.ioControls._
 import play.api.libs.Files

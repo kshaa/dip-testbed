@@ -12,6 +12,9 @@ object HardwareCameraEventStateProjection {
         case _ => previousState
       }
 
+      case AuthSucceeded(user) => previousState.copy(auth = Some(user))
+      case AuthFailed(_)       => previousState.copy(auth = None)
+
       case Subscription(_) => previousState.copy(broadcasting = true)
       case BroadcastStopped() => previousState.copy(broadcasting = false, initialChunks = List.empty)
 
@@ -19,7 +22,7 @@ object HardwareCameraEventStateProjection {
       case CameraListenerHeartbeatReceived() =>
         previousState.copy(listenerHeartbeatsReceived = previousState.listenerHeartbeatsReceived + 1)
 
-      case _: CameraPinged[A] | _: CameraListenerHeartbeatFinished[A] | _: CameraDropped[A] | _: Started[A] | _: Ended[A] =>
+      case _: CheckingAuth[A] | _: CameraPinged[A] | _: CameraListenerHeartbeatFinished[A] | _: CameraDropped[A] | _: Started[A] | _: Ended[A] =>
         previousState
     }
 }

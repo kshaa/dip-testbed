@@ -14,9 +14,14 @@ object HardwareControlMailProjection {
     publish: (PubSubTopic, HardwareControlMessage) => F[Unit],
   )(state: HardwareControlState[A], event: HardwareControlEvent[A]): Option[F[Unit]] = {
     event match {
-      case Started() | Ended() | ListenerHeartbeatFinished() | ListenerHeartbeatReceived() |
+      case CheckingAuth(_, _) | Started() | Ended() | ListenerHeartbeatFinished() | ListenerHeartbeatReceived() |
           ListenerHeartbeatStarted() =>
         None
+
+      case AuthSucceeded(_)   => Some(
+        send(state.agent, AuthResult(None)) >>
+          send(state.self, StartLifecycle()))
+      case AuthFailed(reason) => Some(send(state.agent, AuthResult(Some(reason))))
 
       case UploadStarted(_, softwareId)       => Some(send(state.agent, UploadSoftwareRequest(softwareId)))
       case UploadFinished(oldInquirer, error) => Some(oldInquirer.traverse(send(_, UploadSoftwareResult(error))).void)

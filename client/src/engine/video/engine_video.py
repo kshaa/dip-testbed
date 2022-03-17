@@ -6,6 +6,7 @@ from src.domain.dip_client_error import DIPClientError
 from src.domain.hardware_video_message import COMMON_INCOMING_VIDEO_MESSAGE, COMMON_OUTGOING_VIDEO_MESSAGE, \
     HardwareVideoMessage, log_video_message, InternalStartLifecycle, InternalEndLifecycle
 from src.engine.engine import Engine
+from src.engine.engine_auth import EngineAuth
 from src.engine.engine_lifecycle import EngineLifecycle
 from src.engine.engine_ping import EnginePing
 from src.domain.hardware_video_event import COMMON_ENGINE_EVENT, log_event
@@ -28,6 +29,7 @@ class EngineVideo(Engine[
     engine_lifecycle: EngineLifecycle
     engine_ping: EnginePing
     engine_video_stream: EngineVideoStream
+    engine_auth: EngineAuth
 
     async def start(self):
         await self.state.base.incoming_message_queue.put(InternalStartLifecycle())
@@ -49,6 +51,7 @@ class EngineVideo(Engine[
         return self.multi_message_project([
             self.engine_lifecycle.handle_message,
             self.engine_video_stream.handle_message,
+            self.engine_auth.handle_message,
         ], previous_state, message)
 
     def state_project(self, previous_state: EngineVideoState, event: COMMON_ENGINE_EVENT) -> EngineVideoState:
@@ -60,6 +63,7 @@ class EngineVideo(Engine[
             self.engine_lifecycle.effect_project,
             self.engine_video_stream.effect_project,
             self.engine_ping.effect_project,
+            self.engine_auth.effect_project,
         ]
         return await Engine.multi_effect_project(projections, previous_state, event)
 

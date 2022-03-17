@@ -9,6 +9,9 @@ object HardwareControlEventStateProjection {
       case UploadStarted(inquirer, _) => previousState.copy(agentState = Uploading(inquirer))
       case UploadFinished(_, _)       => previousState.copy(agentState = Initial())
 
+      case AuthSucceeded(user) => previousState.copy(auth = Some(user))
+      case AuthFailed(_)       => previousState.copy(auth = None)
+
       case MonitorConfigurationStarted(inquirer, _) => previousState.copy(agentState = ConfiguringMonitor(inquirer))
       case MonitorConfigurationFinished(_, _)       => previousState.copy(agentState = Initial())
 
@@ -16,7 +19,7 @@ object HardwareControlEventStateProjection {
       case ListenerHeartbeatReceived() =>
         previousState.copy(listenerHeartbeatsReceived = previousState.listenerHeartbeatsReceived + 1)
 
-      case _: MonitorDropped[A] | _: MonitorDropExpected[A] | _: MonitorMessageToClient[A] | _: MonitorMessageToAgent[A] |
+      case _: CheckingAuth[A] | _: MonitorDropped[A] | _: MonitorDropExpected[A] | _: MonitorMessageToClient[A] | _: MonitorMessageToAgent[A] |
            _: MonitorMessageToClient[A] | _: MonitorMessageToAgent[A] | _: ListenerHeartbeatFinished[A] | _: Started[A] |
            _: Ended[A] =>
         previousState

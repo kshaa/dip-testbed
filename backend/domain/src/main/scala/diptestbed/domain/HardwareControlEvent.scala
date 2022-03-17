@@ -2,6 +2,11 @@ package diptestbed.domain
 
 sealed abstract class HardwareControlEvent[A]
 object HardwareControlEvent {
+  // Auth
+  case class CheckingAuth[A](username: String, password: String) extends HardwareControlEvent[A]
+  case class AuthSucceeded[A](user: User) extends HardwareControlEvent[A]
+  case class AuthFailed[A](reason: String) extends HardwareControlEvent[A]
+
   // Lifecycle
   case class Started[A]() extends HardwareControlEvent[A]
   case class Ended[A]() extends HardwareControlEvent[A]

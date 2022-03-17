@@ -14,6 +14,7 @@ from src.engine.board.engine_serial_monitor import EngineSerialMonitor
 from src.engine.engine_state import EngineBase
 from src.engine.board.engine_upload import EngineUpload
 from src.service.backend import BackendServiceInterface
+from src.service.backend_config import UserPassAuthConfig
 from src.service.managed_serial import ManagedSerial
 from src.service.managed_serial_config import ManagedSerialConfig
 from src.util.sh import src_relative_path
@@ -32,6 +33,8 @@ class EngineFakeState(EngineCommonState):
     backend: BackendServiceInterface
     heartbeat_seconds: PositiveInteger
     board_state: EngineFakeBoardState
+
+    auth: UserPassAuthConfig
 
     active_serial: Optional[ManagedSerial] = None
     serial_death: Death = None

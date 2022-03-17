@@ -33,6 +33,7 @@ object HardwareControlEventEngine {
 
   def onMessage[A, F[_]: Temporal: Parallel](
     lastState: => HardwareControlState[A],
+    auth: (String, String) => F[Either[String, User]],
     send: (A, HardwareControlMessage) => F[Unit],
     publish: (PubSubTopic, HardwareControlMessage) => F[Unit],
     inquirer: => Option[A],
@@ -44,6 +45,7 @@ object HardwareControlEventEngine {
         List(
           HardwareControlMailProjection.project(send, publish),
           HardwareControlHeartbeatProjection.project(send, publish),
+          HardwareControlAuthProjection.project(auth, send),
         ),
       ),
       HardwareControlEventStateProjection.project,

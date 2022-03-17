@@ -2,22 +2,26 @@ package diptestbed.web.actors
 
 import akka.actor._
 import akka.util.ByteString
+import cats.data.EitherT
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
-import cats.implicits.toBifunctorOps
 import io.circe.parser.decode
 import com.typesafe.scalalogging.LazyLogging
+import diptestbed.database.services.{HardwareService, UserService}
 import diptestbed.domain.EventEngine.MessageResult
-import diptestbed.domain.HardwareCameraMessage.{CameraChunk, EndLifecycle, StartLifecycle}
+import diptestbed.domain.HardwareCameraMessage._
 import diptestbed.domain._
 import diptestbed.web.actors.ActorHelper.websocketFlowTransformer
 import play.api.http.websocket.{BinaryMessage, CloseCodes, CloseMessage, TextMessage}
 import play.api.mvc.WebSocket.MessageFlowTransformer
 import io.circe.syntax._
-import diptestbed.protocol.Codecs._
+import cats.implicits._
+import diptestbed.protocol.HardwareCameraCodecs._
 
 class HardwareCameraActor(
   val appConfig: DIPTestbedConfig,
+  val userService: UserService[IO],
+  val hardwareService: HardwareService[IO],
   val pubSubMediator: ActorRef,
   val camera: ActorRef,
   val hardwareIds: List[HardwareId],
@@ -40,12 +44,26 @@ class HardwareCameraActor(
     case message: HardwareCameraMessage => (Some(sender()), message)
   }
 
+  def auth(username: String, password: String): IO[Either[String, User]] =
+    (for {
+      user <- EitherT(userService.getUserWithPassword(username, password))
+        .leftMap(e => f"Database error: ${e.message}")
+      existingUser <- EitherT.fromEither[IO](user.toRight(f"User auth failure"))
+      _ <- EitherT.fromEither[IO](Either.cond(
+        existingUser.canInteractHardware, (), "Missing permission: Hardware access"))
+      // Inefficient - queries should be batched into one
+      hardware <- hardwareIds.traverse(id => EitherT(hardwareService.getHardware(Some(existingUser), id, write = true))) // Controlling hardware requires write permission
+        .leftMap(e => f"Database error: ${e.message}")
+      _ <- EitherT.fromEither[IO](Either.cond(hardware.exists(_.isDefined), (), f"Hardware does not exist or you're missing permissions"))
+    } yield existingUser).value
+
   def onMessage(
     inquirer: => Option[ActorRef],
   ): HardwareCameraMessage => MessageResult[IO, HardwareCameraEvent[ActorRef], HardwareCameraState[ActorRef]] =
     HardwareCameraEventEngine.onMessage[ActorRef, IO](
       state,
       IO(state.self ! PoisonPill),
+      auth,
       send,
       publish,
       subscriptionMessage,
@@ -55,17 +73,23 @@ class HardwareCameraActor(
 object HardwareCameraActor {
   def props(
     appConfig: DIPTestbedConfig,
+    userService: UserService[IO],
+    hardwareService: HardwareService[IO],
     pubSubMediator: ActorRef,
     out: ActorRef,
     hardwareIds: List[HardwareId],
   )(implicit
     iort: IORuntime,
-  ): Props = Props(new HardwareCameraActor(appConfig, pubSubMediator, out, hardwareIds))
+  ): Props = Props(new HardwareCameraActor(appConfig, userService, hardwareService, pubSubMediator, out, hardwareIds))
 
   val cameraControlTransformer: MessageFlowTransformer[HardwareCameraMessage, HardwareCameraMessage] =
     websocketFlowTransformer({
       case TextMessage(text) => decode[HardwareCameraMessageExternal](text)
-          .leftMap(e => CloseMessage(Some(CloseCodes.Unacceptable), e.getMessage))
+        .flatMap {
+          case AuthResult(_) => Left(new Exception("Can't force auth externally"))
+          case other => Right(other)
+        }
+        .leftMap(e => CloseMessage(Some(CloseCodes.Unacceptable), e.getMessage))
       case BinaryMessage(bytes: ByteString) =>
         Right(CameraChunk(bytes.toArray))
     }, {

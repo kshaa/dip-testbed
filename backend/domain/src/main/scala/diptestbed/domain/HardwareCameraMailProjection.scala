@@ -4,7 +4,7 @@ import cats.effect.Temporal
 import cats.implicits._
 import diptestbed.domain.HardwareCameraEvent._
 import diptestbed.domain.HardwareCameraListenerMessage.{ListenerCameraChunk, ListenerCameraDropped}
-import diptestbed.domain.HardwareCameraMessage.{CameraSubscription, StopBroadcasting}
+import diptestbed.domain.HardwareCameraMessage._
 
 object HardwareCameraMailProjection {
   def project[F[_]: Temporal, A](
@@ -14,8 +14,13 @@ object HardwareCameraMailProjection {
     subscriptionMessage: (PubSubTopic, A) => Any
   )(state: HardwareCameraState[A], event: HardwareCameraEvent[A]): Option[F[Unit]] = {
     event match {
-      case _: CameraPinged[A] | _: CameraListenerHeartbeatEvent[A] =>
+      case _: CheckingAuth[A] | _: CameraPinged[A] | _: CameraListenerHeartbeatEvent[A] =>
         None
+      case AuthSucceeded(_)   => Some(
+        send(state.camera, AuthResult(None)) >>
+          send(state.self, StartLifecycle()))
+      case AuthFailed(reason) => Some(send(state.camera, AuthResult(Some(reason))))
+
       case BroadcastStopped() => Some(send(state.camera, StopBroadcasting()))
       case Started() =>
         Some(state.hardwareIds.map(hardwareId =>

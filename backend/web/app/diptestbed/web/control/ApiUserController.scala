@@ -11,10 +11,10 @@ import play.api.mvc._
 import diptestbed.database.services.UserService
 import diptestbed.domain.{DIPTestbedConfig, HashedPassword, UserId}
 import diptestbed.protocol._
-import diptestbed.protocol.Codecs._
 import diptestbed.protocol.WebResult._
 import diptestbed.web.ioControls.PipelineOps._
 import diptestbed.web.ioControls._
+import diptestbed.protocol.DomainCodecs._
 
 class ApiUserController(
   val appConfig: DIPTestbedConfig,

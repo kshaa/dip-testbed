@@ -3,6 +3,7 @@ package diptestbed.domain
 import diptestbed.domain.HardwareControlAgentState._
 
 case class HardwareControlState[A](
+  auth: Option[User],
   self: A,
   agent: A,
   hardwareId: HardwareId,
@@ -19,6 +20,7 @@ object HardwareControlState {
     listenerHeartbeatConfig: HardwareListenerHeartbeatConfig,
   ): HardwareControlState[A] =
     HardwareControlState(
+      None,
       self,
       agent,
       hardwareId,

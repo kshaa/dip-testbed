@@ -7,6 +7,7 @@ from src.engine.engine_state import EngineBase
 from src.domain.managed_uuid import ManagedUUID
 from src.domain.positive_integer import PositiveInteger
 from src.service.backend import BackendServiceInterface
+from src.service.backend_config import UserPassAuthConfig
 from src.service.managed_serial import ManagedSerial
 
 
@@ -25,6 +26,8 @@ class EngineAnvylState(EngineCommonState):
     backend: BackendServiceInterface
     heartbeat_seconds: PositiveInteger
     board_state: EngineAnvylBoardState
+
+    auth: UserPassAuthConfig
 
     active_serial: Optional[ManagedSerial] = None
     serial_death: Death = None

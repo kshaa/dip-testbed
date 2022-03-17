@@ -16,6 +16,7 @@ object HardwareSerialMonitorMessageBinary {
 
 sealed trait HardwareSerialMonitorMessageNonBinary extends HardwareSerialMonitorMessage
 object HardwareSerialMonitorMessageNonBinary {
+  case class AuthResult(error: Option[String]) extends HardwareSerialMonitorMessageNonBinary
   case class MonitorUnavailable(reason: String) extends HardwareSerialMonitorMessageNonBinary
   case class ConnectionClosed(reason: String) extends HardwareSerialMonitorMessageNonBinary
 }

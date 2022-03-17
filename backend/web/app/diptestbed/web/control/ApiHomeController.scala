@@ -12,8 +12,8 @@ import diptestbed.domain.DIPTestbedConfig
 import diptestbed.web.ioControls.PipelineOps._
 import diptestbed.web.ioControls._
 import diptestbed.protocol.{Hello, ServiceStatus}
-import diptestbed.protocol.Codecs._
 import diptestbed.protocol.WebResult._
+import diptestbed.protocol.DomainCodecs._
 
 class ApiHomeController(
   val appConfig: DIPTestbedConfig,

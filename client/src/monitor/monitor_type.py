@@ -9,6 +9,7 @@ from src.domain.existing_file_path import ExistingFilePath
 from src.monitor.monitor_serial import MonitorSerial, MonitorSerialHelper
 from src.monitor.monitor_serial_button_led_bytes import MonitorSerialButtonLedBytes
 from src.monitor.monitor_serial_hex_bytes import MonitorSerialHexbytes
+from src.service.backend_config import UserPassAuthConfig
 from src.service.ws import SocketInterface
 from src.util import pymodules
 
@@ -52,12 +53,13 @@ class MonitorType(Enum):
 
     def resolve(
         self,
-        socket: SocketInterface
+        socket: SocketInterface,
+        auth: UserPassAuthConfig
     ) -> Result[MonitorSerial, MonitorResolutionError]:
         # Monitor implementation resolution
         monitor: Optional[MonitorSerial] = None
         if self is MonitorType.hexbytes:
-            monitor = MonitorSerialHexbytes(MonitorSerialHelper(), socket)
+            monitor = MonitorSerialHexbytes(MonitorSerialHelper(), socket, auth)
         elif self is MonitorType.buttonleds:
-            monitor = MonitorSerialButtonLedBytes(MonitorSerialHelper(), socket)
+            monitor = MonitorSerialButtonLedBytes(MonitorSerialHelper(), socket, auth)
         return Ok(monitor)

@@ -1,9 +1,7 @@
 """Module for backend management service definitions"""
 import os
-import urllib.request
 from typing import List, TypeVar, Dict, Optional
 from dataclasses import dataclass
-import base64
 from uuid import UUID
 from result import Result, Ok, Err
 from requests import Response

@@ -11,8 +11,8 @@ import cats.effect.unsafe.IORuntime
 import cats.implicits._
 import diptestbed.database.services.{HardwareService, UserService}
 import diptestbed.domain.{DIPTestbedConfig, HardwareCameraMessage, HardwareControlMessage, HardwareId, HardwareSerialMonitorMessage, SerialConfig, SoftwareId}
+import diptestbed.protocol.DomainCodecs._
 import diptestbed.protocol._
-import diptestbed.protocol.Codecs._
 import diptestbed.protocol.WebResult._
 import diptestbed.web.actors.HardwareCameraActor.cameraControlTransformer
 import diptestbed.web.actors.HardwareControlActor.controlTransformer
@@ -22,6 +22,7 @@ import diptestbed.web.ioControls.PipelineOps._
 import diptestbed.web.ioControls._
 import play.api.mvc.WebSocket.MessageFlowTransformer
 import play.api.mvc._
+
 import scala.concurrent.duration.DurationInt
 
 class ApiHardwareController(
@@ -81,7 +82,7 @@ class ApiHardwareController(
       controlTransformer
     WebSocket.accept[HardwareControlMessage, HardwareControlMessage](_ => {
       BetterActorFlow.actorRef(
-        subscriber => HardwareControlActor.props(appConfig, pubSubMediator, subscriber, hardwareId),
+        subscriber => HardwareControlActor.props(appConfig, userService, hardwareService, pubSubMediator, subscriber, hardwareId),
         maybeName = hardwareId.actorId().text().some,
       )
     })
@@ -109,7 +110,7 @@ class ApiHardwareController(
     WebSocket.accept[HardwareControlMessage, HardwareSerialMonitorMessage](_ => {
       implicit val timeout: Timeout = 60.seconds
       BetterActorFlow.actorRef(subscriber =>
-        HardwareSerialMonitorListenerActor.props(pubSubMediator, subscriber, hardwareId, serialConfig),
+        HardwareSerialMonitorListenerActor.props(pubSubMediator, userService, hardwareService, subscriber, hardwareId, serialConfig),
       )
     })
   }
@@ -120,7 +121,7 @@ class ApiHardwareController(
       cameraControlTransformer
     WebSocket.accept[HardwareCameraMessage, HardwareCameraMessage](_ => {
       BetterActorFlow.actorRef(subscriber =>
-        HardwareCameraActor.props(appConfig, pubSubMediator, subscriber, hardwareIds),
+        HardwareCameraActor.props(appConfig, userService, hardwareService, pubSubMediator, subscriber, hardwareIds),
       )
     })
   }

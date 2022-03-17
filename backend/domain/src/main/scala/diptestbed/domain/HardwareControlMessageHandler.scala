@@ -16,24 +16,37 @@ object HardwareControlMessageHandler {
 
   def handle[A](
     inquirer: => Option[A],
-  )(state: HardwareControlState[A], message: HardwareControlMessage): HardwareControlResult[A] =
-    message match {
-      case _: StartLifecycle                        => Right(NonEmptyList.of(Started()))
-      case _: EndLifecycle                          => Right(NonEmptyList.of(Ended()))
-      case m: UploadSoftwareRequest                 => handleUploadSoftwareRequest(state, inquirer, m)
-      case m: UploadSoftwareResult                  => handleUploadSoftwareResult(state, m)
-      case m: SerialMonitorRequest                  => handleSerialMonitorRequest(state, inquirer, m)
-      case _: SerialMonitorRequestStop              => handleSerialMonitorRequestStop()
-      case m: SerialMonitorResult                   => handleSerialMonitorResult(state, m)
-      case m: SerialMonitorMessageToClient          => handleSerialMonitorMessageToClient(m)
-      case m: SerialMonitorMessageToAgent           => handleSerialMonitorMessageToAgent(m)
-      case _: SerialMonitorListenersHeartbeatStart  => handleSerialMonitorListenersHeartbeatStart()
-      case _: SerialMonitorListenersHeartbeatPing   => Left(NoReaction)
-      case _: SerialMonitorListenersHeartbeatPong   => handleSerialMonitorListenersHeartbeatPong()
-      case _: SerialMonitorListenersHeartbeatFinish => handleSerialMonitorListenersHeartbeatFinish()
-      case m: SerialMonitorUnavailable              => handleMonitorUnavailable(m)
-      case _: Ping                                  => Left(NoReaction)
+  )(state: HardwareControlState[A], message: HardwareControlMessage): HardwareControlResult[A] = {
+    state.auth match {
+      case None =>
+        message match {
+          case m: AuthRequest   => Right(NonEmptyList.of(CheckingAuth(m.username, m.password)))
+          case m: AuthSuccess   => Right(NonEmptyList.of(AuthSucceeded(m.user)))
+          case m: AuthFailure   => Right(NonEmptyList.of(AuthFailed(m.reason)))
+          case _ => Left(NoReaction)
+        }
+      case Some(_) =>
+        message match {
+          case _: StartLifecycle                                => Right(NonEmptyList.of(Started()))
+          case _: EndLifecycle                                  => Right(NonEmptyList.of(Ended()))
+          case m: UploadSoftwareRequest                         => handleUploadSoftwareRequest(state, inquirer, m)
+          case m: UploadSoftwareResult                          => handleUploadSoftwareResult(state, m)
+          case m: SerialMonitorRequest                          => handleSerialMonitorRequest(state, inquirer, m)
+          case _: SerialMonitorRequestStop                      => handleSerialMonitorRequestStop()
+          case m: SerialMonitorResult                           => handleSerialMonitorResult(state, m)
+          case m: SerialMonitorMessageToClient                  => handleSerialMonitorMessageToClient(m)
+          case m: SerialMonitorMessageToAgent                   => handleSerialMonitorMessageToAgent(m)
+          case _: SerialMonitorListenersHeartbeatStart          => handleSerialMonitorListenersHeartbeatStart()
+          case _: SerialMonitorListenersHeartbeatPing           => Left(NoReaction)
+          case _: SerialMonitorListenersHeartbeatPong           => handleSerialMonitorListenersHeartbeatPong()
+          case _: SerialMonitorListenersHeartbeatFinish         => handleSerialMonitorListenersHeartbeatFinish()
+          case m: SerialMonitorUnavailable                      => handleMonitorUnavailable(m)
+          case _: Ping                                          => Left(NoReaction)
+          case _: AuthRequest | _: AuthSuccess | _ :AuthFailure => Left(NoReaction)
+
+        }
     }
+  }
 
   def handleUploadSoftwareRequest[A](
     state: HardwareControlState[A],

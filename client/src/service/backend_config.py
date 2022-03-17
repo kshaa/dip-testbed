@@ -4,15 +4,23 @@ from typing import Optional, Dict
 from dataclasses import dataclass
 from src.service.managed_url import ManagedURL
 
+
 @dataclass
 class AuthConfig:
     def auth_headers(self) -> Dict:
         pass
 
+
 @dataclass
 class UserPassAuthConfig(AuthConfig):
     username: str
     password: str
+
+    def __str__(self):
+        return f"UserPassAuthConfig(...)"
+
+    def __repr__(self):
+        return self.__str__()
 
     def auth_headers(self) -> Dict:
         """Create authentication header"""
@@ -20,6 +28,7 @@ class UserPassAuthConfig(AuthConfig):
         return {
             "Authorization": f"Basic {token}"
         }
+
 
 @dataclass(frozen=True)
 class BackendConfig:
