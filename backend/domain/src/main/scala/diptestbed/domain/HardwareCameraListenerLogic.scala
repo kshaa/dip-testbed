@@ -7,7 +7,7 @@ import diptestbed.domain.EventEngine.MessageResult
 import diptestbed.domain.HardwareCameraListenerEvent._
 import diptestbed.domain.HardwareCameraListenerMessage._
 import diptestbed.domain.HardwareCameraMessage.{CameraListenersHeartbeatPong, CameraSubscription}
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.concurrent.duration.FiniteDuration
 
 case class HardwareCameraListenerState[F[_], T](
   auth: Option[User],

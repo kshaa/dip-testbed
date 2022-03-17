@@ -10,9 +10,6 @@ import io.circe.{Codec, Decoder, Encoder}
 
 object HardwareCameraCodecs {
 
-  private implicit val startLifecycleCodec: Codec[StartLifecycle] = deriveCodec[StartLifecycle]
-  private implicit val endLifecycleCodec: Codec[EndLifecycle] = deriveCodec[EndLifecycle]
-
   private implicit val pingCodec: Codec[Ping] = deriveCodec[Ping]
 
   private implicit val cameraAuthRequestCodec: Codec[AuthRequest] = deriveCodec[AuthRequest]

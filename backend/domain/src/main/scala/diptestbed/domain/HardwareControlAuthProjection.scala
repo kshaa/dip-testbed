@@ -3,10 +3,7 @@ package diptestbed.domain
 import cats.Monad
 import cats.implicits._
 import diptestbed.domain.HardwareControlEvent._
-import diptestbed.domain.HardwareControlMessageExternalBinary._
-import diptestbed.domain.HardwareControlMessageExternalNonBinary._
 import diptestbed.domain.HardwareControlMessageInternal._
-import diptestbed.domain.HardwareSerialMonitorMessageBinary._
 
 object HardwareControlAuthProjection {
   def project[F[_]: Monad, A](

@@ -39,7 +39,7 @@
             @if(user.map(_.id).contains(software.ownerId) || user.exists(_.isManager)) {
               <button type="submit" class="btn btn-sm btn-primary mx-2">Save publicity</button>
             }
-            <a target="_blank" href="@(appConfig.withApiPath(s"/software/${software.id.value}/download"))">
+            <a class="d-flex" target="_blank" href="@(appConfig.withApiPath(s"/software/${software.id.value}/download"))">
               <button type="button" class="btn btn-sm btn-primary">
                 <span>Download</span>
                 <i class="mx-2 fa-solid fa-arrow-up-right-from-square"></i>

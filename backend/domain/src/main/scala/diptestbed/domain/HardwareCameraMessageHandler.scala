@@ -36,6 +36,9 @@ object HardwareCameraMessageHandler {
           case CameraListenersHeartbeatStart()  => Right(NonEmptyList.of(CameraListenerHeartbeatStarted()))
           case CameraListenersHeartbeatPong()   => Right(NonEmptyList.of(CameraListenerHeartbeatReceived()))
           case CameraListenersHeartbeatFinish() => Right(NonEmptyList.of(CameraListenerHeartbeatFinished()))
+          case _: AuthRequest                   => Left(NoReaction())
+          case _: AuthSuccess                   => Left(NoReaction())
+          case _: AuthFailure                   => Left(NoReaction())
         }
     }
 }
