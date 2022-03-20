@@ -21,7 +21,9 @@ module uart_tx_typed_chunker #(
 	// Is the active byte ready to be sent out
 	output is_tx_ready,
 	// The active byte to be sent out
-	output [7:0] tx_data
+	output [7:0] tx_data,
+	// Is typed chunker done sending
+	output is_chunker_done
 );
 	// Readiness to transmit
 	reg r_tx_ready = 0;
@@ -40,6 +42,10 @@ module uart_tx_typed_chunker #(
 	// Registers for sending chunk type
 	reg is_type_escape_sent = 0;
 	reg is_type_value_sent = 0;
+
+	// Registers for sending end-of-chunk
+	reg is_eoc_escape_sent = 0;
+	reg is_eoc_value_sent = 0;
 
 	// FSM states
 	parameter R_CHUNKER_STATE_SIZE = 3;
@@ -80,6 +86,14 @@ module uart_tx_typed_chunker #(
 				end else if (!is_type_value_sent) begin
 					// Sending chunk type value
 					r_tx_data <= chunk_type;
+				end else if (r_chunk_byte_index == (r_chunk_final_byte_index + 1) && !is_eoc_escape_sent) begin
+					// Sending escaped end-of-chunk byte
+					r_tx_data <= 0;
+					is_eoc_escape_sent <= 1;
+				end else if (r_chunk_byte_index == (r_chunk_final_byte_index + 1) && !is_eoc_value_sent) begin
+					// Sending escaped end-of-chunk value
+					r_tx_data <= 1;
+					is_eoc_value_sent <= 1;
 				end else if (active_chunk == 0 && r_did_we_escape_null_already == 0) begin
 					// Escaping a null byte means we just write another null-byte in front of it
 					r_tx_data <= 0;
@@ -112,21 +126,30 @@ module uart_tx_typed_chunker #(
 					end else if (active_chunk == 0 && r_did_we_escape_null_already == 0) begin
 						// We just _escaped_ a null-byte, lets now send the actual null-byte value
 						// i.e. lets not increment r_chunk_byte_index,
-						// because we're only about to send the null-byte value
+						// because we're only about to send the null-byte value (0x00)
 						r_did_we_escape_null_already <= 1;
 						r_chunker_state <= R_CHUNKER_LOADING;
-					end else if (r_chunk_byte_index == r_chunk_final_byte_index) begin
-						// We're done, all chunk bytes written, start idling
-						r_did_we_escape_null_already <= 0;
-						r_chunker_state <= R_CHUNKER_IDLE;
-						r_chunk_byte_index <= 0;
-						is_type_escape_sent <= 0;
-						is_type_value_sent <= 0;
-					end else begin
+					end else if (r_chunk_byte_index <= r_chunk_final_byte_index) begin
 						// More bytes to write in the chunk, keep loading and sending
 						r_did_we_escape_null_already <= 0;
 						r_chunk_byte_index <= r_chunk_byte_index + 1;
 						r_chunker_state <= R_CHUNKER_LOADING;
+					end else if (r_chunk_byte_index == (r_chunk_final_byte_index + 1)) begin
+						// We've written all the bytes
+						if (!is_eoc_escape_sent) begin
+							// We'll send an escaped end-of-chunk byte (0x00)
+							r_chunker_state <= R_CHUNKER_LOADING;
+						end else if (!is_eoc_value_sent) begin
+							// We'll send an end-of-chunk value byte (0x01)
+							r_chunker_state <= R_CHUNKER_LOADING;
+						end else begin
+							// We're done, all chunk bytes written, start idling
+							r_did_we_escape_null_already <= 0;
+							r_chunker_state <= R_CHUNKER_IDLE;
+							r_chunk_byte_index <= 0;
+							is_type_escape_sent <= 0;
+							is_type_value_sent <= 0;
+						end
 					end
 				end
 			end
@@ -136,4 +159,5 @@ module uart_tx_typed_chunker #(
 	// Outputs
 	assign is_tx_ready = r_tx_ready;
 	assign tx_data = r_tx_data;
+	assign is_chunker_done = r_chunker_state == R_CHUNKER_IDLE;
 endmodule

@@ -35,6 +35,35 @@ module main(
 		.o_Rx_Byte(rx_data)
 	);
 
+	// // Buffer-based chunk receiver
+	// parameter RX_BUFFER_BYTE_SIZE = 5;
+	// parameter RX_BUFFER_INDEX_SIZE = 32;
+	
+	// reg r_is_chunk_ready = 0;
+	// reg [7:0] r_chunk_type = 0;
+	// reg [BUFFER_INDEX_SIZE - 1:0] r_chunk_byte_size = 0;
+	// reg [(BUFFER_BYTE_SIZE * 8) - 1:0] r_chunk_bytes = 0;
+	
+	// wire chunk_is_tx_ready;
+	// wire [7:0] chunk_tx_data;
+	
+	// uart_rx_typed_chunker #(
+	// 	.BUFFER_BYTE_SIZE(BUFFER_BYTE_SIZE),
+	// 	.BUFFER_INDEX_SIZE(BUFFER_INDEX_SIZE)
+	// ) uart_rx_typed_chunker_instance (
+	// 	.CLK(CLK),
+	// 	.is_chunk_ready(r_is_chunk_ready),
+	// 	.chunk_byte_size(r_chunk_byte_size),
+	// 	.is_tx_done(is_tx_done),
+	// 	.chunk_bytes(r_chunk_bytes),
+	// 	.chunk_type(r_chunk_type),
+	// 	.is_tx_ready(chunk_is_tx_ready),
+	// 	.tx_data(chunk_tx_data)
+	// );
+
+	// assign is_tx_ready = chunk_is_tx_ready;
+	// assign tx_data = chunk_tx_data;
+
 	// Instantiate NANDLAND's UART TX instance
 	wire is_tx_ready;
 	wire [7:0] tx_data;
@@ -50,20 +79,20 @@ module main(
 	);
 
 	// Buffer-based chunk sender
-	parameter BUFFER_BYTE_SIZE = 5;
-	parameter BUFFER_INDEX_SIZE = 32;
+	parameter TX_BUFFER_BYTE_SIZE = 5;
+	parameter TX_BUFFER_INDEX_SIZE = 32;
 	
 	reg r_is_chunk_ready = 0;
 	reg [7:0] r_chunk_type = 0;
-	reg [BUFFER_INDEX_SIZE - 1:0] r_chunk_byte_size = 0;
-	reg [(BUFFER_BYTE_SIZE * 8) - 1:0] r_chunk_bytes = 0;
+	reg [TX_BUFFER_INDEX_SIZE - 1:0] r_chunk_byte_size = 0;
+	reg [(TX_BUFFER_BYTE_SIZE * 8) - 1:0] r_chunk_bytes = 0;
 	
 	wire chunk_is_tx_ready;
 	wire [7:0] chunk_tx_data;
 	
 	uart_tx_typed_chunker #(
-		.BUFFER_BYTE_SIZE(BUFFER_BYTE_SIZE),
-		.BUFFER_INDEX_SIZE(BUFFER_INDEX_SIZE)
+		.BUFFER_BYTE_SIZE(TX_BUFFER_BYTE_SIZE),
+		.BUFFER_INDEX_SIZE(TX_BUFFER_INDEX_SIZE)
 	) uart_tx_typed_chunker_instance (
 		.CLK(CLK),
 		.is_chunk_ready(r_is_chunk_ready),
@@ -124,7 +153,10 @@ module main(
 			r_ticks = r_ticks + 1;
 
 			// Load data type into chunker
-			r_chunk_type <= 1;
+			// [0x00] [0x00] is reserved for an escaped null-byte
+			// [0x00] [0x01] is reserved for an escaped end of chunk
+			// [0x00] [0x02++] is available for types 
+			r_chunk_type <= 2;
 
 			// Load some random data into chunk
 			r_chunk_bytes[7:0] <= rx_data_reg_prim;
@@ -134,12 +166,13 @@ module main(
 			r_chunk_bytes[39:32] <= rx_data_reg_prim_3;
 
 			// The serial port result for this is:
-			// [0x0] [0x1] 	-- escaped chunk type
+			// [0x0] [0x2] 	-- escaped chunk type
 			// [0x1] 		-- rx_data_reg_prim
 			// [0x2] 		-- rx_data_reg_prim_2
 			// [0x3] 		-- rx_data_reg_prim_3
 			// [0x0] [0x0]	-- escaped null byte
 			// [0x3] 		-- rx_data_reg_prim_3
+			// [0x0] [0x1]	-- escaped end of chunk
 
 			// Turn on chunked TX
 			r_is_chunk_ready <= 1;
