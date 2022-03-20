@@ -259,7 +259,9 @@ class CLIInterface:
         software_name: Optional[str],
         hardware_id_str: str,
         monitor_type_str: str,
-    ) -> Result[DIPRunnable, DIPClientError]:
+        no_monitor: bool,
+        no_stream: bool,
+    ) -> Result[Optional[DIPRunnable], DIPClientError]:
         pass
 
     @staticmethod
@@ -285,7 +287,7 @@ class CLIInterface:
         pass
 
     @staticmethod
-    def execute_runnable_result(agent_result: Result[DIPRunnable, DIPClientError]):
+    def execute_runnable_result(agent_result: Result[Optional[DIPRunnable], DIPClientError]):
         pass
 
     @staticmethod
@@ -830,7 +832,9 @@ class CLI(CLIInterface):
         software_name: Optional[str],
         hardware_id_str: str,
         monitor_type_str: str,
-    ) -> Result[DIPRunnable, DIPClientError]:
+        no_monitor: bool,
+        no_stream: bool,
+    ) -> Result[Optional[DIPRunnable], DIPClientError]:
         # Upload software to platform
         LOGGER.info("Uploading software to platform")
         upload_result = CLI.software_upload(
@@ -843,16 +847,21 @@ class CLI(CLIInterface):
             config_path_str, static_server_str, hardware_id_str, str(software.id.value), username_str, password_str)
         if forward_error is not None: return Err(forward_error)
         # Create serial monitor connection to board
-        LOGGER.info("Configuring serial connection monitor with board")
-        monitor_result = CLI.hardware_serial_monitor(
-            config_path_str, control_server_str, hardware_id_str, monitor_type_str)
-        if isinstance(monitor_result, Err): return Err(monitor_result.value)
+        maybe_monitor = None
+        if not no_monitor:
+            LOGGER.info("Configuring serial connection monitor with board")
+            monitor_result = CLI.hardware_serial_monitor(
+                config_path_str, control_server_str, hardware_id_str, monitor_type_str, username_str, password_str)
+            if isinstance(monitor_result, Err): return Err(monitor_result.value)
+            maybe_monitor = monitor_result.value
         # Open stream in background
-        LOGGER.info("Opening video stream in browser")
-        stream_open_error = CLI.hardware_stream_open(config_path_str, static_server_str, hardware_id_str)
-        if stream_open_error is not None: return Err(stream_open_error)
-        # Return serial monitor
-        return Ok(monitor_result.value)
+        if not no_stream:
+            LOGGER.info("Opening video stream in browser")
+            stream_open_error = CLI.hardware_stream_open(
+                config_path_str, static_server_str, hardware_id_str, username_str, password_str)
+            if stream_open_error is not None: return Err(stream_open_error)
+        # Return monitor if it was started
+        return Ok(maybe_monitor)
 
     @staticmethod
     def parsed_video_config(
@@ -957,17 +966,25 @@ class CLI(CLIInterface):
 
     @staticmethod
     async def execute_runnable_result(
-        runnable_result: Result[DIPRunnable, DIPClientError],
+        runnable_result: Result[Optional[DIPRunnable], DIPClientError],
         success_title: str = "Finished task"
     ):
+        # Report runnable construction error
         if isinstance(runnable_result, Err):
             print_error(runnable_result.value.text())
             return sys.exit(1)
-        runtime_result = await runnable_result.value.run()
-        await asyncio.sleep(0.5) # Hacks to yield to event loop
-        if runtime_result is not None:
-            print_error(runtime_result.text())
-            return sys.exit(1)
+
+        # Execute runnable if it's defined
+        runnable = runnable_result.value
+        if runnable is not None:
+            runtime_result = await runnable.run()
+            await asyncio.sleep(0.5) # Hacks to yield to event loop
+            # Report optional runnable failure
+            if runtime_result is not None:
+                print_error(runtime_result.text())
+                return sys.exit(1)
+
+        # If run didn't happen or was successful, report it accordingly
         print_success(success_title)
         return sys.exit(0)
 

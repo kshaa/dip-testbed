@@ -163,6 +163,18 @@ STREAM_PORT_OPTION = click.option(
     type=str, envvar=f"{ENV_PREFIX}_STREAM_URL", required=False,
     help='Port number for VLC video source (if not is_stream_existing), default: 8081'
 )
+# Quick-run specific
+QUICK_RUN_NO_MONITOR = click.option(
+    '--no-monitor', "no_monitor", show_envvar=True,
+    type=bool, envvar=f"{ENV_PREFIX}_NO_MONITOR", required=False, default=False,
+    help='Don\'t start a serial monitor after a successful upload, default: False'
+)
+QUICK_RUN_NO_STREAM = click.option(
+    '--no-stream', "no_stream", show_envvar=True,
+    type=bool, envvar=f"{ENV_PREFIX}_NO_STREAM", required=False, default=False,
+    help='Don\'t start a debug video stream after a successful upload, default: False'
+)
+
 
 @click.group(context_settings=dict(max_content_width=300))
 def cli_client():
@@ -609,6 +621,8 @@ def hardware_serial_monitor(
 @SOFTWARE_NAME_OPTION
 @HARDWARE_ID_OPTION
 @MONITOR_TYPE_OPTION
+@QUICK_RUN_NO_MONITOR
+@QUICK_RUN_NO_STREAM
 def quick_run(
     config_path_str: Optional[str],
     control_server_str: Optional[str],
@@ -619,6 +633,8 @@ def quick_run(
     software_name: Optional[str],
     hardware_id_str: str,
     monitor_type_str: str,
+    no_monitor: bool,
+    no_stream: bool,
 ):
     """Upload, forward & monitor board software"""
     async def exec():
@@ -632,7 +648,9 @@ def quick_run(
                 software_file_path,
                 software_name,
                 hardware_id_str,
-                monitor_type_str
+                monitor_type_str,
+                no_monitor,
+                no_stream,
             ), "Finished quick run")
     asyncio.run(exec())
 
