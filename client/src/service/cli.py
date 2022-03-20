@@ -841,6 +841,7 @@ class CLI(CLIInterface):
             config_path_str, static_server_str, username_str, password_str, software_name, file_path)
         if isinstance(upload_result, Err): return Err(upload_result.value)
         software: Software = upload_result.value
+        LOGGER.info(f"Uploaded software: {software.id.value}")
         # Forward software to board
         LOGGER.info("Forwarding software to board")
         forward_error = CLI.hardware_software_upload(

@@ -2,6 +2,7 @@
 
 import sys
 import asyncio
+import warnings
 from asyncio import Task, StreamReader
 from typing import Any, Callable, Optional
 import termios
@@ -54,11 +55,12 @@ class MonitorSerialHexbytes(MonitorSerial):
 
     @staticmethod
     async def keep_transmitting_to_agent(
+        death: Death,
         stdin_reader: StreamReader,
         socketlike: SocketInterface[MONITOR_LISTENER_INCOMING_MESSAGE, MONITOR_LISTENER_OUTGOING_MESSAGE]
     ):
         """Send keyboard data from stdin straight to serial monitor socket"""
-        while True:
+        while not death.gracing:
             read_bytes = await stdin_reader.read(1)
             message = SerialMonitorMessageToAgent(read_bytes)
             await socketlike.tx(message)
@@ -121,6 +123,9 @@ class MonitorSerialHexbytes(MonitorSerial):
     async def run(self) -> Optional[DIPClientError]:
         """Receive serial monitor websocket messages & implement user interfacing"""
 
+        # Hack to silence warnings from my bad code
+        warnings.simplefilter("ignore", ResourceWarning)
+
         # Define end-of-monitor on sigkill/sigterm
         asyncio_loop = asyncio.get_event_loop()
         death = Death()
@@ -146,7 +151,7 @@ class MonitorSerialHexbytes(MonitorSerial):
         silencer_code = await stdin_reader.read(7) # The first 7 bytes are the stdin silencer codes
         LOGGER.debug(f"Suppressed 7 stdin silencer bytes: {silencer_code}")
         stdin_capture_task = asyncio_loop.create_task(
-            self.keep_transmitting_to_agent(stdin_reader, self.socket))
+            self.keep_transmitting_to_agent(death, stdin_reader, self.socket))
 
         # Define end-of-hexbytes handler
         handle_finish = partial(
