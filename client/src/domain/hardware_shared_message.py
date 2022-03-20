@@ -4,6 +4,7 @@ from typing import Optional
 from dataclasses import dataclass
 from src.domain.dip_client_error import DIPClientError
 from src.domain.noisy_message import NoisyMessage
+from src.domain.sensitive_message import SensitiveMessage
 
 
 @dataclass(frozen=True)
@@ -17,7 +18,7 @@ class InternalEndLifecycle():
 
 
 @dataclass(frozen=True)
-class AuthRequest():
+class AuthRequest(SensitiveMessage):
     username: str
     password: str
 

@@ -6,6 +6,8 @@ import websockets.client
 import websockets
 from websockets.exceptions import ConnectionClosedError
 from result import Result, Err
+
+from src.domain.sensitive_message import SensitiveMessage
 from src.protocol.codec import Decoder, Encoder
 from src.service.managed_url import ManagedURL
 from src.util import log
@@ -103,7 +105,10 @@ class WebSocket(SocketInterface[PI, PO]):
         try:
             LOGGER.debug("Sending domain message: %s", pformat(data, indent=4))
             message: Union[str, bytes] = self.encoder.encode(data)
-            LOGGER.debug("Sending raw message: %s", pformat(message, indent=4))
+            if isinstance(data, SensitiveMessage):
+                LOGGER.debug("Sending raw sensitive message: <redacted>")
+            else:
+                LOGGER.debug("Sending raw message: %s", pformat(message, indent=4))
             await self.socket.send(message)
             return None
         except Exception as e:
