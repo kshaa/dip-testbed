@@ -1,7 +1,7 @@
 // Import NANDLAND's UART Verilog
-include "uart_rx.v";
-include "uart_tx.v";
-include "uart_tx_chunker.v";
+`include "uart_rx.v"
+`include "uart_tx.v"
+`include "uart_tx_chunker.v"
 
 // Define a UART reader/transmitter FPGA program
 module main(

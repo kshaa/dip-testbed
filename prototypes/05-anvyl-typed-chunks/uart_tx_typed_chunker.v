@@ -1,7 +1,28 @@
 // Buffer-based typed chunk sender
+
+// - Streams byte chunks over a binary stream
+// - Encodes an identifier for every chunk sent
+
+// Chunk types:
+// [0x00] [0x00  ] is reserved for an escaped null-byte
+// [0x00] [0x01  ] is reserved for an escaped end of chunk
+// [0x00] [0x02++] is available for other misc chunk types
+
+// Example transmission:
+// - Suppose we want to send a packet of type [0x02]
+// - And it will have byte content [0x01] [0x02] [0x03]
+// - The chunk in the serial port will look as follows:
+// 		[0x0] [0x2]	-- escaped chunk type
+// 		[0x1] 		-- rx_data_reg_prim
+// 		[0x2] 		-- rx_data_reg_prim_2
+// 		[0x3] 		-- rx_data_reg_prim_3
+// 		[0x0] [0x0]	-- escaped null byte
+// 		[0x3] 		-- rx_data_reg_prim_3
+// 		[0x0] [0x1]	-- escaped end of chunk
+
 module uart_tx_typed_chunker #(
 	// The size of the chunk in bytes (maximum chunk size essentially)
-	parameter BUFFER_BYTE_SIZE = 3,
+	parameter CONTENT_BUFFER_BYTE_SIZE = 3,
 	// How many bits needed to index the whole buffer
 	parameter BUFFER_INDEX_SIZE = 32
 )(
@@ -14,7 +35,7 @@ module uart_tx_typed_chunker #(
 	// State of the last transmission
 	input is_tx_done,
 	// The buffer i.e. bytes i.e. contents of the chunk 
-	input [(BUFFER_BYTE_SIZE * 8) - 1:0] chunk_bytes,
+	input [(CONTENT_BUFFER_BYTE_SIZE * 8) - 1:0] chunk_bytes,
 	// An arbitrary identifier for the chunk
 	// must not be 0, otherwise buggy behaviour will occur 
 	input [7:0] chunk_type,
@@ -149,6 +170,8 @@ module uart_tx_typed_chunker #(
 							r_chunk_byte_index <= 0;
 							is_type_escape_sent <= 0;
 							is_type_value_sent <= 0;
+							is_eoc_escape_sent <= 0;
+							is_eoc_value_sent <= 0;
 						end
 					end
 				end

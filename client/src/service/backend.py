@@ -1,5 +1,6 @@
 """Module for backend management service definitions"""
 import os
+import warnings
 from typing import List, TypeVar, Dict, Optional
 from dataclasses import dataclass
 from uuid import UUID
@@ -294,6 +295,10 @@ class BackendService(BackendServiceInterface):
         """Upload a new software"""
         path = f"{self.config.api_prefix}/software"
         decoder = s11n_json.SOFTWARE_DECODER_JSON
+
+        # Hack to silence warnings from my bad code
+        warnings.simplefilter("ignore", ResourceWarning)
+
         files = {'software': open(file_path.value, 'rb')}
         if software_name is None:
             software_name = os.path.basename(file_path.value)
