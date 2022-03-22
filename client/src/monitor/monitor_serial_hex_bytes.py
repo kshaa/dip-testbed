@@ -81,7 +81,7 @@ class MonitorSerialHexbytes(MonitorSerial):
     @staticmethod
     def render_incoming_message(incoming_message: SerialMonitorMessageToClient):
         for byte_int in incoming_message.content_bytes:
-            render = f"[{hex(byte_int)}:{chr(byte_int)}] "
+            render = f"[{hex(byte_int)}] "
             sys.stdout.buffer.write(str.encode(render))
             sys.stdout.buffer.flush()
 
