@@ -36,7 +36,7 @@ class MinOSChunker:
             content_decoded = content.replace(null_byte + null_byte, null_byte)
             end = chunk[-2:]
             if end != null_byte + one_byte: return Err("Chunk must end w/ 0x00, 0x01")
-            return Ok(Chunk(chunk_type, content))
+            return Ok(Chunk(chunk_type, content_decoded))
         except Exception as e:
             print(e)
             return Err(GenericClientError(f"Failed to decode chunk, reason: {e}"))
