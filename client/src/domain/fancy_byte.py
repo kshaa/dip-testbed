@@ -13,7 +13,7 @@ class FancyByte:
         if len(b) > 1:
             return Err("Only one byte allowed")
         try:
-            return Ok(FancyByte(int.from_bytes(b, "little")))
+            return Ok(FancyByte(int.from_bytes(b, "big")))
         except Exception as e:
             return Err(f"Can't build byte: {e}")
 
@@ -34,3 +34,6 @@ class FancyByte:
 
     def to_char(self) -> str:
         return chr(self.value)
+
+    def to_bytes(self) -> bytes:
+        return self.value.to_bytes(1, byteorder='big')

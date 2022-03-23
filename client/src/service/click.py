@@ -591,6 +591,7 @@ def hardware_software_upload(
 @MONITOR_TYPE_OPTION
 @USERNAME_OPTION
 @PASSWORD_OPTION
+@HEARTBEAT_SECONDS_OPTION
 def hardware_serial_monitor(
     config_path_str: Optional[str],
     control_server_str: Optional[str],
@@ -598,6 +599,7 @@ def hardware_serial_monitor(
     monitor_type_str: str,
     username_str: Optional[str],
     password_str: Optional[str],
+    heartbeat_seconds: int
 ):
     """Monitor hardware's serial port"""
     async def exec():
@@ -607,7 +609,8 @@ def hardware_serial_monitor(
             hardware_id_str,
             monitor_type_str,
             username_str,
-            password_str), "Finished monitoring")
+            password_str,
+            heartbeat_seconds), "Finished monitoring")
     asyncio.run(exec())
 
 

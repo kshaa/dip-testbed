@@ -5,13 +5,16 @@ from enum import Enum, unique
 from typing import Optional
 from result import Result, Err, Ok
 from src.domain.dip_client_error import DIPClientError
-from src.domain.existing_file_path import ExistingFilePath
-from src.monitor.monitor_serial import MonitorSerial, MonitorSerialHelper
+from src.domain.dip_runnable import DIPRunnable
+from src.domain.positive_integer import PositiveInteger
+from src.monitor.monitor_serial import MonitorSerialHelper
 from src.monitor.monitor_serial_button_led_bytes import MonitorSerialButtonLedBytes
 from src.monitor.monitor_serial_hex_bytes import MonitorSerialHexbytes
+from src.monitor.monitor_serial_min_os import MonitorSerialMinOS
+from src.protocol import s11n_hybrid
 from src.service.backend_config import UserPassAuthConfig
-from src.service.ws import SocketInterface
-from src.util import pymodules
+from src.service.managed_url import ManagedURL
+from src.service.ws import WebSocket
 
 
 @dataclass
@@ -42,6 +45,7 @@ class MonitorType(Enum):
     """Choices of available monitor implementations"""
     hexbytes = 0
     buttonleds = 1
+    minos = 2
 
     @staticmethod
     def build(value: str) -> Result['MonitorType', MonitorTypeBuildError]:
@@ -51,15 +55,26 @@ class MonitorType(Enum):
             return Err(MonitorTypeBuildError(value))
         return Ok(monitor_type)
 
+    @staticmethod
+    def socket(url: ManagedURL):
+        decoder = s11n_hybrid.MONITOR_LISTENER_INCOMING_MESSAGE_DECODER
+        encoder = s11n_hybrid.MONITOR_LISTENER_OUTGOING_MESSAGE_ENCODER
+        return WebSocket(url, decoder, encoder)
+
     def resolve(
         self,
-        socket: SocketInterface,
+        heartbeat_seconds: PositiveInteger,
+        socket_url: ManagedURL,
         auth: UserPassAuthConfig
-    ) -> Result[MonitorSerial, MonitorResolutionError]:
+    ) -> Result[DIPRunnable, MonitorResolutionError]:
         # Monitor implementation resolution
-        monitor: Optional[MonitorSerial] = None
+        monitor: Optional[DIPRunnable] = None
         if self is MonitorType.hexbytes:
+            socket = MonitorType.socket(socket_url)
             monitor = MonitorSerialHexbytes(MonitorSerialHelper(), socket, auth)
         elif self is MonitorType.buttonleds:
+            socket = MonitorType.socket(socket_url)
             monitor = MonitorSerialButtonLedBytes(MonitorSerialHelper(), socket, auth)
+        elif self is MonitorType.minos:
+            monitor = MonitorSerialMinOS(heartbeat_seconds, auth, socket_url)
         return Ok(monitor)

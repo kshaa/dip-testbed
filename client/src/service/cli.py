@@ -245,6 +245,7 @@ class CLIInterface:
         monitor_type_str: str,
         username_str: Optional[str],
         password_str: Optional[str],
+        heartbeat_seconds: int,
     ):
         pass
 
@@ -796,6 +797,7 @@ class CLI(CLIInterface):
         monitor_type_str: str,
         username_str: Optional[str],
         password_str: Optional[str],
+        heartbeat_seconds: int,
     ) -> Result[MonitorSerial, DIPClientError]:
         # Build backend
         backend_result = CLI.parsed_backend(config_path_str, control_server_str, None, username_str, password_str)
@@ -815,11 +817,12 @@ class CLI(CLIInterface):
         if isinstance(monitor_serial_result, Err): return Err(monitor_serial_result.value)
         monitor_serial: MonitorType = monitor_serial_result.value
 
+        # Heartbeat
+        heartbeat_seconds_result = PositiveInteger.build(heartbeat_seconds)
+        if isinstance(heartbeat_seconds_result, Err): return Err(heartbeat_seconds_result.value.of_type("heartbeat"))
+
         # Monitor
-        decoder = s11n_hybrid.MONITOR_LISTENER_INCOMING_MESSAGE_DECODER
-        encoder = s11n_hybrid.MONITOR_LISTENER_OUTGOING_MESSAGE_ENCODER
-        websocket = WebSocket(url_result.value, decoder, encoder)
-        return monitor_serial.resolve(websocket, backend.config.auth)
+        return monitor_serial.resolve(heartbeat_seconds_result.value, url_result.value, backend.config.auth)
 
     @staticmethod
     async def quick_run(

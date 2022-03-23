@@ -111,6 +111,7 @@ MONITOR_LISTENER_INCOMING_MESSAGE_CODEC = CodecHybrid(
 
 # protocol.MonitorListenerOutgoingMessage
 MONITOR_LISTENER_OUTGOING_MESSAGE_ENCODER = hybrid_encoder({
+    hardware_shared_message.PingMessage: s11n_json.MONITOR_LISTENER_OUTGOING_MESSAGE_ENCODER_JSON,
     hardware_shared_message.AuthRequest: s11n_json.MONITOR_LISTENER_OUTGOING_MESSAGE_ENCODER_JSON,
     monitor_message.SerialMonitorMessageToAgent: s11n_binary.SERIAL_MONITOR_MESSAGE_TO_AGENT_ENCODER_BINARY
 })

@@ -605,6 +605,7 @@ MONITOR_LISTENER_INCOMING_MESSAGE_CODEC_JSON = CodecJSON(
 
 # protocol.MonitorListenerOutgoingMessage
 MONITOR_LISTENER_OUTGOING_MESSAGE_ENCODER_JSON = named_message_union_encoder_json({
+    hardware_shared_message.PingMessage: ("ping", PING_MESSAGE_ENCODER_JSON),
     hardware_shared_message.AuthRequest: ("authRequest", AUTH_REQUEST_ENCODER_JSON)
 })
 MONITOR_LISTENER_OUTGOING_MESSAGE_DECODER_JSON = named_message_union_decoder_json({

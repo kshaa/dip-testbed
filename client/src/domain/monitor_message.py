@@ -1,13 +1,12 @@
 """Module containing messages sent in monitor connections"""
-import base64
-from typing import Union
+from typing import Union, Any, Callable, List
 from dataclasses import dataclass
-
 from src.domain.hardware_shared_message import AuthRequest, AuthResult
+from src.domain.minos_chunks import Chunk
 from src.domain.noisy_message import NoisyMessage
+from src.util.sh import LOGGER
 
 
-@dataclass(frozen=True)
 class MonitorMessage:
     """Marker trait for monitor messages"""
     pass
@@ -31,5 +30,35 @@ class SerialMonitorMessageToClient(MonitorMessage, NoisyMessage):
     content_bytes: bytes
 
 
+@dataclass(frozen=True)
+class StartTUI(MonitorMessage):
+    pass
+
+
+class AddTUISideEffect(MonitorMessage):
+    event_handler: Any
+
+    def __init__(self, event_handler: Callable[[Any], None]):
+        self.event_handler = event_handler
+
+
+@dataclass(frozen=True)
+class IndexButtonClick(MonitorMessage):
+    button_index: int
+
+
+@dataclass(frozen=True)
+class ReceiveChunks(MonitorMessage):
+    chunks: List[Chunk]
+    leftover: bytes
+
+
 MONITOR_LISTENER_INCOMING_MESSAGE = Union[AuthResult, MonitorUnavailable, SerialMonitorMessageToClient]
 MONITOR_LISTENER_OUTGOING_MESSAGE = Union[AuthRequest, SerialMonitorMessageToAgent]
+
+
+def log_monitor_message(logger: LOGGER, message: Any):
+    if isinstance(message, NoisyMessage):
+        logger.debug(f"Monitor message: {message}")
+    else:
+        logger.info(f"Monitor message: {message}")
