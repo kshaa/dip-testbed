@@ -1,21 +1,17 @@
 """Module for functionality related to serial socket monitor as button/led byte stream, specifically graphics/UI"""
 import asyncio
-import sys
 from functools import partial
-from typing import Callable, Optional, Any, Text
-
+from typing import Optional, Any
 from result import Err
 from textual import events
 from textual.app import App
 from textual.views import GridView
 from textual.widgets import Button
-from src.domain.fancy_byte import FancyByte
-from src.domain.minos_chunks import LEDChunk
-from src.domain.minos_monitor_event import GoodChunkReceived
-from src.domain.monitor_message import IndexButtonClick, AddTUISideEffect
+from src.domain.minos_chunks import LEDChunk, TextChunk
+from src.domain.minos_monitor_event import GoodChunkReceived, TextChanged, ModeSwitched, SwitchesChanged
+from src.domain.monitor_message import AddTUISideEffect, ButtonPress
 from src.engine.monitor.minos.engine_monitor_minos_state import EngineMonitorMinOSState
 from src.util import log
-from src.domain.death import Death
 
 LOGGER = log.timed_named_logger("monitor_button_led_bytes_app")
 
@@ -70,7 +66,7 @@ class ButtonLEDScreen(GridView):
 
         # Make all the switches
         self.switches = [
-            Button(f"S{7 - i} | {k}", style=self.DARK, name=f"S{7 - i} | {k}")
+            Button(f"S{7 - i} | {k}\noff", style=self.DARK, name=f"S{7 - i} | {k}\noff")
             for i, k in enumerate(switch_keys)
         ]
 
@@ -81,15 +77,15 @@ class ButtonLEDScreen(GridView):
         ]
 
         # Make input text
-        input = "foo"
-        self.input_text = Button(f"Input : {input}", style=self.DARK, name="input_text")
+        input = ""
+        self.input_text = Button(f"Input: {input}", style=self.DARK, name="input_text")
 
         # Make output text
-        output = "bar"
-        self.output_text = Button(f"Output: {output}", style=self.DARK, name="output_text")
+        output = ""
+        self.output_text = Button(f"Output <inactive>: {output}", style=self.DARK, name="output_text")
 
         # Make stats
-        self.stats = Button("stats", style=self.DARK, name=f"stats")
+        self.stats = Button("(′ꈍωꈍ‵)", style=self.DARK, name=f"stats")
 
         # Make info
         info = "Information about the UI:\n" \
@@ -160,27 +156,58 @@ class ButtonLEDScreen(GridView):
         self.grid.place(info=self.info)
         self.grid.place(controls=self.controls)
 
-        # Create engine event handlers
-        def on_led_change(fancy_byte: FancyByte, led_index: int, led_on: bool):
+        # LED effect
+        def on_led_change(led_index: int, led_on: bool):
             if 0 <= led_index < len(self.leds):
                 self.leds[led_index].button_style = self.RED if led_on else self.DARK
                 i = str(7 - led_index)
                 s = "on" if led_on else "off"
                 self.leds[led_index].label = f"L{i} | {s}"
-                # hacked_global_app_state_storage.state.last_byte_in = fancy_byte
-                # hacked_global_app_state_storage.state.bytes_in += 1 / 8
-                # self.stats.label = hacked_global_app_state_storage.state.stats()
-        def expect_button_click(event: Any):
-            # print(event)
+
+        def expect_led_change(state: Any, event: Any):
             if not isinstance(event, GoodChunkReceived): return
             if not isinstance(event.parsed_chunk, LEDChunk): return
             fancy_byte = event.parsed_chunk.fancy_byte
             bits = fancy_byte.to_binary_bits()
             for index, is_on in enumerate(bits):
-                on_led_change(fancy_byte, index, is_on)
+                on_led_change(index, is_on)
+        hacked_global_app_state_storage.message(AddTUISideEffect(partial(expect_led_change)))
 
-        hacked_global_app_state_storage.message(AddTUISideEffect(partial(expect_button_click)))
+        # Text out effect
+        def expect_text_out_change(state: Any, event: Any):
+            if isinstance(event, ModeSwitched):
+                text = state.text_out
+                state = "active" if event.is_text_mode else "inactive"
+                self.output_text.label = f"Output <{state}>: {text}"
+            if isinstance(event, TextChanged):
+                text = event.text
+                state = "active" if state.is_text_mode else "inactive"
+                self.output_text.label = f"Output <{state}>: {text}"
+        hacked_global_app_state_storage.message(AddTUISideEffect(partial(expect_text_out_change)))
 
+        # Switch effect
+        def on_switch_change(switch_index: int, switch_on: bool):
+            if 0 <= switch_index < len(self.switches):
+                self.switches[switch_index].button_style = self.RED if switch_on else self.DARK
+                state = "on" if switch_on else "off"
+                self.switches[switch_index].label = f"S{7 - switch_index} | {switch_index + 1}\n{state}"
+
+        def expect_switch_change(state: Any, event: Any):
+            if not isinstance(event, SwitchesChanged): return
+            fancy_byte = event.fancy_byte
+            bits = fancy_byte.to_binary_bits()
+            for index, is_on in enumerate(bits):
+                on_switch_change(index, is_on)
+        hacked_global_app_state_storage.message(AddTUISideEffect(partial(expect_switch_change)))
+
+
+        # Text in effect
+        def expect_text_in_change(state: Any, event: Any):
+            if not isinstance(event, GoodChunkReceived): return
+            if not isinstance(event.parsed_chunk, TextChunk): return
+            self.input_text.label = f"Input: {event.parsed_chunk.text}"
+
+        hacked_global_app_state_storage.message(AddTUISideEffect(partial(expect_text_in_change)))
 
 class MinOSApp(App):
     """TUI app for interacting with LEDs and buttons"""
@@ -193,9 +220,7 @@ class MinOSApp(App):
         await self.bind("escape", "quit")
 
     def on_key(self, event):
-        if event.key in button_keys:
-            button_index = button_keys.index(event.key)
-            hacked_global_app_state_storage.message(IndexButtonClick(button_index))
+        hacked_global_app_state_storage.message(ButtonPress(event.key))
 
     @staticmethod
     async def run_with_state(engine_state: EngineMonitorMinOSState):

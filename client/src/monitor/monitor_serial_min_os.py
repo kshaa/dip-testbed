@@ -1,13 +1,10 @@
 from dataclasses import dataclass
 from typing import Optional
-
-from result import Ok
-
 from src.agent.agent import Agent
 from src.agent.agent_config import AgentConfig
 from src.domain.dip_client_error import DIPClientError
 from src.domain.dip_runnable import DIPRunnable
-from src.domain.minos_chunker import MinOSChunker
+from src.domain.fancy_byte import FancyByte
 from src.domain.positive_integer import PositiveInteger
 from src.engine.engine_auth import EngineAuth
 from src.engine.engine_lifecycle import EngineLifecycle
@@ -30,7 +27,8 @@ class MonitorSerialMinOS(DIPRunnable):
 
     async def run(self) -> Optional[DIPClientError]:
         base = await EngineBase.build()
-        engine_state = EngineMonitorMinOSState(base, self.auth, [], self.heartbeat_seconds, b"")
+        engine_state = EngineMonitorMinOSState(
+            base, self.auth, [], self.heartbeat_seconds, b"", False, "", "", FancyByte.fromInt(0).value)
         engine_lifecycle = EngineLifecycle()
         engine_ping = EnginePing()
         engine_minos_app = EngineMonitorMinOSApp()

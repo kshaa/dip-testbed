@@ -1,6 +1,6 @@
 import math
 from dataclasses import dataclass
-from typing import Iterable
+from typing import List
 from result import Result, Err, Ok
 
 
@@ -25,7 +25,17 @@ class FancyByte:
             return Err("Byte too large")
         return Ok(FancyByte(n))
 
-    def to_binary_bits(self) -> Iterable[bool]:
+    def toggle_bit(self, index: int) -> Result['FancyByte', str]:
+        if index < 0 or index > 7:
+            return Err("Bad bit index")
+        bits = self.to_binary_bits()
+        diff = pow(2, 7 - index)
+        if bits[index]:
+            return Ok(FancyByte(self.value - diff))
+        else:
+            return Ok(FancyByte(self.value + diff))
+
+    def to_binary_bits(self) -> List[bool]:
         str_bits_8 = bin(self.value)[2:].zfill(8)
         return list(map(lambda x: x == "1", str_bits_8))
 

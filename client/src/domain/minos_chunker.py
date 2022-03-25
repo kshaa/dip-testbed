@@ -1,7 +1,7 @@
 from typing import List, Tuple
 from result import Result, Err, Ok
 from src.domain.dip_client_error import DIPClientError, GenericClientError
-from src.domain.minos_chunks import ParsedChunk, LEDChunk, Chunk
+from src.domain.minos_chunks import ParsedChunk, LEDChunk, Chunk, TextChunk
 
 
 class MinOSChunker:
@@ -10,6 +10,8 @@ class MinOSChunker:
         result = Err("Unknown chunk type")
         if chunk.type == LEDChunk.type:
             result = LEDChunk.from_chunk(chunk)
+        if chunk.type == TextChunk.type:
+            result = TextChunk.from_chunk(chunk)
         return result
 
     @staticmethod

@@ -42,3 +42,33 @@ class IndexedButtonChunk(ParsedChunk):
             return Err(GenericClientError(
                 f"Failed to construct indexed button chunk, reason: {fancy_byte_result.value}"))
         return Chunk(self.type, fancy_byte_result.value.to_bytes())
+
+
+@dataclass
+class SwitchChunk(ParsedChunk):
+    fancy_byte: FancyByte
+    type: int = 4
+
+    def to_chunk(self) -> Result[Chunk, DIPClientError]:
+        return Chunk(self.type, self.fancy_byte.to_bytes())
+
+
+@dataclass
+class TextChunk(ParsedChunk):
+    text: str
+    type: int = 5
+
+    def to_chunk(self) -> Result[Chunk, DIPClientError]:
+        text_bytes = str.encode(self.text)
+        return Chunk(self.type, text_bytes)
+
+    @staticmethod
+    def from_chunk(chunk: Chunk) -> Result['TextChunk', DIPClientError]:
+        if chunk.type != TextChunk.type:
+            return Err(GenericClientError("Invalid chunk type for TextChunk"))
+
+        try:
+            text = chunk.content.decode("utf-8")
+            return Ok(TextChunk(text))
+        except Exception as e:
+            return Err(GenericClientError(f"Failed to parse chunk text: {e}"))

@@ -38,13 +38,13 @@ class StartTUI(MonitorMessage):
 class AddTUISideEffect(MonitorMessage):
     event_handler: Any
 
-    def __init__(self, event_handler: Callable[[Any], None]):
+    def __init__(self, event_handler: Callable[[Any, Any], None]):
         self.event_handler = event_handler
 
 
 @dataclass(frozen=True)
-class IndexButtonClick(MonitorMessage):
-    button_index: int
+class ButtonPress(MonitorMessage):
+    key: str
 
 
 @dataclass(frozen=True)
