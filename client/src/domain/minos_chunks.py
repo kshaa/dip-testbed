@@ -72,3 +72,36 @@ class TextChunk(ParsedChunk):
             return Ok(TextChunk(text))
         except Exception as e:
             return Err(GenericClientError(f"Failed to parse chunk text: {e}"))
+
+
+@dataclass
+class DisplayChunk(ParsedChunk):
+    pixel_index: int
+    fancy_byte: FancyByte
+    type: int = 6
+
+    @staticmethod
+    def from_chunk(chunk: Chunk) -> Result['DisplayChunk', DIPClientError]:
+        if chunk.type != DisplayChunk.type:
+            return Err(GenericClientError("Invalid chunk type for DisplayChunk"))
+        if len(chunk.content) != 2:
+            return Err(GenericClientError("Invalid chunk length for DisplayChunk"))
+        pixel_index_byte_result = FancyByte.fromBytes(chunk.content[0:1])
+        if isinstance(pixel_index_byte_result, Err):
+            return Err(GenericClientError(f"Invalid content for DisplayChunk, reason: {pixel_index_byte_result.value}"))
+        fancy_byte_result = FancyByte.fromBytes(chunk.content[1:2])
+        if isinstance(fancy_byte_result, Err):
+            return Err(GenericClientError(f"Invalid content for DisplayChunk, reason: {fancy_byte_result.value}"))
+        return Ok(DisplayChunk(pixel_index_byte_result.value.value, fancy_byte_result.value))
+
+    def r(self):
+        bits = self.fancy_byte.to_binary_bits()
+        return bits[2] * pow(2, 1) + bits[3] * pow(2, 0)
+
+    def g(self):
+        bits = self.fancy_byte.to_binary_bits()
+        return bits[4] * pow(2, 1) + bits[5] * pow(2, 0)
+
+    def b(self):
+        bits = self.fancy_byte.to_binary_bits()
+        return bits[6] * pow(2, 1) + bits[7] * pow(2, 0)

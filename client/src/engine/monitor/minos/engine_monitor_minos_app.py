@@ -1,8 +1,7 @@
 import asyncio
 import dataclasses
-import logging
-import os
 from dataclasses import dataclass
+from os import environ
 from typing import List, Any
 from result import Result, Ok, Err
 from src.domain.dip_client_error import DIPClientError
@@ -80,8 +79,9 @@ class EngineMonitorMinOSApp:
             await previous_state.base.incoming_message_queue.put(StartTUI())
             pass
         elif isinstance(event, StartingTUI):
-            loop = asyncio.get_event_loop()
-            loop.create_task(MinOSApp.run_with_state(previous_state))
+            if environ.get('DEBUG_NO_TUI') != "1":
+                loop = asyncio.get_event_loop()
+                loop.create_task(MinOSApp.run_with_state(previous_state))
         elif isinstance(event, IndexButtonClicked):
             chunk = IndexedButtonChunk(event.button_index).to_chunk()
             encoded = MinOSChunker.encode(chunk)

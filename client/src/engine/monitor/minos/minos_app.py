@@ -7,7 +7,7 @@ from textual import events
 from textual.app import App
 from textual.views import GridView
 from textual.widgets import Button
-from src.domain.minos_chunks import LEDChunk, TextChunk
+from src.domain.minos_chunks import LEDChunk, TextChunk, DisplayChunk
 from src.domain.minos_monitor_event import GoodChunkReceived, TextChanged, ModeSwitched, SwitchesChanged, \
     IndexButtonClicked
 from src.domain.monitor_message import AddTUISideEffect, ButtonPress
@@ -46,7 +46,7 @@ class ButtonLEDScreen(GridView):
     """Screen for interacting with LEDs and buttons"""
 
     # Colors (https://www.ditig.com/256-colors-cheat-sheet)
-    DARKER = "white on rgb(51,51,51)"
+    BLACK = "white on rgb(0,0,0)"
     DARK = "white on rgb(69,69,69)"
     LIGHT = "black on rgb(108,108,108)"
     LIGHTER = "black on rgb(168,168,168)"
@@ -56,7 +56,7 @@ class ButtonLEDScreen(GridView):
         """Event when widget is first mounted (added to a parent view)."""
         # Make all the pixels
         self.pixels = [
-            Button(f"P{i} | off", style=self.DARKER, name=f"P{i}")
+            Button(f"P{i}", style=self.BLACK, name=f"P{i}")
             for i in range(0, 8 * 8)
         ]
 
@@ -80,11 +80,11 @@ class ButtonLEDScreen(GridView):
 
         # Make input text
         input = ""
-        self.input_text = Button(f"Input: {input}", style=self.DARK, name="input_text")
+        self.input_text = Button(f"From board: {input}", style=self.DARK, name="input_text")
 
         # Make output text
         output = ""
-        self.output_text = Button(f"Output <inactive>: {output}", style=self.DARK, name="output_text")
+        self.output_text = Button(f"To board <inactive>: {output}", style=self.DARK, name="output_text")
 
         # Make stats
         self.stats = Button("(′ꈍωꈍ‵)", style=self.DARK, name=f"stats")
@@ -158,6 +158,23 @@ class ButtonLEDScreen(GridView):
         self.grid.place(info=self.info)
         self.grid.place(controls=self.controls)
 
+        # Display effect
+        def on_pixel_change(pixel_index: int, r: int, g: int, b: int):
+            if 0 <= pixel_index < len(self.pixels):
+                self.pixels[pixel_index].button_style = f"white on rgb({r},{g},{b})"
+                self.pixels[pixel_index].label = f"P{pixel_index}."
+                async def toggle_back():
+                    await asyncio.sleep(0.01)
+                    self.pixels[pixel_index].label = f"P{pixel_index}"
+                asyncio.create_task(toggle_back())
+
+        def expect_pixel_change(state: Any, event: Any):
+            if not isinstance(event, GoodChunkReceived): return
+            if not isinstance(event.parsed_chunk, DisplayChunk): return
+            c = event.parsed_chunk
+            on_pixel_change(c.pixel_index, c.r() * 85, c.g() * 85, c.b() * 85)
+        hacked_global_app_state_storage.message(AddTUISideEffect(partial(expect_pixel_change)))
+
         # LED effect
         def on_led_change(led_index: int, led_on: bool):
             if 0 <= led_index < len(self.leds):
@@ -180,11 +197,11 @@ class ButtonLEDScreen(GridView):
             if isinstance(event, ModeSwitched):
                 text = state.text_out
                 state = "active" if event.is_text_mode else "inactive"
-                self.output_text.label = f"Output <{state}>: {text}"
+                self.output_text.label = f"To board <{state}>: {text}"
             if isinstance(event, TextChanged):
                 text = event.text
                 state = "active" if state.is_text_mode else "inactive"
-                self.output_text.label = f"Output <{state}>: {text}"
+                self.output_text.label = f"To board <{state}>: {text}"
         hacked_global_app_state_storage.message(AddTUISideEffect(partial(expect_text_out_change)))
 
         # Button effect
@@ -220,7 +237,7 @@ class ButtonLEDScreen(GridView):
         def expect_text_in_change(state: Any, event: Any):
             if not isinstance(event, GoodChunkReceived): return
             if not isinstance(event.parsed_chunk, TextChunk): return
-            self.input_text.label = f"Input: {event.parsed_chunk.text}"
+            self.input_text.label = f"From board: {event.parsed_chunk.text}"
 
         hacked_global_app_state_storage.message(AddTUISideEffect(partial(expect_text_in_change)))
 

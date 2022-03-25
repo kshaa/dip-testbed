@@ -10,6 +10,8 @@
 `include "v_leds.v"
 // Import kshaa's virtual interface "switches"
 `include "v_switches.v"
+// Import kshaa's virtual interface "display"
+`include "v_display.v"
 
 // Define kshaa's MinOS module that abstracts over UART and exposes some virtual interfaces
 module min_os(
@@ -22,6 +24,9 @@ module min_os(
 
 	// Virtual interface "leds"
 	input [7:0] leds,
+
+	// Virtual interface "display"
+	input [64 * 8 - 1:0] display,
 
 	// Virtual interface "switches"
 	output [7:0] switches
@@ -123,6 +128,30 @@ module min_os(
 		.reset(r_leds_reset)
 	);
 
+	// Instantiate virtual interface "display"
+	parameter DISPLAY_INTERFACE_TX_CHUNK_TYPE = 6;
+	parameter DISPLAY_BUFFER_BYTE_SIZE = 64;
+	parameter DISPLAY_BUFFER_INDEX_SIZE = 32;
+
+	reg r_display_reset = 0;
+	
+	wire display_should_update;
+	wire [7:0] display_tx_chunk_type;
+	wire [15:0] display_tx_chunk_bytes;
+
+	v_display #(
+		.INTERFACE_TX_CHUNK_TYPE(DISPLAY_INTERFACE_TX_CHUNK_TYPE),
+		.DISPLAY_BUFFER_BYTE_SIZE(DISPLAY_BUFFER_BYTE_SIZE),
+		.DISPLAY_BUFFER_INDEX_SIZE(DISPLAY_BUFFER_INDEX_SIZE)
+	) v_display_instance (
+		.CLK(CLK),
+		.display(display),
+		.should_update(display_should_update),
+		.tx_chunk_type(display_tx_chunk_type),
+		.tx_chunk_bytes(display_tx_chunk_bytes),
+		.reset(r_display_reset)
+	);
+
 	// Instantiate virtual interface "switches"
 	parameter SWITCHES_INTERFACE_RX_CHUNK_TYPE = 4;
 	v_switches #(
@@ -139,23 +168,39 @@ module min_os(
 	);
 
 	// An FSM "MinOS" which schedules sending out virtual interface data over the serial interface
-	parameter R_MINOS_STATE_SIZE = 3;
+	parameter R_MINOS_STATE_SIZE = 4;
 	parameter R_MINOS_IDLE = 0;
-	parameter R_MINOS_LEDS_START_WRITING = 1;
-	parameter R_MINOS_LEDS_STOP_WRITING = 2;
-	parameter R_MINOS_LEDS_WAIT_TRANSMISSION = 3;
-	parameter R_MINOS_FINISHED = 4;
+	
+	parameter R_MINOS_LEDS_CHECK = 1;
+	parameter R_MINOS_LEDS_START_WRITING = 2;
+	parameter R_MINOS_LEDS_STOP_WRITING = 3;
+	parameter R_MINOS_LEDS_WAIT_TRANSMISSION = 4;
+	
+	parameter R_MINOS_DISPLAY_CHECK = 5;
+	parameter R_MINOS_DISPLAY_START_WRITING = 6;
+	parameter R_MINOS_DISPLAY_STOP_WRITING = 7;
+	parameter R_MINOS_DISPLAY_WAIT_TRANSMISSION = 8;
+	
+	parameter R_MINOS_FINISHED = 9;
+
 	reg [R_MINOS_STATE_SIZE - 1:0] r_minos_state = R_MINOS_IDLE;
  
 	always @(posedge CLK)
 	begin
 		case (r_minos_state)
 			R_MINOS_IDLE: begin
-				if (leds_should_update) begin
-					r_minos_state <= R_MINOS_LEDS_START_WRITING;
+				if (leds_should_update || display_should_update) begin
+					r_minos_state <= R_MINOS_LEDS_CHECK;
 				end
 			end
 
+			R_MINOS_LEDS_CHECK: begin
+				if (leds_should_update) begin
+					r_minos_state <= R_MINOS_LEDS_START_WRITING;
+				end else begin
+					r_minos_state <= R_MINOS_DISPLAY_CHECK;
+				end
+			end
 			R_MINOS_LEDS_START_WRITING: begin
 				// Load received chunk type into transmitted chunk type
 				r_tx_chunk_type <= leds_tx_chunk_type;
@@ -180,6 +225,42 @@ module min_os(
 				r_minos_state <= R_MINOS_LEDS_WAIT_TRANSMISSION;
 			end
 			R_MINOS_LEDS_WAIT_TRANSMISSION: begin
+				if (is_tx_chunker_done) begin
+					r_minos_state <= R_MINOS_DISPLAY_CHECK;
+				end
+			end
+
+			R_MINOS_DISPLAY_CHECK: begin
+				if (display_should_update) begin
+					r_minos_state <= R_MINOS_DISPLAY_START_WRITING;
+				end else begin
+					r_minos_state <= R_MINOS_FINISHED;
+				end
+			end
+			R_MINOS_DISPLAY_START_WRITING: begin
+				// Load received chunk type into transmitted chunk type
+				r_tx_chunk_type <= display_tx_chunk_type;
+
+				// Load received chunk data into transmitted chunk data
+				r_tx_chunk_bytes[15:0] <= display_tx_chunk_bytes;
+
+				// Trigger chunked TX
+				r_tx_is_chunk_ready <= 1;
+				r_tx_chunk_byte_size <= 2;
+
+				// Inform virtual interface that the update has happened
+				r_display_reset <= 1;
+
+				// Stop sending data to chunker and wait for the transmission to finish
+				r_minos_state <= R_MINOS_DISPLAY_STOP_WRITING;
+			end
+			R_MINOS_DISPLAY_STOP_WRITING: begin
+				r_tx_is_chunk_ready <= 0;
+				r_tx_chunk_byte_size <= 0;
+				r_display_reset <= 0;
+				r_minos_state <= R_MINOS_DISPLAY_WAIT_TRANSMISSION;
+			end
+			R_MINOS_DISPLAY_WAIT_TRANSMISSION: begin
 				if (is_tx_chunker_done) begin
 					r_minos_state <= R_MINOS_FINISHED;
 				end

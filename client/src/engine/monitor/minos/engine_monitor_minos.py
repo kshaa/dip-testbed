@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from os import environ
 from typing import List, Optional
 from result import Result
 from src.domain.dip_client_error import DIPClientError
@@ -38,12 +39,12 @@ class EngineMonitorMinOS(Engine[
         await self.state.base.incoming_message_queue.put(InternalEndLifecycle(reason))
 
     async def pre_process_message(self, previous_state: EngineMonitorMinOSState, message: HardwareVideoMessage):
-        # log_monitor_message(MESSAGE_LOGGER, message)
-        pass
+        if environ.get('DEBUG_NO_TUI') == "1":
+            log_monitor_message(MESSAGE_LOGGER, message)
 
     async def pre_process_event(self, previous_state: EngineMonitorMinOSState, event: COMMON_ENGINE_EVENT):
-        # log_event(EVENT_LOGGER, event)
-        pass
+        if environ.get('DEBUG_NO_TUI') == "1":
+            log_event(EVENT_LOGGER, event)
 
     def message_project(
         self,
