@@ -8,7 +8,8 @@ from textual.app import App
 from textual.views import GridView
 from textual.widgets import Button
 from src.domain.minos_chunks import LEDChunk, TextChunk
-from src.domain.minos_monitor_event import GoodChunkReceived, TextChanged, ModeSwitched, SwitchesChanged
+from src.domain.minos_monitor_event import GoodChunkReceived, TextChanged, ModeSwitched, SwitchesChanged, \
+    IndexButtonClicked
 from src.domain.monitor_message import AddTUISideEffect, ButtonPress
 from src.engine.monitor.minos.engine_monitor_minos_state import EngineMonitorMinOSState
 from src.util import log
@@ -44,10 +45,11 @@ button_keys = [
 class ButtonLEDScreen(GridView):
     """Screen for interacting with LEDs and buttons"""
 
-    # Colors (https://chrisyeh96.github.io/2020/03/28/terminal-colors.html)
+    # Colors (https://www.ditig.com/256-colors-cheat-sheet)
     DARKER = "white on rgb(51,51,51)"
     DARK = "white on rgb(69,69,69)"
-    LIGHT = "black on rgb(165,165,165)"
+    LIGHT = "black on rgb(108,108,108)"
+    LIGHTER = "black on rgb(168,168,168)"
     RED = "white on rgb(215,0,0)"
 
     def on_mount(self, event: events.Mount) -> None:
@@ -72,7 +74,7 @@ class ButtonLEDScreen(GridView):
 
         # Make all the buttons
         self.buttons = [
-            Button(f"B{i} | {k}", style=self.LIGHT, name=f"B{i} | {k}")
+            Button(f"B{i} | {k}", style=self.LIGHTER, name=f"B{i} | {k}")
             for (i, k) in enumerate(button_keys)
         ]
 
@@ -185,6 +187,20 @@ class ButtonLEDScreen(GridView):
                 self.output_text.label = f"Output <{state}>: {text}"
         hacked_global_app_state_storage.message(AddTUISideEffect(partial(expect_text_out_change)))
 
+        # Button effect
+        def expect_button_press(state: Any, event: Any):
+            if isinstance(event, IndexButtonClicked):
+                i = event.button_index
+                k = button_keys[i]
+                self.buttons[i].button_style = self.LIGHT
+                self.buttons[i].label = f"B{i} | ."
+                async def toggle_back():
+                    await asyncio.sleep(0.2)
+                    self.buttons[i].button_style = self.LIGHTER
+                    self.buttons[i].label = f"B{i} | {k}"
+                asyncio.create_task(toggle_back())
+        hacked_global_app_state_storage.message(AddTUISideEffect(partial(expect_button_press)))
+
         # Switch effect
         def on_switch_change(switch_index: int, switch_on: bool):
             if 0 <= switch_index < len(self.switches):
@@ -200,7 +216,6 @@ class ButtonLEDScreen(GridView):
                 on_switch_change(index, is_on)
         hacked_global_app_state_storage.message(AddTUISideEffect(partial(expect_switch_change)))
 
-
         # Text in effect
         def expect_text_in_change(state: Any, event: Any):
             if not isinstance(event, GoodChunkReceived): return
@@ -208,6 +223,7 @@ class ButtonLEDScreen(GridView):
             self.input_text.label = f"Input: {event.parsed_chunk.text}"
 
         hacked_global_app_state_storage.message(AddTUISideEffect(partial(expect_text_in_change)))
+
 
 class MinOSApp(App):
     """TUI app for interacting with LEDs and buttons"""

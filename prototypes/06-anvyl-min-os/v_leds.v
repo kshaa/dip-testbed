@@ -5,7 +5,7 @@ module v_leds #(
 	input CLK,
 
 	// active led state
-	input [7:0] LEDS,
+	input [7:0] leds,
 	// signal to inform the user of this module that leds
 	// have changed their value and should be updated i.e. sent out over UART 
 	output should_update,
@@ -32,8 +32,8 @@ module v_leds #(
 	begin
 		case (r_vleds_state)
 			R_VLEDS_IDLE: begin
-				if (LEDS != r_last_leds) begin
-					r_last_leds <= LEDS;
+				if (leds != r_last_leds) begin
+					r_last_leds <= leds;
 					r_vleds_state <= R_VLEDS_SHOULD_UPDATE; 
 				end
 			end

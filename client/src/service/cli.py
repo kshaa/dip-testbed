@@ -262,6 +262,7 @@ class CLIInterface:
         monitor_type_str: str,
         no_monitor: bool,
         no_stream: bool,
+        heartbeat_seconds: int,
     ) -> Result[Optional[DIPRunnable], DIPClientError]:
         pass
 
@@ -837,6 +838,7 @@ class CLI(CLIInterface):
         monitor_type_str: str,
         no_monitor: bool,
         no_stream: bool,
+        heartbeat_seconds: int,
     ) -> Result[Optional[DIPRunnable], DIPClientError]:
         # Upload software to platform
         LOGGER.info("Uploading software to platform")
@@ -855,7 +857,8 @@ class CLI(CLIInterface):
         if not no_monitor:
             LOGGER.info("Configuring serial connection monitor with board")
             monitor_result = CLI.hardware_serial_monitor(
-                config_path_str, control_server_str, hardware_id_str, monitor_type_str, username_str, password_str)
+                config_path_str, control_server_str, hardware_id_str, monitor_type_str,
+                username_str, password_str, heartbeat_seconds)
             if isinstance(monitor_result, Err): return Err(monitor_result.value)
             maybe_monitor = monitor_result.value
         # Open stream in background

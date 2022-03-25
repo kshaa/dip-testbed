@@ -626,6 +626,7 @@ def hardware_serial_monitor(
 @MONITOR_TYPE_OPTION
 @QUICK_RUN_NO_MONITOR
 @QUICK_RUN_NO_STREAM
+@HEARTBEAT_SECONDS_OPTION
 def quick_run(
     config_path_str: Optional[str],
     control_server_str: Optional[str],
@@ -638,6 +639,7 @@ def quick_run(
     monitor_type_str: str,
     no_monitor: bool,
     no_stream: bool,
+    heartbeat_seconds: int,
 ):
     """Upload, forward & monitor board software"""
     async def exec():
@@ -654,6 +656,7 @@ def quick_run(
                 monitor_type_str,
                 no_monitor,
                 no_stream,
+                heartbeat_seconds,
             ), "Finished quick run")
     asyncio.run(exec())
 

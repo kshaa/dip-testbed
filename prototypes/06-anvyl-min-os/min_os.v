@@ -6,8 +6,10 @@
 `include "uart_tx_typed_chunker.v"
 // Import kshaa's typed & chunked UART RX
 `include "uart_rx_typed_chunker.v"
-// Import kshaa's virtual interface "LEDS"
+// Import kshaa's virtual interface "leds"
 `include "v_leds.v"
+// Import kshaa's virtual interface "switches"
+`include "v_switches.v"
 
 // Define kshaa's MinOS module that abstracts over UART and exposes some virtual interfaces
 module min_os(
@@ -18,8 +20,11 @@ module min_os(
 	input T19,
 	output T20,
 
-	// Virtual interface "LEDs"
-	input [7:0] LEDS
+	// Virtual interface "leds"
+	input [7:0] leds,
+
+	// Virtual interface "switches"
+	output [7:0] switches
 );
 	// Instantiate NANDLAND's UART RX instance
 	wire [7:0] rx_data;
@@ -98,7 +103,7 @@ module min_os(
 	assign is_tx_ready = chunk_is_tx_ready;
 	assign tx_data = chunk_tx_data;
 
-	// Instantiate virtual interface "LEDS"
+	// Instantiate virtual interface "leds"
 	parameter LEDS_INTERFACE_TX_CHUNK_TYPE = 2;
 
 	reg r_leds_reset = 0;
@@ -111,11 +116,26 @@ module min_os(
 		.INTERFACE_TX_CHUNK_TYPE(LEDS_INTERFACE_TX_CHUNK_TYPE)
 	) v_leds_instance (
 		.CLK(CLK),
-		.LEDS(LEDS),
+		.leds(leds),
 		.should_update(leds_should_update),
 		.tx_chunk_type(leds_tx_chunk_type),
 		.tx_chunk_bytes(leds_tx_chunk_bytes),
 		.reset(r_leds_reset)
+	);
+
+	// Instantiate virtual interface "switches"
+	parameter SWITCHES_INTERFACE_RX_CHUNK_TYPE = 4;
+	v_switches #(
+		.INTERFACE_RX_CHUNK_TYPE(SWITCHES_INTERFACE_RX_CHUNK_TYPE),
+		.RX_CONTENT_BUFFER_BYTE_SIZE(RX_CONTENT_BUFFER_BYTE_SIZE),
+		.RX_CONTENT_BUFFER_INDEX_SIZE(RX_CONTENT_BUFFER_INDEX_SIZE)
+	) v_switches_instance (
+		.CLK(CLK),
+		.rx_chunk_type(rx_chunk_type),
+		.rx_chunk_bytes(rx_chunk_bytes),
+		.rx_chunk_byte_size(rx_chunk_byte_size),
+		.rx_is_chunk_ready(rx_is_chunk_ready),
+		.switches(switches)
 	);
 
 	// An FSM "MinOS" which schedules sending out virtual interface data over the serial interface
