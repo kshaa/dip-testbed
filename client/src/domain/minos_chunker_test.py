@@ -18,12 +18,15 @@ class TestMinOSChunker(unittest.TestCase):
         chunk1 = Chunk(3, b'potat1')
         chunk2 = Chunk(4, b'pot' + null_byte + b'at2')
         chunk3 = Chunk(5, b'potat3')
+        chunk4 = Chunk(5, b'potat4')
         encoded1 = MinOSChunker.encode(chunk1)
         encoded2 = MinOSChunker.encode(chunk2)
         encoded3 = MinOSChunker.encode(chunk3)
-        stream = encoded1[4:] + encoded1 + encoded2 + encoded3 + encoded3[0:-5]
-        decoded_stream = MinOSChunker.decode_stream(stream)
-        self.assertEqual(decoded_stream, ([chunk1, chunk2, chunk3], encoded3[0:-5]))
+        encoded4 = MinOSChunker.encode(chunk4)
+        stream = encoded1[4:] + encoded1 + encoded2 + encoded3 + encoded4 + encoded3[0:-5]
+        chunks, garbage, leftover = MinOSChunker.decode_stream(stream)
+        self.assertEqual(chunks, [chunk1, chunk2, chunk3, chunk4])
+        self.assertEqual(leftover, encoded3[0:-5])
 
 
 if __name__ == '__main__':

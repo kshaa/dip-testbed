@@ -91,8 +91,8 @@ class EngineMonitorMinOSApp:
             encoded = MinOSChunker.encode(chunk)
             await previous_state.base.outgoing_message_queue.put(SerialMonitorMessageToAgent(encoded))
         elif isinstance(event, ReceivedChunkBytes):
-            chunks, leftover = MinOSChunker.decode_stream(event.old_stream + event.incoming)
-            await previous_state.base.incoming_message_queue.put(ReceiveChunks(chunks, leftover))
+            chunks, garbage, leftover = MinOSChunker.decode_stream(event.old_stream + event.incoming)
+            await previous_state.base.incoming_message_queue.put(ReceiveChunks(chunks, garbage, leftover))
         elif isinstance(event, TextToAgent):
             chunk = TextChunk(event.text).to_chunk()
             encoded = MinOSChunker.encode(chunk)

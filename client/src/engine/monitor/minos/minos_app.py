@@ -1,5 +1,6 @@
 """Module for functionality related to serial socket monitor as button/led byte stream, specifically graphics/UI"""
 import asyncio
+from dataclasses import dataclass
 from functools import partial
 from typing import Optional, Any
 from result import Err
@@ -160,19 +161,36 @@ class ButtonLEDScreen(GridView):
 
         # Display effect
         def on_pixel_change(pixel_index: int, r: int, g: int, b: int):
-            if 0 <= pixel_index < len(self.pixels):
-                self.pixels[pixel_index].button_style = f"white on rgb({r},{g},{b})"
-                self.pixels[pixel_index].label = f"P{pixel_index}."
-                async def toggle_back():
-                    await asyncio.sleep(0.01)
-                    self.pixels[pixel_index].label = f"P{pixel_index}"
-                asyncio.create_task(toggle_back())
+            color = f"white on rgb({r},{g},{b})"
+            if pixel_index < 0: return
+            if pixel_index >= len(self.pixels): return
+            if self.pixels[pixel_index].button_style == color: return
+
+            self.pixels[pixel_index].button_style = color
+            if self.pixels[pixel_index].label[-1] == "\n":
+                self.pixels[pixel_index].label = f"P{pixel_index}"
+            else:
+                self.pixels[pixel_index].label = f"\nP{pixel_index}\n"
+
+        @dataclass
+        class PixelBatching:
+            batched_pixels = []
+            max_fps = 10
+        pixel_batching = PixelBatching()
+
+        async def display_loop():
+            while not hacked_global_app_state_storage.engine_state.base.death.gracing:
+                await asyncio.sleep(1 / pixel_batching.max_fps)
+                for c in pixel_batching.batched_pixels:
+                    on_pixel_change(c.pixel_index, c.r() * 85, c.g() * 85, c.b() * 85)
+                pixel_batching.batched_pixels = []
+        asyncio.create_task(display_loop())
 
         def expect_pixel_change(state: Any, event: Any):
             if not isinstance(event, GoodChunkReceived): return
             if not isinstance(event.parsed_chunk, DisplayChunk): return
             c = event.parsed_chunk
-            on_pixel_change(c.pixel_index, c.r() * 85, c.g() * 85, c.b() * 85)
+            pixel_batching.batched_pixels.append(c)
         hacked_global_app_state_storage.message(AddTUISideEffect(partial(expect_pixel_change)))
 
         # LED effect

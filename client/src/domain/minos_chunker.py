@@ -46,24 +46,25 @@ class MinOSChunker:
             return Err(GenericClientError(f"Failed to decode chunk, reason: {e}"))
 
     @staticmethod
-    def decode_stream(stream: bytes) -> Tuple[List[Chunk], bytes]:
+    def decode_stream(stream: bytes) -> Tuple[List[Chunk], List[bytes], bytes]:
         """Parses as many chunks as possible in the stream and also returns the unfinished chunk"""
         null_byte: bytes = (0).to_bytes(1, byteorder='big')
         one_byte: bytes = (1).to_bytes(1, byteorder='big')
 
         end_index = None
         chunks = []
+        garbage = []
         leftover = stream
-        a = 0
-        while ((end_index is None) or (end_index != -1)) and (a < 5):
-            a = a + 1
+        while ((end_index is None) or (end_index != -1)):
             is_init = end_index is None
             end_index = leftover.find(null_byte + one_byte)
-            if is_init:
+            if is_init or end_index == -1:
                 continue
             chunk_bytes = leftover[0:(end_index + 2)]
             leftover = leftover[(end_index + 2):]
             chunk_result = MinOSChunker.decode(chunk_bytes)
             if isinstance(chunk_result, Ok):
                 chunks.append(chunk_result.value)
-        return chunks, leftover
+            else:
+                garbage.append(chunk_bytes)
+        return chunks, garbage, leftover

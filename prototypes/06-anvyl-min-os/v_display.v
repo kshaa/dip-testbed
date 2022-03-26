@@ -24,7 +24,7 @@ module v_display #(
 	reg [(DISPLAY_BUFFER_BYTE_SIZE * 8) - 1:0] r_old_display = 0;
 	reg [(DISPLAY_BUFFER_BYTE_SIZE * 8) - 1:0] r_new_display = 0;
 	reg [(DISPLAY_BUFFER_BYTE_SIZE * 8) - 1:0] r_display = 0;
-	// Should we update and send out the value of LEDs again?
+	// Active updated pixel index and chunk contents
 	reg [DISPLAY_BUFFER_INDEX_SIZE - 1:0] r_update_index = 0;
 	reg [15:0] r_update_value = 0;
 	// The TX chunk type
@@ -52,19 +52,15 @@ module v_display #(
 			end
 			R_VDISPLAY_SHOULD_PREPARE_UPDATE: begin
 				for (buffer_iterator = 0; buffer_iterator < DISPLAY_BUFFER_BYTE_SIZE; buffer_iterator = buffer_iterator + 1)
-					if (r_update_index == buffer_iterator && r_new_display[buffer_iterator * 8 +: 8] != r_old_display[buffer_iterator * 8 +: 8]) begin
+					if (r_update_index == buffer_iterator) begin
 						r_update_value[7:0] <= r_update_index;
 						r_update_value[15:8] <= r_new_display[buffer_iterator * 8 +: 8];
-						r_vdisplay_state <= R_VDISPLAY_SHOULD_UPDATE;
-					end else if (r_update_index < (DISPLAY_BUFFER_BYTE_SIZE - 1)) begin
-						r_update_index <= r_update_index + 1;
-					end else begin
-						r_vdisplay_state <= R_VDISPLAY_FINISH;
 					end
+				r_vdisplay_state <= R_VDISPLAY_SHOULD_UPDATE;
 			end
 			R_VDISPLAY_SHOULD_UPDATE: begin
 				if (reset) begin
-					if (r_update_index < (DISPLAY_BUFFER_BYTE_SIZE - 1)) begin
+					if (r_update_index <= (DISPLAY_BUFFER_BYTE_SIZE - 1)) begin
 						r_update_index <= r_update_index + 1;
 						r_vdisplay_state <= R_VDISPLAY_SHOULD_PREPARE_UPDATE;
 					end else begin

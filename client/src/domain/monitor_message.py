@@ -50,6 +50,7 @@ class ButtonPress(MonitorMessage):
 @dataclass(frozen=True)
 class ReceiveChunks(MonitorMessage):
     chunks: List[Chunk]
+    garbage: List[bytes]
     leftover: bytes
 
 
