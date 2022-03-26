@@ -12,6 +12,8 @@
 `include "v_switches.v"
 // Import kshaa's virtual interface "display"
 `include "v_display.v"
+// Import kshaa's virtual interface "buttons"
+`include "v_buttons.v"
 
 // Define kshaa's MinOS module that abstracts over UART and exposes some virtual interfaces
 module min_os(
@@ -26,10 +28,14 @@ module min_os(
 	input [7:0] leds,
 
 	// Virtual interface "display"
-	input [64 * 8 - 1:0] display,
+	input [511:0] display, // 64 bytes
 
 	// Virtual interface "switches"
-	output [7:0] switches
+	output [7:0] switches,
+
+	// Virtual interface "buttons"
+	output [7:0] button_index,
+	output button_pressed
 );
 	// Instantiate NANDLAND's UART RX instance
 	wire [7:0] rx_data;
@@ -165,6 +171,22 @@ module min_os(
 		.rx_chunk_byte_size(rx_chunk_byte_size),
 		.rx_is_chunk_ready(rx_is_chunk_ready),
 		.switches(switches)
+	);
+
+	// Instantiate virtual interface "buttons"
+	parameter BUTTONS_INTERFACE_RX_CHUNK_TYPE = 3;
+	v_buttons #(
+		.INTERFACE_RX_CHUNK_TYPE(BUTTONS_INTERFACE_RX_CHUNK_TYPE),
+		.RX_CONTENT_BUFFER_BYTE_SIZE(RX_CONTENT_BUFFER_BYTE_SIZE),
+		.RX_CONTENT_BUFFER_INDEX_SIZE(RX_CONTENT_BUFFER_INDEX_SIZE)
+	) v_buttons_instance (
+		.CLK(CLK),
+		.rx_chunk_type(rx_chunk_type),
+		.rx_chunk_bytes(rx_chunk_bytes),
+		.rx_chunk_byte_size(rx_chunk_byte_size),
+		.rx_is_chunk_ready(rx_is_chunk_ready),
+		.button_index(button_index),
+		.button_pressed(button_pressed)
 	);
 
 	// An FSM "MinOS" which schedules sending out virtual interface data over the serial interface

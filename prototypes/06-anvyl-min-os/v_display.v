@@ -22,6 +22,7 @@ module v_display #(
 	// What's the last updated value of LEDs
 	reg [7:0] r_last_leds = 0;
 	reg [(DISPLAY_BUFFER_BYTE_SIZE * 8) - 1:0] r_old_display = 0;
+	reg [(DISPLAY_BUFFER_BYTE_SIZE * 8) - 1:0] r_new_display = 0;
 	reg [(DISPLAY_BUFFER_BYTE_SIZE * 8) - 1:0] r_display = 0;
 	// Should we update and send out the value of LEDs again?
 	reg [DISPLAY_BUFFER_INDEX_SIZE - 1:0] r_update_index = 0;
@@ -30,10 +31,11 @@ module v_display #(
 	reg [7:0] r_tx_chunk_type = INTERFACE_TX_CHUNK_TYPE;
 
 	// An FSM to receive leds and send them out over UART when they're changed
-	parameter R_VDISPLAY_STATE_SIZE = 2;
+	parameter R_VDISPLAY_STATE_SIZE = 3;
 	parameter R_VDISPLAY_IDLE = 0;
 	parameter R_VDISPLAY_SHOULD_PREPARE_UPDATE = 1;
 	parameter R_VDISPLAY_SHOULD_UPDATE = 2;
+	parameter R_VDISPLAY_FINISH = 3;
 	reg [R_VDISPLAY_STATE_SIZE - 1:0] r_vdisplay_state = R_VDISPLAY_IDLE;
  
  	integer buffer_iterator = 0;
@@ -43,21 +45,21 @@ module v_display #(
 			R_VDISPLAY_IDLE: begin
 				if (display != r_display) begin
 					r_old_display <= r_display;
-					r_display <= display;
+					r_new_display <= display;
 					r_update_index <= 0;
 					r_vdisplay_state <= R_VDISPLAY_SHOULD_PREPARE_UPDATE;
 				end
 			end
 			R_VDISPLAY_SHOULD_PREPARE_UPDATE: begin
 				for (buffer_iterator = 0; buffer_iterator < DISPLAY_BUFFER_BYTE_SIZE; buffer_iterator = buffer_iterator + 1)
-					if (r_update_index == buffer_iterator && r_display[buffer_iterator * 8 +: 8] != r_old_display[buffer_iterator * 8 +: 8]) begin
+					if (r_update_index == buffer_iterator && r_new_display[buffer_iterator * 8 +: 8] != r_old_display[buffer_iterator * 8 +: 8]) begin
 						r_update_value[7:0] <= r_update_index;
-						r_update_value[15:8] <= r_display[buffer_iterator * 8 +: 8];
+						r_update_value[15:8] <= r_new_display[buffer_iterator * 8 +: 8];
 						r_vdisplay_state <= R_VDISPLAY_SHOULD_UPDATE;
 					end else if (r_update_index < (DISPLAY_BUFFER_BYTE_SIZE - 1)) begin
 						r_update_index <= r_update_index + 1;
 					end else begin
-						r_vdisplay_state <= R_VDISPLAY_IDLE;
+						r_vdisplay_state <= R_VDISPLAY_FINISH;
 					end
 			end
 			R_VDISPLAY_SHOULD_UPDATE: begin
@@ -66,9 +68,13 @@ module v_display #(
 						r_update_index <= r_update_index + 1;
 						r_vdisplay_state <= R_VDISPLAY_SHOULD_PREPARE_UPDATE;
 					end else begin
-						r_vdisplay_state <= R_VDISPLAY_IDLE;
+						r_vdisplay_state <= R_VDISPLAY_FINISH;
 					end
 				end
+			end
+			R_VDISPLAY_FINISH: begin
+				r_display <= r_new_display;
+				r_vdisplay_state <= R_VDISPLAY_IDLE;
 			end
 		endcase
 	end
