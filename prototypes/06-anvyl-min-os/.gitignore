@@ -1,3 +1,12 @@
+# Visualizations
+*.json
+*.png
+*.svg
+!skin.svg
+
+# Simulations
+*.vvp
+*.vcd
 
 # Created by https://www.gitignore.io/api/xilinxise
 

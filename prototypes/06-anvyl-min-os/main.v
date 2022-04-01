@@ -1,5 +1,9 @@
 // Import kshaa's UART-based MinOS
 `include "min_os.v"
+// Arbitrary logic for per-second counter
+`include "main_counter.v"
+// Arbitrary logic for flashing light and moving block display 
+`include "main_flashes_and_blocks.v"
 
 // Define a UART reader/transmitter FPGA program
 module main(
@@ -20,107 +24,32 @@ module main(
 	output LD6,
 	output LD7
 );
-	// Design a counter:
-	// - r_ticks is incremented on every clock cycle
-	// - r_counter is incremented every time r_ticks reaches sleep_ticks
-	// - r_flipper is flipped every time r_ticks reaches sleep_ticks
-	// - every time r_counter is incremented, r_ticks is reset
-	reg [7:0] r_counter = 0; 
-	reg r_flipper = 0;
-	reg r_flipper_changed = 0;
-	parameter sleep_ticks = 32'd100000000;
-	reg [31:0] r_ticks = 0;
-	always @(posedge CLK)
-	begin
-		if (r_ticks < sleep_ticks) begin
-			// Tick clock
-			r_ticks = r_ticks + 1;
-		end else if (r_ticks == sleep_ticks) begin
-			// Tick clock
-			r_ticks = r_ticks + 1;
-			// Increment counter
-			r_counter <= r_counter + 1;
-			// Flip flipper
-			r_flipper <= !r_flipper;
-			// Trigger display re-draw
-			r_flipper_changed <= 1;
-		end else if (r_ticks > sleep_ticks) begin
-			// Reset clock
-			r_ticks = 0;
-			// Stop display update
-			r_flipper_changed <= 0;
-		end
-	end
+	// Counter instance
+	wire [7:0] counter;
+	wire flipper;
+	wire tick;
+	main_counter main_counter_instance (
+		.CLK(CLK),
+		.counter(counter),
+		.flipper(flipper),
+		.tick(tick)
+	);
 
 	// Design an output byte to render to virtual and physical LEDs
 	// If any switch bit is on, the switch is the output
 	// If all switches are off, the counter is the output
-	wire [7:0] output_byte = switches == 0 ? r_counter : switches;
+	wire [7:0] output_byte = switches == 0 ? counter : switches;
 
 	// Design a coordinate system w/ two points controlled by buttons
-	reg r_indexes_changed = 0;
-	reg [7:0] a_index = 9;
-	parameter A_LEFT = 8;
-	parameter A_RIGHT = 10;
-	parameter A_UP = 1;
-	parameter A_DOWN = 9;
-	reg [7:0] b_index = 14;
-	parameter B_LEFT = 11;
-	parameter B_RIGHT = 13;
-	parameter B_UP = 4;
-	parameter B_DOWN = 12;
-	
-	always @(posedge CLK)
-	begin
-		if (button_pressed) begin
-			if (button_index == A_LEFT && (a_index % 8) > 0) begin
-				a_index <= a_index - 1;
-			end else if (button_pressed && button_index == A_RIGHT && (a_index % 8) < 7) begin
-				a_index <= a_index + 1;
-			end else if (button_pressed && button_index == A_UP && (a_index / 8) > 0) begin
-				a_index <= a_index - 8;
-			end else if (button_pressed && button_index == A_DOWN && (a_index / 8) < 7) begin
-				a_index <= a_index + 8;
-			end else if (button_index == B_LEFT && (b_index % 8) > 0) begin
-				b_index <= b_index - 1;
-			end else if (button_pressed && button_index == B_RIGHT && (b_index % 8) < 7) begin
-				b_index <= b_index + 1;
-			end else if (button_pressed && button_index == B_UP && (b_index / 8) > 0) begin
-				b_index <= b_index - 8;
-			end else if (button_pressed && button_index == B_DOWN && (b_index / 8) < 7) begin
-				b_index <= b_index + 8;
-			end 
-			// Trigger display change
-			r_indexes_changed <= 1;
-		end else if (display_logic_changed) begin
-			// If button unpressed, remember to toggle off display changes
-			r_indexes_changed <= 0;
-		end
-	end
-
-	// Design a display with some flipping bits in three corners
-	wire display_logic_changed = r_flipper_changed || r_indexes_changed;
-	reg [511:0] r_display = 0; // 64 bytes
-	integer display_iterator = 0;
-	always @(posedge CLK)
-	begin
-		for (display_iterator = 0; display_iterator < 64; display_iterator = display_iterator + 1)
-			if (display_logic_changed) begin
-				if (a_index == display_iterator) begin
-					r_display[display_iterator * 8 +: 8] <= 8'b00111111;
-				end else if (b_index == display_iterator) begin
-					r_display[display_iterator * 8 +: 8] <= 8'b00010101;
-				end else if (0 == display_iterator && r_flipper) begin
-					r_display[display_iterator * 8 +: 8] <= 8'b00110000;
-				end else if (7 == display_iterator && r_flipper) begin
-					r_display[display_iterator * 8 +: 8] <= 8'b00001100;
-				end else if (56 == display_iterator && r_flipper) begin
-					r_display[display_iterator * 8 +: 8] <= 8'b00000011;
-				end else begin
-					r_display[display_iterator * 8 +: 8] <= 8'b00000000;
-				end
-			end
-	end
+	wire [511:0] display;
+	main_flashes_and_blocks main_flashes_and_blocks_instance(
+		.CLK(CLK),
+		.flipper(flipper),
+		.tick(tick),
+		.button_pressed(button_pressed),
+		.button_index(button_index),
+		.display(display)
+	);
 
 	// Instantiate kshaa's UART-based MinOS:
 	// - with output_byte assigned to virtual interface "leds"
@@ -129,13 +58,12 @@ module main(
 	wire [7:0] switches;
 	wire [7:0] button_index;
 	wire button_pressed;
-
 	min_os min_os_instance (
 		.CLK(CLK),
 		.T19(T19),
 		.T20(T20),
 		.leds(output_byte),
-		.display(r_display),
+		.display(display),
 		.switches(switches),
 		.button_index(button_index),
 		.button_pressed(button_pressed)
