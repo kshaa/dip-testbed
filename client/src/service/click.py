@@ -86,6 +86,26 @@ MONITOR_TYPE_OPTION = click.option(
     show_envvar=True, envvar=f"{ENV_PREFIX}_MONITOR_TYPE", required=False, default=MonitorType.buttonleds.name,
     help="Sets the type of monitor implementation to be used")
 
+MONITOR_MINOSREQUEST_SPEC_FILE_OPTION = click.option(
+    "--minos-spec-file", "minos_spec_file", type=str,
+    show_envvar=True, envvar=f"{ENV_PREFIX}_MINOS_SPEC_FILE", required=False,
+    help="JSON file with MinOS request specification")
+
+MONITOR_MINOSREQUEST_SPEC_JSON_OPTION = click.option(
+    "--minos-spec-json", "minos_spec_json", type=str,
+    show_envvar=True, envvar=f"{ENV_PREFIX}_MINOS_SPEC_JSON", required=False,
+    help="JSON content with MinOS request specification")
+
+MONITOR_MINOSREQUEST_SPEC_TIMEOUT_OPTION = click.option(
+    "--minos-spec-timeout", "minos_spec_timeout", type=int,
+    show_envvar=True, envvar=f"{ENV_PREFIX}_MINOS_SPEC_TIMEOUT", required=False,
+    help="Maximum time in milliseconds to wait for packets/chunks in MinOS request")
+
+MONITOR_MINOSREQUEST_SPEC_EXPECT_CHUNKS = click.option(
+    "--minos-spec-chunks", "minos_spec_chunks", type=int,
+    show_envvar=True, envvar=f"{ENV_PREFIX}_MINOS_SPEC_CHUNKS", required=False,
+    help="How many packets/chunks to wait for in MinOS request")
+
 # Formatting
 JSON_OUTPUT_OPTION = click.option(
     "--json-output", '-j', "json_output", show_envvar=True, default=False,
@@ -592,6 +612,10 @@ def hardware_software_upload(
 @USERNAME_OPTION
 @PASSWORD_OPTION
 @HEARTBEAT_SECONDS_OPTION
+@MONITOR_MINOSREQUEST_SPEC_FILE_OPTION
+@MONITOR_MINOSREQUEST_SPEC_JSON_OPTION
+@MONITOR_MINOSREQUEST_SPEC_TIMEOUT_OPTION
+@MONITOR_MINOSREQUEST_SPEC_EXPECT_CHUNKS
 def hardware_serial_monitor(
     config_path_str: Optional[str],
     control_server_str: Optional[str],
@@ -599,7 +623,11 @@ def hardware_serial_monitor(
     monitor_type_str: str,
     username_str: Optional[str],
     password_str: Optional[str],
-    heartbeat_seconds: int
+    heartbeat_seconds: int,
+    minos_spec_file: Optional[str],
+    minos_spec_json: Optional[str],
+    minos_spec_timeout: Optional[int],
+    minos_spec_chunks: Optional[int],
 ):
     """Monitor hardware's serial port"""
     async def exec():
@@ -610,7 +638,12 @@ def hardware_serial_monitor(
             monitor_type_str,
             username_str,
             password_str,
-            heartbeat_seconds), "Finished monitoring")
+            heartbeat_seconds,
+            minos_spec_file,
+            minos_spec_json,
+            minos_spec_timeout,
+            minos_spec_chunks,
+        ), monitor_type_str == MonitorType.minosrequest, "Finished monitoring")
     asyncio.run(exec())
 
 
@@ -627,6 +660,10 @@ def hardware_serial_monitor(
 @QUICK_RUN_NO_MONITOR
 @QUICK_RUN_NO_STREAM
 @HEARTBEAT_SECONDS_OPTION
+@MONITOR_MINOSREQUEST_SPEC_FILE_OPTION
+@MONITOR_MINOSREQUEST_SPEC_JSON_OPTION
+@MONITOR_MINOSREQUEST_SPEC_TIMEOUT_OPTION
+@MONITOR_MINOSREQUEST_SPEC_EXPECT_CHUNKS
 def quick_run(
     config_path_str: Optional[str],
     control_server_str: Optional[str],
@@ -640,6 +677,10 @@ def quick_run(
     no_monitor: bool,
     no_stream: bool,
     heartbeat_seconds: int,
+    minos_spec_file: Optional[str],
+    minos_spec_json: Optional[str],
+    minos_spec_timeout: Optional[int],
+    minos_spec_chunks: Optional[int],
 ):
     """Upload, forward & monitor board software"""
     async def exec():
@@ -657,7 +698,11 @@ def quick_run(
                 no_monitor,
                 no_stream,
                 heartbeat_seconds,
-            ), "Finished quick run")
+                minos_spec_file,
+                minos_spec_json,
+                minos_spec_timeout,
+                minos_spec_chunks,
+            ), monitor_type_str == MonitorType.minosrequest, "Finished quick run")
     asyncio.run(exec())
 
 @CLI_COMMAND

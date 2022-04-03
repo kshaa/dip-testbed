@@ -2,7 +2,7 @@
 from typing import Union, Any, Callable, List
 from dataclasses import dataclass
 from src.domain.hardware_shared_message import AuthRequest, AuthResult
-from src.domain.minos_chunks import Chunk
+from src.domain.minos_chunks import Chunk, ParsedChunk
 from src.domain.noisy_message import NoisyMessage
 from src.util.sh import LOGGER
 
@@ -40,6 +40,11 @@ class AddTUISideEffect(MonitorMessage):
 
     def __init__(self, event_handler: Callable[[Any, Any], None]):
         self.event_handler = event_handler
+
+
+@dataclass(frozen=True)
+class SendParsedChunk(MonitorMessage):
+    parsed_chunk: ParsedChunk
 
 
 @dataclass(frozen=True)

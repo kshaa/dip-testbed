@@ -4,6 +4,8 @@ from functools import partial
 from typing import Type, TypeVar, Dict, Tuple, List
 from result import Result, Err, Ok
 from src.domain.managed_uuid import ManagedUUID
+from src.domain.minos_chunks import TextChunk, ParsedChunk, DisplayChunk, LEDChunk
+from src.engine.monitor.minos.minos_suite import MinOSSuite, MinOSSuitePacket
 from src.protocol.codec import CodecParseException
 from src.domain import hardware_control_message, backend_entity, backend_management_message, monitor_message, config, \
     hardware_shared_message, hardware_video_message
@@ -760,3 +762,108 @@ def config_service_encode_json(value: ConfigService) -> JSON:
 
 
 CONFIG_SERVICE_ENCODER_JSON: EncoderJSON[ConfigService] = EncoderJSON(config_service_encode_json)
+
+
+# MinOSSuitePacket
+def minos_suite_packet_encode_json(value: MinOSSuitePacket) -> JSON:
+    """Serialize MinOSSuitePacket into JSON"""
+    chunk = value.parsed_chunk
+    if isinstance(chunk, TextChunk):
+        payload = chunk.text
+    elif isinstance(chunk, DisplayChunk):
+        payload = {
+            "index": chunk.pixel_index,
+            "bits": chunk.fancy_byte.to_binary_bits()
+        }
+    elif isinstance(chunk, LEDChunk):
+        payload = chunk.fancy_byte.to_binary_bits()
+    else:
+        raise CodecParseException(f"This encoder can't encode {type(value).__name__}")
+
+    return {
+        "type": value.parsed_chunk.type_text(),
+        "payload": payload,
+        "sentAt": value.sent_at,
+        "outgoing": value.outgoing
+    }
+
+
+def minos_suite_packet_decode_json(
+    value: JSON,
+) -> Result[MinOSSuitePacket, CodecParseException]:
+    """Un-serialize MinOSSuitePacket from JSON"""
+    if not isinstance(value, dict):
+        return Err(CodecParseException("MinOSPacket must be an object"))
+    outgoing = value.get("outgoing")
+    if outgoing is None:
+        outgoing = True
+    if not isinstance(outgoing, bool):
+        return Err(CodecParseException("MinOSPacket outgoing must be a boolean or None"))
+    sent_at = value.get("sentAt")
+    if not isinstance(sent_at, int):
+        return Err(CodecParseException("MinOSPacket sentAt must be an integer"))
+    packet_type = value.get("type")
+    payload = value.get("payload")
+    parsed_chunk: ParsedChunk
+    if packet_type == TextChunk.type_text():
+        if not isinstance(payload, str):
+            return Err(CodecParseException("MinOSPacket text chunk payload must be a string"))
+        parsed_chunk = TextChunk(payload)
+    else:
+        return Err(CodecParseException(f"MinOSPacket type unknown"))
+    return Ok(MinOSSuitePacket(parsed_chunk, sent_at, outgoing))
+
+
+COMMON_MINOS_SUITE_PACKET_ENCODER_JSON: EncoderJSON[MinOSSuitePacket] = EncoderJSON(minos_suite_packet_encode_json)
+COMMON_MINOS_SUITE_PACKET_DECODER_JSON: DecoderJSON[MinOSSuitePacket] = DecoderJSON(minos_suite_packet_decode_json)
+COMMON_MINOS_SUITE_PACKET_CODEC_JSON: CodecJSON[MinOSSuitePacket] = CodecJSON(
+    COMMON_MINOS_SUITE_PACKET_DECODER_JSON,
+    COMMON_MINOS_SUITE_PACKET_ENCODER_JSON)
+
+
+# MinOSSuite
+def minos_suite_encode_json(value: MinOSSuite) -> JSON:
+    """Serialize MinOSSuite into JSON"""
+    packets = []
+    for packet in value.chunks:
+        encoded = COMMON_MINOS_SUITE_PACKET_ENCODER_JSON.json_encode(packet)
+        packets.append(encoded)
+    return {
+        "chunks": packets,
+        "tresholdTime": value.treshold_time,
+        "tresholdChunks": value.treshold_chunks,
+        "startTime": value.start_time
+    }
+
+
+def minos_suite_decode_json(
+    value: JSON,
+) -> Result[MinOSSuite, CodecParseException]:
+    """Un-serialize MinOSSuite from JSON"""
+    if not isinstance(value, dict):
+        return Err(CodecParseException("MinOSSuite must be an object"))
+    chunks = value.get("chunks")
+    if not isinstance(chunks, list):
+        return Err(CodecParseException(f"MinOSSuite packets must be a list"))
+    suite_packets_result = list_decode_json(COMMON_MINOS_SUITE_PACKET_DECODER_JSON, chunks)
+    if isinstance(suite_packets_result, Err):
+        return Err(CodecParseException(f"MinOSSuite packets invalid: {suite_packets_result.value}"))
+    treshold_time = value.get("tresholdTime")
+    if not isinstance(treshold_time, int):
+        return Err(CodecParseException(f"MinOSSuite tresholdTime must be an integer"))
+    treshold_chunks = value.get("tresholdChunks")
+    if not isinstance(treshold_chunks, int):
+        return Err(CodecParseException(f"MinOSSuite tresholdChunks must be an integer"))
+    start_time = value.get("startTime")
+    if start_time is None:
+        start_time = 0
+    if not isinstance(start_time, int):
+        return Err(CodecParseException("MinOSPacket startTime must be an integer"))
+    return Ok(MinOSSuite(suite_packets_result.value, treshold_time, treshold_chunks, start_time))
+
+
+COMMON_MINOS_SUITE_ENCODER_JSON: EncoderJSON[MinOSSuite] = EncoderJSON(minos_suite_encode_json)
+COMMON_MINOS_SUITE_DECODER_JSON: DecoderJSON[MinOSSuite] = DecoderJSON(minos_suite_decode_json)
+COMMON_MINOS_SUITE_CODEC_JSON: CodecJSON[MinOSSuite] = CodecJSON(
+    COMMON_MINOS_SUITE_DECODER_JSON,
+    COMMON_MINOS_SUITE_ENCODER_JSON)

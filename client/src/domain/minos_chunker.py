@@ -7,14 +7,13 @@ from src.domain.minos_chunks import ParsedChunk, LEDChunk, Chunk, TextChunk, Dis
 class MinOSChunker:
     @staticmethod
     def parse_chunk(chunk: Chunk) -> Result[ParsedChunk, DIPClientError]:
-        result = Err("Unknown chunk type")
-        if chunk.type == LEDChunk.type:
-            result = LEDChunk.from_chunk(chunk)
-        if chunk.type == TextChunk.type:
-            result = TextChunk.from_chunk(chunk)
-        if chunk.type == DisplayChunk.type:
-            result = DisplayChunk.from_chunk(chunk)
-        return result
+        if chunk.type == LEDChunk.type():
+            return LEDChunk.from_chunk(chunk)
+        if chunk.type == TextChunk.type():
+            return TextChunk.from_chunk(chunk)
+        if chunk.type == DisplayChunk.type():
+            return DisplayChunk.from_chunk(chunk)
+        return Err("Unknown chunk type")
 
     @staticmethod
     def encode(chunk: Chunk) -> bytes:

@@ -58,6 +58,11 @@ class GoodChunkReceived(MinOSMonitorEvent):
 
 
 @dataclass(frozen=True)
+class SendingParsedChunk(MinOSMonitorEvent):
+    parsed_chunk: ParsedChunk
+
+
+@dataclass(frozen=True)
 class ModeSwitched(MinOSMonitorEvent):
     is_text_mode: bool
 

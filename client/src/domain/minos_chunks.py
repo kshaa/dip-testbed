@@ -5,11 +5,6 @@ from src.domain.fancy_byte import FancyByte
 
 
 @dataclass
-class ParsedChunk:
-    pass
-
-
-@dataclass
 class Chunk:
     # Type must be >= 2
     type: int
@@ -17,13 +12,34 @@ class Chunk:
 
 
 @dataclass
+class ParsedChunk:
+    @staticmethod
+    def type() -> int:
+        pass
+
+    @staticmethod
+    def type_text() -> str:
+        pass
+
+    def to_chunk(self) -> Chunk:
+        pass
+
+
+@dataclass
 class LEDChunk(ParsedChunk):
     fancy_byte: FancyByte
-    type: int = 2
+
+    @staticmethod
+    def type() -> int:
+        return 2
+
+    @staticmethod
+    def type_text() -> str:
+        return "led"
 
     @staticmethod
     def from_chunk(chunk: Chunk) -> Result['LEDChunk', DIPClientError]:
-        if chunk.type != LEDChunk.type:
+        if chunk.type != LEDChunk.type():
             return Err(GenericClientError("Invalid chunk type for LEDChunk"))
         fancy_byte_result = FancyByte.fromBytes(chunk.content)
         if isinstance(fancy_byte_result, Err):
@@ -34,37 +50,55 @@ class LEDChunk(ParsedChunk):
 @dataclass
 class IndexedButtonChunk(ParsedChunk):
     button_index: int
-    type: int = 3
+
+    @staticmethod
+    def type() -> int:
+        return 3
+
+    @staticmethod
+    def type_text() -> str:
+        return "button"
 
     def to_chunk(self) -> Result[Chunk, DIPClientError]:
         fancy_byte_result = FancyByte.fromInt(self.button_index)
-        if isinstance(fancy_byte_result, Err):
-            return Err(GenericClientError(
-                f"Failed to construct indexed button chunk, reason: {fancy_byte_result.value}"))
-        return Chunk(self.type, fancy_byte_result.value.to_bytes())
+        return Chunk(self.type(), fancy_byte_result.value.to_bytes())
 
 
 @dataclass
 class SwitchChunk(ParsedChunk):
     fancy_byte: FancyByte
-    type: int = 4
+
+    @staticmethod
+    def type() -> int:
+        return 4
+
+    @staticmethod
+    def type_text() -> str:
+        return "switch"
 
     def to_chunk(self) -> Result[Chunk, DIPClientError]:
-        return Chunk(self.type, self.fancy_byte.to_bytes())
+        return Chunk(self.type(), self.fancy_byte.to_bytes())
 
 
 @dataclass
 class TextChunk(ParsedChunk):
     text: str
-    type: int = 5
 
-    def to_chunk(self) -> Result[Chunk, DIPClientError]:
+    @staticmethod
+    def type() -> int:
+        return 5
+
+    @staticmethod
+    def type_text() -> str:
+        return "text"
+
+    def to_chunk(self) -> Chunk:
         text_bytes = str.encode(self.text)
-        return Chunk(self.type, text_bytes)
+        return Chunk(self.type(), text_bytes)
 
     @staticmethod
     def from_chunk(chunk: Chunk) -> Result['TextChunk', DIPClientError]:
-        if chunk.type != TextChunk.type:
+        if chunk.type != TextChunk.type():
             return Err(GenericClientError("Invalid chunk type for TextChunk"))
 
         try:
@@ -78,11 +112,18 @@ class TextChunk(ParsedChunk):
 class DisplayChunk(ParsedChunk):
     pixel_index: int
     fancy_byte: FancyByte
-    type: int = 6
+
+    @staticmethod
+    def type() -> int:
+        return 6
+
+    @staticmethod
+    def type_text() -> str:
+        return "display"
 
     @staticmethod
     def from_chunk(chunk: Chunk) -> Result['DisplayChunk', DIPClientError]:
-        if chunk.type != DisplayChunk.type:
+        if chunk.type != DisplayChunk.type():
             return Err(GenericClientError("Invalid chunk type for DisplayChunk"))
         if len(chunk.content) != 2:
             return Err(GenericClientError("Invalid chunk length for DisplayChunk"))

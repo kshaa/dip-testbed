@@ -6,6 +6,8 @@ from uuid import UUID
 from result import Ok, Err
 
 from src.domain.managed_uuid import ManagedUUID
+from src.domain.minos_chunks import TextChunk
+from src.engine.monitor.minos.minos_suite import MinOSSuite, MinOSSuitePacket
 from src.protocol import s11n_json
 from src.protocol.codec import CodecParseException
 from src.domain import hardware_control_message
@@ -63,6 +65,45 @@ class TestS11nJSON(unittest.TestCase):
             CodecParseException("Failed to decode any named message from decoder union")
         self.assertTrue(isinstance(bad_unserialization, Err))
         self.assertEqual(bad_unserialization.value, bad_unserialization_expectation)
+
+    def test_minos_suite_codec(self):
+        codec = s11n_json.COMMON_MINOS_SUITE_CODEC_JSON
+        input = MinOSSuite([
+            MinOSSuitePacket(
+                TextChunk("potat"),
+                1000,
+                True
+            ),
+            MinOSSuitePacket(
+                TextChunk("potat2"),
+                1001,
+                False
+            )
+        ], 5000, 1)
+
+        serialized_json = codec.encoder.json_encode(input)
+        expected_json = {
+            "chunks": [
+                {
+                    "type": "text",
+                    "payload": "potat",
+                    "sentAt": 1000,
+                    "outgoing": True,
+                },
+                {
+                    "type": "text",
+                    "payload": "potat2",
+                    "sentAt": 1001,
+                    "outgoing": False
+                },
+            ],
+            "tresholdChunks": 1,
+            "tresholdTime": 5000
+        }
+        self.assertEqual(serialized_json, expected_json)
+
+        output = codec.decoder.json_decode(serialized_json)
+        self.assertEqual(Ok(input), output)
 
 
 if __name__ == '__main__':

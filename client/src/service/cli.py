@@ -17,7 +17,7 @@ from src.domain.dip_runnable import DIPRunnable
 from src.domain.hardware_control_message import InternalStartLifecycle, InternalEndLifecycle
 from src.engine.board.anvyl.engine_anvyl import EngineAnvyl
 from src.engine.board.anvyl.engine_anvyl_state import EngineAnvylState, EngineAnvylBoardState
-from src.domain.dip_client_error import DIPClientError, GenericClientError
+from src.domain.dip_client_error import DIPClientError, GenericClientError, NotAnError
 from src.domain.existing_file_path import ExistingFilePath
 from src.domain.managed_uuid import ManagedUUID
 from src.domain.positive_integer import PositiveInteger
@@ -32,16 +32,17 @@ from src.engine.engine_lifecycle import EngineLifecycle
 from src.engine.engine_ping import EnginePing
 from src.engine.board.engine_serial_monitor import EngineSerialMonitor
 from src.engine.engine_state import EngineBase
+from src.engine.monitor.minos.minos_suite import MinOSSuite
 from src.engine.video.engine_video import EngineVideo
 from src.engine.video.engine_video_state import EngineVideoState
 from src.engine.video.engine_video_stream import EngineVideoStream
 from src.monitor.monitor_serial import MonitorSerial
 from src.monitor.monitor_type import MonitorType
-from src.protocol import s11n_hybrid
-from src.protocol.codec_json import JSON, EncoderJSON
+from src.protocol.codec_json import JSON, EncoderJSON, DecoderJSON
 from src.protocol.s11n_hybrid import COMMON_INCOMING_MESSAGE_DECODER, COMMON_OUTGOING_MESSAGE_ENCODER, \
     COMMON_OUTGOING_VIDEO_MESSAGE_ENCODER, COMMON_INCOMING_VIDEO_MESSAGE_DECODER
-from src.protocol.s11n_json import CONFIG_ENCODER_JSON
+from src.protocol.s11n_json import CONFIG_ENCODER_JSON, COMMON_MINOS_SUITE_DECODER_JSON, list_decode_json, \
+    COMMON_MINOS_SUITE_PACKET_DECODER_JSON
 from src.protocol.s11n_rich import RichEncoder
 from src.service.backend import BackendConfig, BackendService, BackendServiceInterface
 from src.service.backend_config import UserPassAuthConfig
@@ -246,6 +247,10 @@ class CLIInterface:
         username_str: Optional[str],
         password_str: Optional[str],
         heartbeat_seconds: int,
+        minos_spec_file: Optional[str],
+        minos_spec_json: Optional[str],
+        minos_spec_timeout: Optional[int],
+        minos_spec_chunks: Optional[int],
     ):
         pass
 
@@ -263,6 +268,10 @@ class CLIInterface:
         no_monitor: bool,
         no_stream: bool,
         heartbeat_seconds: int,
+        minos_spec_file: Optional[str],
+        minos_spec_json: Optional[str],
+        minos_spec_timeout: Optional[int],
+        minos_spec_chunks: Optional[int],
     ) -> Result[Optional[DIPRunnable], DIPClientError]:
         pass
 
@@ -289,7 +298,11 @@ class CLIInterface:
         pass
 
     @staticmethod
-    def execute_runnable_result(agent_result: Result[Optional[DIPRunnable], DIPClientError]):
+    def execute_runnable_result(
+        agent_result: Result[Optional[DIPRunnable], DIPClientError],
+        json_output: bool,
+        success_title: str = "Finished task"
+    ):
         pass
 
     @staticmethod
@@ -791,6 +804,49 @@ class CLI(CLIInterface):
         print_json(data={"success": json})
 
     @staticmethod
+    def parsed_minos_suite(
+        monitor_type: MonitorType,
+        minos_spec_file: Optional[str],
+        minos_spec_packets: Optional[str],
+        minos_spec_timeout: Optional[int],
+        minos_spec_chunks: Optional[int],
+    ) -> Result[Optional[MinOSSuite], DIPClientError]:
+        if monitor_type != MonitorType.minosrequest: return Ok(None)
+        if minos_spec_file is None and \
+            minos_spec_packets is None and \
+            minos_spec_timeout is None and \
+            minos_spec_chunks is None:
+            return Err(GenericClientError("MinOS spec requires either a file or JSON"))
+
+        if minos_spec_file is not None:
+            file_result = ExistingFilePath.build(minos_spec_file)
+            if isinstance(file_result, Err):
+                return Err(file_result.value.of_type("minos_spec"))
+            json: str
+            try:
+                with open(file_result.value.value) as f:
+                    json = '\n'.join(f.readlines())
+            except Exception as e:
+                return Err(GenericClientError(f"Failed to read spec file: {e}"))
+            suite_result = COMMON_MINOS_SUITE_DECODER_JSON.decode(json)
+            if isinstance(suite_result, Err):
+                return Err(GenericClientError(f"Failed to decode JSON spec: {suite_result.value}"))
+            return Ok(suite_result.value)
+        else:
+            packet_json_list_result = DecoderJSON.raw_as_serializable(minos_spec_packets)
+            if isinstance(packet_json_list_result, Err):
+                return Err(GenericClientError("MinOSSuite packets must be a valid JSON list"))
+            suite_packets_result = \
+                list_decode_json(COMMON_MINOS_SUITE_PACKET_DECODER_JSON, packet_json_list_result.value)
+            if isinstance(suite_packets_result, Err):
+                return Err(GenericClientError(f"MinOSSuite packets invalid: {suite_packets_result.value}"))
+            if minos_spec_timeout is None:
+                return Err(GenericClientError(f"MinOSSuite time treshold must be defined"))
+            if minos_spec_chunks is None:
+                return Err(GenericClientError(f"MinOSSuite chunk treshold must be defined"))
+            return Ok(MinOSSuite(suite_packets_result.value, minos_spec_timeout, minos_spec_chunks, 0))
+
+    @staticmethod
     def hardware_serial_monitor(
         config_path_str: Optional[str],
         control_server_str: Optional[str],
@@ -799,6 +855,10 @@ class CLI(CLIInterface):
         username_str: Optional[str],
         password_str: Optional[str],
         heartbeat_seconds: int,
+        minos_spec_file: Optional[str],
+        minos_spec_json: Optional[str],
+        minos_spec_timeout: Optional[int],
+        minos_spec_chunks: Optional[int],
     ) -> Result[MonitorSerial, DIPClientError]:
         # Build backend
         backend_result = CLI.parsed_backend(config_path_str, control_server_str, None, username_str, password_str)
@@ -822,8 +882,15 @@ class CLI(CLIInterface):
         heartbeat_seconds_result = PositiveInteger.build(heartbeat_seconds)
         if isinstance(heartbeat_seconds_result, Err): return Err(heartbeat_seconds_result.value.of_type("heartbeat"))
 
+        # Parse MinOS suite if relevant
+        minos_suite_result = CLI.parsed_minos_suite(
+            monitor_serial, minos_spec_file, minos_spec_json, minos_spec_timeout, minos_spec_chunks)
+        if isinstance(minos_suite_result, Err): return Err(minos_suite_result.value)
+        minos_suite = minos_suite_result.value
+
         # Monitor
-        return monitor_serial.resolve(heartbeat_seconds_result.value, url_result.value, backend.config.auth)
+        return monitor_serial.resolve(
+            heartbeat_seconds_result.value, url_result.value, backend.config.auth, minos_suite)
 
     @staticmethod
     async def quick_run(
@@ -839,6 +906,10 @@ class CLI(CLIInterface):
         no_monitor: bool,
         no_stream: bool,
         heartbeat_seconds: int,
+        minos_spec_file: Optional[str],
+        minos_spec_json: Optional[str],
+        minos_spec_timeout: Optional[int],
+        minos_spec_chunks: Optional[int]
     ) -> Result[Optional[DIPRunnable], DIPClientError]:
         # Upload software to platform
         LOGGER.info("Uploading software to platform")
@@ -858,7 +929,8 @@ class CLI(CLIInterface):
             LOGGER.info("Configuring serial connection monitor with board")
             monitor_result = CLI.hardware_serial_monitor(
                 config_path_str, control_server_str, hardware_id_str, monitor_type_str,
-                username_str, password_str, heartbeat_seconds)
+                username_str, password_str, heartbeat_seconds,
+                minos_spec_file, minos_spec_json, minos_spec_timeout, minos_spec_chunks)
             if isinstance(monitor_result, Err): return Err(monitor_result.value)
             maybe_monitor = monitor_result.value
         # Open stream in background
@@ -974,11 +1046,14 @@ class CLI(CLIInterface):
     @staticmethod
     async def execute_runnable_result(
         runnable_result: Result[Optional[DIPRunnable], DIPClientError],
-        success_title: str = "Finished task"
+        json_output: bool = False,
+        success_title: str = "Finished task",
     ):
         # Report runnable construction error
         if isinstance(runnable_result, Err):
-            print_error(runnable_result.value.text())
+            res = runnable_result.value
+            if json_output: CLI.print_json_error(res.text())
+            else: print_error(res.text())
             return sys.exit(1)
 
         # Execute runnable if it's defined
@@ -988,8 +1063,14 @@ class CLI(CLIInterface):
             await asyncio.sleep(0.5) # Hacks to yield to event loop
             # Report optional runnable failure
             if runtime_result is not None:
-                print_error(runtime_result.text())
-                return sys.exit(1)
+                if isinstance(runtime_result, NotAnError):
+                    CLI.print_json_success(runtime_result.success_value)
+                    return sys.exit(0)
+                else:
+                    res = runtime_result
+                    if json_output: CLI.print_json_error(res.text())
+                    else: print_error(res.text())
+                    return sys.exit(1)
 
         # If run didn't happen or was successful, report it accordingly
         print_success(success_title)

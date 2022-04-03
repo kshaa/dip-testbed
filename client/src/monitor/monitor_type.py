@@ -7,6 +7,7 @@ from result import Result, Err, Ok
 from src.domain.dip_client_error import DIPClientError
 from src.domain.dip_runnable import DIPRunnable
 from src.domain.positive_integer import PositiveInteger
+from src.engine.monitor.minos.minos_suite import MinOSSuite
 from src.monitor.monitor_serial import MonitorSerialHelper
 from src.monitor.monitor_serial_button_led_bytes import MonitorSerialButtonLedBytes
 from src.monitor.monitor_serial_hex_bytes import MonitorSerialHexbytes
@@ -46,6 +47,7 @@ class MonitorType(Enum):
     hexbytes = 0
     buttonleds = 1
     minos = 2
+    minosrequest = 3
 
     @staticmethod
     def build(value: str) -> Result['MonitorType', MonitorTypeBuildError]:
@@ -65,7 +67,8 @@ class MonitorType(Enum):
         self,
         heartbeat_seconds: PositiveInteger,
         socket_url: ManagedURL,
-        auth: UserPassAuthConfig
+        auth: UserPassAuthConfig,
+        minos_suite: Optional[MinOSSuite]
     ) -> Result[DIPRunnable, MonitorResolutionError]:
         # Monitor implementation resolution
         monitor: Optional[DIPRunnable] = None
@@ -76,5 +79,7 @@ class MonitorType(Enum):
             socket = MonitorType.socket(socket_url)
             monitor = MonitorSerialButtonLedBytes(MonitorSerialHelper(), socket, auth)
         elif self is MonitorType.minos:
-            monitor = MonitorSerialMinOS(heartbeat_seconds, auth, socket_url)
+            monitor = MonitorSerialMinOS(heartbeat_seconds, auth, socket_url, None)
+        elif self is MonitorType.minosrequest and minos_suite is not None:
+            monitor = MonitorSerialMinOS(heartbeat_seconds, auth, socket_url, minos_suite)
         return Ok(monitor)

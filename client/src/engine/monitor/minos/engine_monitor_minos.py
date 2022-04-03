@@ -13,6 +13,7 @@ from src.engine.engine_ping import EnginePing
 from src.domain.hardware_video_event import COMMON_ENGINE_EVENT, log_event
 from src.engine.monitor.minos.engine_monitor_minos_app import EngineMonitorMinOSApp
 from src.engine.monitor.minos.engine_monitor_minos_state import EngineMonitorMinOSState
+from src.engine.monitor.minos.minos_suite import MinOSSuite
 from src.util import log
 
 MESSAGE_LOGGER = log.timed_named_logger("incoming_engine")
@@ -39,11 +40,11 @@ class EngineMonitorMinOS(Engine[
         await self.state.base.incoming_message_queue.put(InternalEndLifecycle(reason))
 
     async def pre_process_message(self, previous_state: EngineMonitorMinOSState, message: HardwareVideoMessage):
-        if environ.get('DEBUG_NO_TUI') == "1":
+        if environ.get('LOG_LEVEL') == "DEBUG":
             log_monitor_message(MESSAGE_LOGGER, message)
 
     async def pre_process_event(self, previous_state: EngineMonitorMinOSState, event: COMMON_ENGINE_EVENT):
-        if environ.get('DEBUG_NO_TUI') == "1":
+        if environ.get('LOG_LEVEL') == "DEBUG":
             log_event(EVENT_LOGGER, event)
 
     def message_project(

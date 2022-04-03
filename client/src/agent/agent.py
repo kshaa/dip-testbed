@@ -30,7 +30,7 @@ class Agent(Generic[PI, PO], DIPRunnable):
         """Supervising client, which connects to a websocket, listens
          to commands from server, passes them to an client-specific agent"""
 
-        LOGGER.info("Running async engine agent")
+        LOGGER.debug("Running async engine agent")
         config = self.config
 
         # Connect to control
@@ -39,7 +39,7 @@ class Agent(Generic[PI, PO], DIPRunnable):
             return AgentExecutionError("Failed connecting to control server", exception=error)
 
         # Handle lifecycle
-        LOGGER.info("Connected to control server, listening for commands, running start hook")
+        LOGGER.debug("Connected to control server, listening for commands, running start hook")
         asyncio.create_task(self.socket_receive())
         asyncio.create_task(self.socket_transmit())
         asyncio.create_task(self.socket_end_on_death())
@@ -73,7 +73,6 @@ class Agent(Generic[PI, PO], DIPRunnable):
 
             # Send message
             message = death_or_outgoing_message.value
-            log_hardware_message(OUTGOING_LOGGER, message)
             transmission_exception = await self.config.socket.tx(message)
 
             # Handle transmission error (and stop transmitting)
