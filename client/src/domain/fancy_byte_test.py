@@ -28,6 +28,23 @@ class TestFancyByte(unittest.TestCase):
             reality = FancyByte.fromBytes(input).map(lambda x: x.to_binary_bits())
             self.assertEqual(reality, output, input)
 
+    def test_bits(self):
+        self.assertEqual(
+            FancyByte.from_bits([0, 0, 0, 0, 0, 0, 0, 0]),
+            FancyByte.fromInt(0)
+        )
+        self.assertEqual(
+            FancyByte.from_bits([0,0,0,0,0,0,0,1]),
+            FancyByte.fromInt(1)
+        )
+        self.assertEqual(
+            FancyByte.from_bits([1,0,0,0,0,0,0,0]),
+            FancyByte.fromInt(128)
+        )
+        self.assertEqual(
+            FancyByte.from_bits([1,1,1,1,1,1,1,1]),
+            FancyByte.fromInt(255)
+        )
 
 if __name__ == '__main__':
     unittest.main()

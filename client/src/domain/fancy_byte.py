@@ -25,6 +25,15 @@ class FancyByte:
             return Err("Byte too large")
         return Ok(FancyByte(n))
 
+    @staticmethod
+    def from_bits(xs: list) -> Result['FancyByte', str]:
+        if len(xs) != 8:
+            return Err("Byte must contain 8 bits")
+        n = 0
+        for (i, bit) in enumerate(xs):
+            n = n + bit * pow(2, 7 - i)
+        return Ok(FancyByte(n))
+
     def toggle_bit(self, index: int) -> Result['FancyByte', str]:
         if index < 0 or index > 7:
             return Err("Bad bit index")

@@ -3,8 +3,10 @@ import base64
 from functools import partial
 from typing import Type, TypeVar, Dict, Tuple, List
 from result import Result, Err, Ok
+
+from src.domain.fancy_byte import FancyByte
 from src.domain.managed_uuid import ManagedUUID
-from src.domain.minos_chunks import TextChunk, ParsedChunk, DisplayChunk, LEDChunk
+from src.domain.minos_chunks import TextChunk, ParsedChunk, DisplayChunk, LEDChunk, SwitchChunk, IndexedButtonChunk
 from src.engine.monitor.minos.minos_suite import MinOSSuite, MinOSSuitePacket
 from src.protocol.codec import CodecParseException
 from src.domain import hardware_control_message, backend_entity, backend_management_message, monitor_message, config, \
@@ -777,6 +779,10 @@ def minos_suite_packet_encode_json(value: MinOSSuitePacket) -> JSON:
         }
     elif isinstance(chunk, LEDChunk):
         payload = chunk.fancy_byte.to_binary_bits()
+    elif isinstance(chunk, SwitchChunk):
+        payload = chunk.fancy_byte.to_binary_bits()
+    elif isinstance(chunk, IndexedButtonChunk):
+        payload = chunk.button_index
     else:
         raise CodecParseException(f"This encoder can't encode {type(value).__name__}")
 
@@ -809,6 +815,17 @@ def minos_suite_packet_decode_json(
         if not isinstance(payload, str):
             return Err(CodecParseException("MinOSPacket text chunk payload must be a string"))
         parsed_chunk = TextChunk(payload)
+    elif packet_type == SwitchChunk.type_text():
+        if not isinstance(payload, list):
+            return Err(CodecParseException("MinOSPacket switch chunk payload must be a boolean array"))
+        byte_result = FancyByte.from_bits(payload)
+        if isinstance(byte_result, Err):
+            return Err(CodecParseException(f"MinOSPacket switch chunk payload parse error: {byte_result.value}"))
+        parsed_chunk = SwitchChunk(byte_result.value)
+    elif packet_type == IndexedButtonChunk.type_text():
+        if not isinstance(payload, int):
+            return Err(CodecParseException("MinOSPacket switch chunk payload must be a boolean array"))
+        parsed_chunk = IndexedButtonChunk(payload)
     else:
         return Err(CodecParseException(f"MinOSPacket type unknown"))
     return Ok(MinOSSuitePacket(parsed_chunk, sent_at, outgoing))
