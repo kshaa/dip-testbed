@@ -94,15 +94,21 @@ class TextChunk(ParsedChunk):
 
     def to_chunk(self) -> Chunk:
         text_bytes = str.encode(self.text)
-        return Chunk(self.type(), text_bytes)
+        length_bytes = (len(text_bytes)).to_bytes(1, byteorder='big')
+        return Chunk(self.type(), length_bytes + text_bytes)
 
     @staticmethod
     def from_chunk(chunk: Chunk) -> Result['TextChunk', DIPClientError]:
         if chunk.type != TextChunk.type():
             return Err(GenericClientError("Invalid chunk type for TextChunk"))
+        if len(chunk.content) < 1:
+            return Err(GenericClientError("TextChunk requires first byte as text length"))
 
         try:
-            text = chunk.content.decode("utf-8")
+            length_result = FancyByte.fromBytes(chunk.content[0:1])
+            if isinstance(length_result, Err):
+                return Err(GenericClientError("TextChunk length can't be parsed"))
+            text = chunk.content[1:length_result.value.value + 1].decode("utf-8")
             return Ok(TextChunk(text))
         except Exception as e:
             return Err(GenericClientError(f"Failed to parse chunk text: {e}"))
