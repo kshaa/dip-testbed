@@ -43,7 +43,7 @@ module v_tx_text #(
 	begin
 		case (r_vtext_state)
 			R_VTEXT_IDLE: begin
-				if (text_bytes != r_last_text_bytes) begin
+				if (text_bytes[((TEXT_BUFFER_BYTE_SIZE - 1) * 8) - 1:0] != r_last_text_bytes[((TEXT_BUFFER_BYTE_SIZE - 1) * 8) - 1:0]) begin
 					r_last_text_bytes <= text_bytes;
 					r_last_text_size <= text_size;
 					r_vtext_state <= R_VTEXT_SHOULD_PREPARE;

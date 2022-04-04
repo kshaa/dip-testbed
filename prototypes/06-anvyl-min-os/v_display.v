@@ -43,7 +43,7 @@ module v_display #(
 	begin
 		case (r_vdisplay_state)
 			R_VDISPLAY_IDLE: begin
-				if (display != r_display) begin
+				if (display[(DISPLAY_BUFFER_BYTE_SIZE * 8) - 1:0] != r_display[(DISPLAY_BUFFER_BYTE_SIZE * 8) - 1:0]) begin
 					r_old_display <= r_display;
 					r_new_display <= display;
 					r_update_index <= 0;

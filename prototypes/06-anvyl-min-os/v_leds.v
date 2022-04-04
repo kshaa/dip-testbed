@@ -32,7 +32,7 @@ module v_leds #(
 	begin
 		case (r_vleds_state)
 			R_VLEDS_IDLE: begin
-				if (leds != r_last_leds) begin
+				if (leds[7:0] != r_last_leds[7:0]) begin
 					r_last_leds <= leds;
 					r_vleds_state <= R_VLEDS_SHOULD_UPDATE; 
 				end
