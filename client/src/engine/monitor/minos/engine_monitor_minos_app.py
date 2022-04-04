@@ -14,9 +14,9 @@ from src.domain.minos_chunker import MinOSChunker
 from src.domain.minos_chunks import IndexedButtonChunk, SwitchChunk, TextChunk, ParsedChunk
 from src.domain.minos_monitor_event import MinOSMonitorEvent, StartingTUI, AddingTUISideEffect, IndexButtonClicked, \
     ReceivedChunkBytes, LeftoverChanged, BadChunkReceived, GoodChunkReceived, ModeSwitched, TextToAgent, \
-    TextChanged, SwitchesChanged, SendingParsedChunk
+    TextChanged, SwitchesChanged, SendingParsedChunk, MinOSSuiteTimedOut
 from src.domain.monitor_message import StartTUI, AddTUISideEffect, SerialMonitorMessageToAgent, \
-    SerialMonitorMessageToClient, ReceiveChunks, ButtonPress, SendParsedChunk
+    SerialMonitorMessageToClient, ReceiveChunks, ButtonPress, SendParsedChunk, MinOSSuiteTimeout
 from src.engine.engine_state import ManagedQueue
 from src.engine.monitor.minos.engine_monitor_minos_state import EngineMonitorMinOSState
 from src.engine.monitor.minos.minos_app import MinOSApp, button_keys, switch_keys
@@ -65,6 +65,8 @@ class EngineMonitorMinOSApp:
             if not previous_state.is_text_mode and message.key in button_keys:
                 button_index = button_keys.index(message.key)
                 return Ok([IndexButtonClicked(button_index)])
+        if isinstance(message, MinOSSuiteTimeout):
+            return Ok([MinOSSuiteTimedOut()])
         return Ok([])
 
     def state_project(
@@ -90,7 +92,8 @@ class EngineMonitorMinOSApp:
             return dataclasses.replace(previous_state, switches=event.fancy_byte)
         if isinstance(event, GoodChunkReceived) and previous_state.result_suite is not None:
             received_chunks = list(filter(lambda c: not c.outgoing, previous_state.result_suite.chunks))
-            if len(received_chunks) >= previous_state.result_suite.treshold_chunks:
+            treshold = previous_state.result_suite.treshold_chunks
+            if 0 <= treshold <= len(received_chunks):
                 return previous_state
             src = previous_state.result_suite
             time_ms = time.time() * 1000
@@ -106,7 +109,8 @@ class EngineMonitorMinOSApp:
             return dataclasses.replace(previous_state, result_suite=new_suite)
         if isinstance(event, SendingParsedChunk) and previous_state.result_suite is not None:
             received_chunks = list(filter(lambda c: not c.outgoing, previous_state.result_suite.chunks))
-            if len(received_chunks) >= previous_state.result_suite.treshold_chunks:
+            treshold = previous_state.result_suite.treshold_chunks
+            if 0 <= treshold <= len(received_chunks):
                 return previous_state
             src = previous_state.result_suite
             time_ms = time.time() * 1000
@@ -123,20 +127,18 @@ class EngineMonitorMinOSApp:
         return previous_state
 
     async def suite_chunk_queue(self, chunk: ParsedChunk, death: Death, sent_at: int, queue: ManagedQueue):
-        timeout = sent_at * 1000
+        timeout = sent_at / 1000
         death_or_outgoing = await death.or_awaitable(asyncio.sleep(timeout))
         if isinstance(death_or_outgoing, Err):
             return
         await queue.put(SendParsedChunk(chunk))
 
     async def suite_timeout(self, state_ref: EngineMonitorMinOSState):
-        timeout = state_ref.source_suite.treshold_time * 1000
+        timeout = state_ref.source_suite.treshold_time / 1000
         death_or_outgoing = await state_ref.base.death.or_awaitable(asyncio.sleep(timeout))
         if isinstance(death_or_outgoing, Err):
             return
-        await state_ref.base.incoming_message_queue.put(InternalEndLifecycle(NotAnError(
-            COMMON_MINOS_SUITE_ENCODER_JSON.json_encode(state_ref.result_suite)
-        )))
+        await state_ref.base.incoming_message_queue.put(MinOSSuiteTimeout())
 
     async def effect_project(self, previous_state: EngineMonitorMinOSState, event: COMMON_ENGINE_EVENT):
         if isinstance(event, AuthSucceeded):
@@ -157,24 +159,26 @@ class EngineMonitorMinOSApp:
                             chunk.sent_at, previous_state.base.incoming_message_queue))
         elif isinstance(event, IndexButtonClicked):
             parsed_chunk = IndexedButtonChunk(event.button_index)
-            await previous_state.base.outgoing_message_queue.put(SendParsedChunk(parsed_chunk))
+            await previous_state.base.incoming_message_queue.put(SendParsedChunk(parsed_chunk))
         elif isinstance(event, SwitchesChanged):
             parsed_chunk = SwitchChunk(event.fancy_byte)
-            await previous_state.base.outgoing_message_queue.put(SendParsedChunk(parsed_chunk))
+            await previous_state.base.incoming_message_queue.put(SendParsedChunk(parsed_chunk))
         elif isinstance(event, ReceivedChunkBytes):
             chunks, garbage, leftover = MinOSChunker.decode_stream(event.old_stream + event.incoming)
             await previous_state.base.incoming_message_queue.put(ReceiveChunks(chunks, garbage, leftover))
         elif isinstance(event, TextToAgent):
             parsed_chunk = TextChunk(event.text)
-            await previous_state.base.outgoing_message_queue.put(SendParsedChunk(parsed_chunk))
+            await previous_state.base.incoming_message_queue.put(SendParsedChunk(parsed_chunk))
         elif isinstance(event, SendingParsedChunk):
             chunk = event.parsed_chunk.to_chunk()
             encoded = MinOSChunker.encode(chunk)
             await previous_state.base.outgoing_message_queue.put(SerialMonitorMessageToAgent(encoded))
-        if isinstance(event, GoodChunkReceived):
+        if isinstance(event, GoodChunkReceived) or isinstance(event, MinOSSuiteTimedOut):
             if previous_state.result_suite is not None:
                 received_chunks = list(filter(lambda c: not c.outgoing, previous_state.result_suite.chunks))
-                if len(received_chunks) >= previous_state.result_suite.treshold_chunks:
+                treshold = previous_state.result_suite.treshold_chunks
+                force_end = isinstance(event, MinOSSuiteTimedOut)
+                if force_end or (0 <= treshold <= len(received_chunks)):
                     await previous_state.base.incoming_message_queue.put(InternalEndLifecycle(NotAnError(
                         COMMON_MINOS_SUITE_ENCODER_JSON.json_encode(previous_state.result_suite)
                     )))

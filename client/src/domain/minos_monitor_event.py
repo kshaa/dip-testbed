@@ -31,6 +31,11 @@ class IndexButtonClicked(MinOSMonitorEvent):
 
 
 @dataclass(frozen=True)
+class MinOSSuiteTimedOut(MinOSMonitorEvent):
+    pass
+
+
+@dataclass(frozen=True)
 class SwitchesChanged(MinOSMonitorEvent):
     fancy_byte: FancyByte
 

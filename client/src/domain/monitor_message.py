@@ -35,6 +35,11 @@ class StartTUI(MonitorMessage):
     pass
 
 
+@dataclass(frozen=True)
+class MinOSSuiteTimeout(MonitorMessage):
+    pass
+
+
 class AddTUISideEffect(MonitorMessage):
     event_handler: Any
 

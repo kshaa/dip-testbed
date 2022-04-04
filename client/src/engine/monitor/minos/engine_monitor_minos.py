@@ -40,11 +40,11 @@ class EngineMonitorMinOS(Engine[
         await self.state.base.incoming_message_queue.put(InternalEndLifecycle(reason))
 
     async def pre_process_message(self, previous_state: EngineMonitorMinOSState, message: HardwareVideoMessage):
-        if environ.get('LOG_LEVEL') == "DEBUG":
+        if (environ.get('LOG_LEVEL') or "").lower() == "debug":
             log_monitor_message(MESSAGE_LOGGER, message)
 
     async def pre_process_event(self, previous_state: EngineMonitorMinOSState, event: COMMON_ENGINE_EVENT):
-        if environ.get('LOG_LEVEL') == "DEBUG":
+        if (environ.get('LOG_LEVEL') or "").lower() == "debug":
             log_event(EVENT_LOGGER, event)
 
     def message_project(

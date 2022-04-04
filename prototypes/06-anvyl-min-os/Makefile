@@ -11,7 +11,7 @@ NETLISTSVG_OPTS =
 NETLISTSVG_DPI = 300
 
 # Simple files are the same flattened as not
-SIMPLE_FILES=min_os.v main.v uart_rx.v uart_tx.v v_buttons.v v_display.v v_leds.v v_switches.v uart_rx_typed_chunker.v uart_tx_typed_chunker.v main_counter.v main_flashes_and_blocks.v
+SIMPLE_FILES=min_os.v main.v uart_rx.v uart_tx.v v_buttons.v v_display.v v_leds.v v_switches.v uart_rx_typed_chunker.v uart_tx_typed_chunker.v main_counter.v main_flashes_and_blocks.v v_rx_text.v v_tx_text.v
 # Complex files are different when flattened
 COMPLEX_FILES=
 
