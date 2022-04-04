@@ -790,6 +790,7 @@ def minos_suite_packet_encode_json(value: MinOSSuitePacket) -> JSON:
         "type": value.parsed_chunk.type_text(),
         "payload": payload,
         "sentAt": value.sent_at,
+        "sentTimestamp": value.sent_timestamp,
         "outgoing": value.outgoing
     }
 
@@ -808,6 +809,9 @@ def minos_suite_packet_decode_json(
     sent_at = value.get("sentAt")
     if not isinstance(sent_at, int):
         return Err(CodecParseException("MinOSPacket sentAt must be an integer"))
+    sent_timestamp = value.get("sentTimestamp")
+    if sent_timestamp is not None and not isinstance(sent_timestamp, str):
+        return Err(CodecParseException("MinOSPacket sentTimestamp must be an string or None"))
     packet_type = value.get("type")
     payload = value.get("payload")
     parsed_chunk: ParsedChunk
@@ -828,7 +832,7 @@ def minos_suite_packet_decode_json(
         parsed_chunk = IndexedButtonChunk(payload)
     else:
         return Err(CodecParseException(f"MinOSPacket type unknown"))
-    return Ok(MinOSSuitePacket(parsed_chunk, sent_at, outgoing))
+    return Ok(MinOSSuitePacket(parsed_chunk, sent_at, sent_timestamp, outgoing))
 
 
 COMMON_MINOS_SUITE_PACKET_ENCODER_JSON: EncoderJSON[MinOSSuitePacket] = EncoderJSON(minos_suite_packet_encode_json)
@@ -849,7 +853,8 @@ def minos_suite_encode_json(value: MinOSSuite) -> JSON:
         "chunks": packets,
         "tresholdTime": value.treshold_time,
         "tresholdChunks": value.treshold_chunks,
-        "startTime": value.start_time
+        "startTime": value.start_time,
+        "startTimeStamp": value.start_timestamp
     }
 
 
@@ -876,7 +881,10 @@ def minos_suite_decode_json(
         start_time = 0
     if not isinstance(start_time, int):
         return Err(CodecParseException("MinOSPacket startTime must be an integer"))
-    return Ok(MinOSSuite(suite_packets_result.value, treshold_time, treshold_chunks, start_time))
+    start_timestamp = value.get("startTimestamp")
+    if start_timestamp is not None and not isinstance(start_timestamp, str):
+        return Err(CodecParseException("MinOSPacket startTimestamp must be an string or None"))
+    return Ok(MinOSSuite(suite_packets_result.value, treshold_time, treshold_chunks, start_time, start_timestamp))
 
 
 COMMON_MINOS_SUITE_ENCODER_JSON: EncoderJSON[MinOSSuite] = EncoderJSON(minos_suite_encode_json)

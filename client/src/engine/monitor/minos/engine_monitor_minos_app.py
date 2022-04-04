@@ -23,6 +23,7 @@ from src.engine.monitor.minos.minos_app import MinOSApp, button_keys, switch_key
 from src.engine.monitor.minos.minos_suite import MinOSSuite, MinOSSuitePacket
 import time
 from src.protocol.s11n_json import COMMON_MINOS_SUITE_ENCODER_JSON
+import datetime
 
 
 @dataclass
@@ -73,9 +74,10 @@ class EngineMonitorMinOSApp:
     ) -> EngineMonitorMinOSState:
         if isinstance(event, StartingTUI) and previous_state.source_suite is not None:
             src = previous_state.source_suite
-            time_ms = round(time.time() * 1000)
-            return dataclasses.replace(
-                previous_state, result_suite=MinOSSuite([], src.treshold_time, src.treshold_chunks, time_ms))
+            time_ms = time.time() * 1000
+            start_timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+            result_suite = MinOSSuite([], src.treshold_time, src.treshold_chunks, time_ms, start_timestamp)
+            return dataclasses.replace(previous_state, result_suite=result_suite)
         if isinstance(event, AddingTUISideEffect):
             return dataclasses.replace(previous_state, event_handlers=previous_state.event_handlers + [event.event_handler])
         if isinstance(event, LeftoverChanged):
@@ -90,13 +92,14 @@ class EngineMonitorMinOSApp:
             received_chunks = list(filter(lambda c: not c.outgoing, previous_state.result_suite.chunks))
             if len(received_chunks) >= previous_state.result_suite.treshold_chunks:
                 return previous_state
-
             src = previous_state.result_suite
-            time_ms = round(time.time() * 1000)
+            time_ms = time.time() * 1000
             delta_ms = time_ms - previous_state.result_suite.start_time
+            sent_timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
             new_chunk = MinOSSuitePacket(
                 event.parsed_chunk,
                 delta_ms,
+                sent_timestamp,
                 False
             )
             new_suite = dataclasses.replace(previous_state.result_suite, chunks=src.chunks + [new_chunk])
@@ -105,13 +108,14 @@ class EngineMonitorMinOSApp:
             received_chunks = list(filter(lambda c: not c.outgoing, previous_state.result_suite.chunks))
             if len(received_chunks) >= previous_state.result_suite.treshold_chunks:
                 return previous_state
-
             src = previous_state.result_suite
-            time_ms = round(time.time() * 1000)
+            time_ms = time.time() * 1000
             delta_ms = time_ms - previous_state.result_suite.start_time
+            sent_timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
             new_chunk = MinOSSuitePacket(
                 event.parsed_chunk,
                 delta_ms,
+                sent_timestamp,
                 True
             )
             new_suite = dataclasses.replace(previous_state.result_suite, chunks=src.chunks + [new_chunk])
