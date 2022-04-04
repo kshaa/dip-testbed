@@ -15,7 +15,7 @@ from src.domain.monitor_message import AddTUISideEffect, ButtonPress
 from src.engine.monitor.minos.engine_monitor_minos_state import EngineMonitorMinOSState
 from src.util import log
 
-LOGGER = log.timed_named_logger("monitor_button_led_bytes_app")
+LOGGER = log.timed_named_logger("minos")
 
 
 class AppStateStorage:
@@ -256,7 +256,6 @@ class ButtonLEDScreen(GridView):
             if not isinstance(event, GoodChunkReceived): return
             if not isinstance(event.parsed_chunk, TextChunk): return
             self.input_text.label = f"From board: {event.parsed_chunk.text}"
-
         hacked_global_app_state_storage.message(AddTUISideEffect(partial(expect_text_in_change)))
 
 
