@@ -17,7 +17,7 @@
   <files>
     <file xil_pn:name="main.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="1"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="14"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="15"/>
     </file>
     <file xil_pn:name="anvyl.ucf" xil_pn:type="FILE_UCF">
       <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
@@ -373,6 +373,7 @@
     <file xil_pn:name="main_counter.v" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="main_flashes_and_blocks.v" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="v_tx_text.v" xil_pn:type="FILE_VERILOG"/>
+    <file xil_pn:name="main_echo_text.v" xil_pn:type="FILE_VERILOG"/>
   </autoManagedFiles>
 
 </project>

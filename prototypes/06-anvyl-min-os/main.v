@@ -4,6 +4,8 @@
 `include "main_counter.v"
 // Arbitrary logic for flashing light and moving block display 
 `include "main_flashes_and_blocks.v"
+// Arbitrary logic for copying and pasting incoming text to output
+`include "main_echo_text.v"
 
 // Define a UART reader/transmitter FPGA program
 module main(
@@ -38,16 +40,7 @@ module main(
 	// Design an output byte to render to virtual and physical LEDs
 	// If any switch bit is on, the switch is the output
 	// If all switches are off, the counter is the output
-	reg [7:0] text_counter = 0;
-	reg [7:0] text_0 = 0;
-	reg [7:0] text_1 = 0;
-	reg [7:0] text_2 = 0;
-	wire [7:0] output_byte = switches == 0 ? counter : 
-		switches == 1 ? text_counter : 
-		switches == 2 ? text_0 : 
-		switches == 3 ? text_1 : 
-		switches == 4 ? text_2 :
-		switches;
+	wire [7:0] output_byte = switches == 0 ? counter : switches;
 
 	// Design a coordinate system w/ two points controlled by buttons
 	wire [511:0] display;
@@ -66,16 +59,15 @@ module main(
 	wire [(32 * 8) - 1:0] rx_text_bytes;
 	wire [8 - 1:0] rx_text_size;
 	wire rx_is_text_ready;
-	reg [(32 * 8) - 1:0] tx_text_bytes;
-	reg [8 - 1:0] tx_text_size;
-	always @(posedge rx_is_text_ready) begin
-		text_counter <= text_counter + rx_text_size;
-		text_0 <= tx_text_bytes[15:8];
-		text_1 <= tx_text_bytes[23:16];
-		text_2 <= tx_text_bytes[31:24];
-		tx_text_bytes <= rx_text_bytes;
-		tx_text_size <= rx_text_size;
-	end
+	wire [(32 * 8) - 1:0] tx_text_bytes;
+	wire [8 - 1:0] tx_text_size;
+	main_echo_text main_echo_text_instance(
+		.rx_text_bytes(rx_text_bytes),
+		.rx_text_size(rx_text_size),
+		.rx_is_text_ready(rx_is_text_ready),
+		.tx_text_bytes(tx_text_bytes),
+		.tx_text_size(tx_text_size)
+	);
 
 	// Instantiate kshaa's UART-based MinOS:
 	// - with output_byte assigned to virtual interface "leds"
