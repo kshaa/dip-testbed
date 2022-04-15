@@ -138,24 +138,25 @@ $ git clean -fxd
 $ rm -rf ./backend/web/public # Not my code
 [...]
 $ docker run -v $PWD:/data mribeiro/cloc .
-     286 text files.
-     277 unique files.                                          
-    3794 files ignored.
+     348 text files.
+     327 unique files.                                          
+    4715 files ignored.
 
-http://cloc.sourceforge.net v 1.60  T=1.12 s (197.9 files/s, 12522.3 lines/s)
+http://cloc.sourceforge.net v 1.60  T=1.22 s (221.5 files/s, 15930.4 lines/s)
 -----------------------------------------------------------------------------------
 Language                         files          blank        comment           code
 -----------------------------------------------------------------------------------
-Python                              90           1331            681           6047
-Scala                               89            477            107           3007
-Verilog-SystemVerilog               15            221            245           1053
-Bourne Shell                        18             96             92            398
-HTML                                 5              8              0             84
-SQL                                  1             17             14             43
-XML                                  1             13              7             39
+Python                             101           1551            717           7424
+Scala                              101            593            120           4088
+Verilog-SystemVerilog               33            408            673           2465
+HTML                                11              3              0            492
+Bourne Shell                        17             91             85            378
+SQL                                  2             33             28             70
+make                                 1             18             15             40
+XML                                  1             14              8             40
 YAML                                 2              0              1             33
 C++                                  1              4             14             14
 -----------------------------------------------------------------------------------
-SUM:                               222           2167           1161          10718
+SUM:                               270           2715           1661          15044
 -----------------------------------------------------------------------------------
 ```
