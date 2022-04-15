@@ -4,6 +4,8 @@ DIP Testbed Platform is an academic work which allows users to remotely program 
   
 _N.B. This is an academic piece of work, it's rough around the edges, because time was a significant constraint._  
 _N.B. It is not production grade in any way. It works, but it's an experiment, a prototype._  
+
+See thesis in [kshaa/dip-testbed-thesis](https://github.com/kshaa/dip-testbed-thesis) (will publish when it's finished)  
   
 ## Demo
 ### Installation
