@@ -5,8 +5,11 @@ import cats.effect.unsafe.IORuntime
 import cats.{Applicative, Monad, Parallel}
 import cats.data.NonEmptyList
 import cats.implicits._
+import com.typesafe.scalalogging.Logger
 
 object EventEngine {
+  val logger = Logger(getClass.getName)
+
   type MessageResult[F[_], E, S] =
     Either[F[Unit], NonEmptyList[(E, S, Option[F[Unit]])]]
 
@@ -20,7 +23,7 @@ object EventEngine {
     toState: (S, E) => S,
     onError: X => F[Unit]
   )(m: M): MessageResult[F, E, S] = {
-//    println(f"Received message: ${m}")
+    logger.debug(f"Message: ${m}")
     handleMessage(initialState, m).bimap(
       onError,
       _.foldLeft(List.empty[(E, S, Option[F[Unit]])]) {
@@ -49,7 +52,7 @@ object EventEngine {
   def multiSideeffectProjection[S, E, F[_]: Parallel: Monad](
     toSideeffects: List[(S, E) => Option[F[Unit]]],
   )(state: S, event: E): Option[F[Unit]] = {
-//    println(f"Received event: ${event}")
+    logger.debug(f"Event: ${event}")
     val effects = toSideeffects.flatMap(_(state, event))
     if (effects.isEmpty) None
     else Some(effects.parSequence.void)

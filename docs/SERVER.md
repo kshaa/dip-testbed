@@ -2,7 +2,7 @@
   
 1) Download CLI server:  
 ```bash
-curl https://github.com/kshaa/dip-testbed-dist/releases/download/<version>/dip_server.zip -L -o dip_server.zip  
+curl https://github.com/kshaa/dip-testbed/releases/download/<version>/dip_server.zip -L -o dip_server.zip  
 ```
 _Note: Replace `<version>` with a release verion e.g. `v3.0.2`_  
   

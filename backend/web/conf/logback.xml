@@ -12,7 +12,7 @@
 
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
-      <pattern>%coloredLevel %logger{15} - %message%n%xException{10}</pattern>
+      <pattern>[%d{yyyy-MM-dd HH:mm:ss.SSS}] %coloredLevel %logger{15} - %message%n%xException{10}</pattern>
     </encoder>
   </appender>
 
@@ -49,6 +49,9 @@
   <logger name="com.avaje.ebeaninternal.server.core.XmlConfigLoader" level="OFF" />
   <logger name="com.avaje.ebeaninternal.server.lib.BackgroundThread" level="OFF" />
   <logger name="com.gargoylesoftware.htmlunit.javascript" level="OFF" />
+
+  <!-- App-->
+  <logger name="diptestbed.domain.EventEngine" level="DEBUG" />
 
   <!-- Global log level & output -->
   <root level="INFO">

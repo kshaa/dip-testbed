@@ -8,7 +8,7 @@ import sys
 def structure_logger(logger_name: str, logger: Logger):
     log_level = os.environ.get('LOG_LEVEL', 'INFO').upper()
     formatter = logging.Formatter(
-        fmt=f"[%(asctime)s] [%(levelname)s] [{logger_name}] %(message)s",
+        fmt=f"[%(asctime)s.%(msecs)03d] [%(levelname)s] [{logger_name}] %(message)s",
         datefmt='%Y-%m-%d %H:%M:%S')
     screen_handler = logging.StreamHandler(stream=sys.stdout)
     screen_handler.setFormatter(formatter)

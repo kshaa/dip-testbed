@@ -1046,8 +1046,8 @@ class CLI(CLIInterface):
     @staticmethod
     async def execute_runnable_result(
         runnable_result: Result[Optional[DIPRunnable], DIPClientError],
-        json_output: bool = False,
         success_title: str = "Finished task",
+        json_output: bool = False,
     ):
         # Report runnable construction error
         if isinstance(runnable_result, Err):

@@ -643,7 +643,7 @@ def hardware_serial_monitor(
             minos_spec_json,
             minos_spec_timeout,
             minos_spec_chunks,
-        ), monitor_type_str == MonitorType.minosrequest, "Finished monitoring")
+        ), "Finished monitoring", monitor_type_str == MonitorType.minosrequest)
     asyncio.run(exec())
 
 
@@ -702,7 +702,7 @@ def quick_run(
                 minos_spec_json,
                 minos_spec_timeout,
                 minos_spec_chunks,
-            ), monitor_type_str == MonitorType.minosrequest, "Finished quick run")
+            ), "Finished quick run", monitor_type_str == MonitorType.minosrequest)
     asyncio.run(exec())
 
 @CLI_COMMAND

@@ -9,8 +9,8 @@ _Meanwhile you can check out the platform prototypes which are like "get your ha
 DIP Client is the main CLI tool to interact with the DIP Testbed platform.  
 For more documentations see [CLIENT.md](./CLIENT.md)  
 
-Latest release: https://github.com/kshaa/dip-testbed-dist/releases/latest/download/dip_client_amd64  
-Quick install: `curl https://github.com/kshaa/dip-testbed-dist/releases/latest/download/client_install.sh | bash`  
+Latest release: https://github.com/kshaa/dip-testbed/releases/latest/download/dip_client_amd64  
+Quick install: `curl https://github.com/kshaa/dip-testbed/releases/latest/download/client_install.sh | bash`  
 
 ## 🌸 🌼 DIP Platform Prototypes 🌼 🌸
 The author of this academic work created various prototypes when manually emulating end-user usage of the platform.  
@@ -20,7 +20,7 @@ The prototypes, their source codes and descriptions can be seen in [prototypes](
 DIP Server is a central service responsible for data management and connecting platform end-users, hardware devices & virtual interfaces  
 For more documentations see [SERVER.md](./SERVER.md)  
   
-Latest release: https://github.com/kshaa/dip-testbed-dist/releases/latest/download/dip_server.zip  
+Latest release: https://github.com/kshaa/dip-testbed/releases/latest/download/dip_server.zip  
 
 ## Academic purpose server
 There is an academic test server hosted in the cloud:  

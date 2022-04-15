@@ -52,7 +52,7 @@ A slightly more business-level description is as follows:
 ## Quick installation & usage
 Download the CLI tool:
 ```bash
-curl -L https://github.com/kshaa/dip-testbed-dist/releases/latest/download/client_install.sh | bash
+curl -L https://github.com/kshaa/dip-testbed/releases/latest/download/client_install.sh | bash
 ```
   
 Create a local authentication session:
@@ -72,7 +72,7 @@ _Note: Quick run has all of the underlying mechanics configurable, see options w
 ## Detailed platform usage
 
 ### Installation
-- Download `https://github.com/kshaa/dip-testbed-dist/releases/latest/download/dip_client_${TARGET_ARCH}`  
+- Download `https://github.com/kshaa/dip-testbed/releases/latest/download/dip_client_${TARGET_ARCH}`  
 - Store in `${PATH}`
 - Set executable bit
 
@@ -125,15 +125,14 @@ _Note: For agent-specific usage, see `dip_client agent-${AGENT_TYPE} --help`_
 - See [prototypes](./prototypes/README.md) for examples of the testbed platform usage  
   
 ## Development
-The following links are currently available only by special request  
-  
 - See [backend](./backend/README.md) for backend implementation & usage  
 - See [client](./client/README.md) for client and agent implementation & usage  
 - See [database](./database/README.md) for database usage  
   
 ## Fun statistics
 ```bash
-$ # Timestamp: 2022-03-13-00-17-25
+$ echo "$(date +'%Y-%m-%d-%H-%M-%S')"
+2022-04-15-15-21-41
 $ git clean -fxd
 [...]
 $ rm -rf ./backend/web/public # Not my code

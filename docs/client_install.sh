@@ -5,7 +5,7 @@ TARGET_ARCH="amd64" # Hardcoded
 DATA_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}"
 DIP_BIN_DIR="${DATA_HOME}/dip_platform/bin"
 DIP_CLIENT_BIN="${DIP_BIN_DIR}/dip_client"
-DIP_LATEST_URL="https://github.com/kshaa/dip-testbed-dist/releases/latest/download/dip_client_${TARGET_ARCH}"
+DIP_LATEST_URL="https://github.com/kshaa/dip-testbed/releases/latest/download/dip_client_${TARGET_ARCH}"
 DEFAULT_TESTBED_STATIC_URL="http://testbed.veinbahs.lv"
 DEFAULT_TESTBED_CONTROL_URL="ws://testbed.veinbahs.lv"
 

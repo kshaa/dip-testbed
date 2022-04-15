@@ -2,7 +2,7 @@
   
 1) Download CLI client:  
 ```bash
-curl https://github.com/kshaa/dip-testbed-dist/releases/download/<version>/dip_client_<arch> -L -o dip_client
+curl https://github.com/kshaa/dip-testbed/releases/download/<version>/dip_client_<arch> -L -o dip_client
 ```
 _Note: Replace `<version>` with a release verion e.g. `v3.0.2` and `<arch>` with a CPU architecture e.g. `x86_64`_  
   

@@ -20,6 +20,8 @@ lazy val domain = (project in file("domain"))
       pbkdf2,
       scalaTestPackage,
       catsEffectPackage,
+      logback,
+      scalaLogging,
     ),
   )
 
