@@ -24,6 +24,9 @@ from src.domain.positive_integer import PositiveInteger
 from src.engine.board.anvyl.engine_anvyl_upload import EngineAnvylUpload
 from src.engine.board.fake.engine_fake import EngineFakeBoardState, EngineFakeState, EngineFakeUpload, \
     EngineFakeSerialMonitor, EngineFake
+from src.engine.board.icestick.engine_icestick import EngineIcestick
+from src.engine.board.icestick.engine_icestick_state import EngineIcestickBoardState, EngineIcestickState
+from src.engine.board.icestick.engine_icestick_upload import EngineIcestickUpload
 from src.engine.board.nrf52.engine_nrf52 import EngineNRF52
 from src.engine.board.nrf52.engine_nrf52_state import EngineNRF52State, EngineNRF52BoardState
 from src.engine.board.nrf52.engine_nrf52_upload import EngineNRF52Upload
@@ -583,6 +586,46 @@ class CLI(CLIInterface):
         engine_auth = EngineAuth()
         engine = \
             EngineNRF52(engine_state, engine_lifecycle, engine_upload, engine_ping, engine_serial_monitor, engine_auth)
+
+        # Agent with engine construction
+        encoder = COMMON_OUTGOING_MESSAGE_ENCODER
+        decoder = COMMON_INCOMING_MESSAGE_DECODER
+        websocket = WebSocket(hardware_control_url, decoder, encoder)
+
+        return Ok(Agent(AgentConfig(engine, websocket)))
+
+    @staticmethod
+    async def agent_icestick(
+        config_path_str: Optional[str],
+        hardware_id_str: str,
+        control_server_str: Optional[str],
+        static_server_str: Optional[str],
+        username_str: Optional[str],
+        password_str: Optional[str],
+        heartbeat_seconds: int,
+        device_name_str: str,
+        device_path_str: str
+    ) -> Result[Agent, DIPClientError]:
+        # Common agent input
+        common_agent_input_result: Result = CLI.parsed_agent_input(
+            config_path_str, hardware_id_str, control_server_str, static_server_str, username_str, password_str,
+            heartbeat_seconds, device_path_str)
+        if isinstance(common_agent_input_result, Err): return common_agent_input_result
+        (hardware_id, heartbeat_seconds, backend, hardware_control_url, device_path) = \
+            common_agent_input_result.value
+
+        # Engine
+        base = await EngineBase.build()
+        board_state = EngineIcestickBoardState(device_name_str, device_path)
+        engine_state = \
+            EngineIcestickState(base, hardware_id, backend, heartbeat_seconds, board_state, backend.config.auth)
+        engine_lifecycle = EngineLifecycle()
+        engine_upload = EngineIcestickUpload(backend)
+        engine_ping = EnginePing()
+        engine_serial_monitor = EngineSerialMonitor()
+        engine_auth = EngineAuth()
+        engine = \
+            EngineIcestick(engine_state, engine_lifecycle, engine_upload, engine_ping, engine_serial_monitor, engine_auth)
 
         # Agent with engine construction
         encoder = COMMON_OUTGOING_MESSAGE_ENCODER

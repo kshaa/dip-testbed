@@ -74,7 +74,8 @@ DEVICE_PATH_OPTION = click.option(
 DEVICE_NAME_OPTION = click.option(
     '--device-name', '-n', "device_name_str", show_envvar=True,
     type=str, envvar=f"{ENV_PREFIX}_DEVICE_NAME", required=True,
-    help='Device identification name (e.g. Anvyl), used for upload')
+    help='Device identification name (e.g. "Anvyl" for anvyl or '
+         '"i:0x0403:0x6010" for icesticks), used for upload')
 SCAN_CHAIN_INDEX_OPTION = click.option(
     '--scanchainindex', '-s', "scan_chain_index", show_envvar=True,
     type=int, envvar=f"{ENV_PREFIX}_SCAN_CHAIN_INDEX", required=True,
@@ -344,6 +345,43 @@ def agent_nrf52(
                 password_str,
                 heartbeat_seconds,
                 device_path_str), "NRF52 agent finished work")
+    asyncio.run(exec())
+
+
+@CLI_COMMAND
+@CONFIG_PATH_OPTION
+@HARDWARE_ID_OPTION
+@CONTROL_SERVER_OPTION
+@STATIC_SERVER_OPTION
+@USERNAME_OPTION
+@PASSWORD_OPTION
+@HEARTBEAT_SECONDS_OPTION
+@DEVICE_NAME_OPTION
+@DEVICE_PATH_OPTION
+def agent_icestick(
+    config_path_str: Optional[str],
+    hardware_id_str: str,
+    control_server_str: Optional[str],
+    static_server_str: Optional[str],
+    username_str: Optional[str],
+    password_str: Optional[str],
+    heartbeat_seconds: int,
+    device_name_str: str,
+    device_path_str: str
+):
+    """iCEstick FPGA agent (Linux specific)"""
+    async def exec():
+        return await CLI.execute_runnable_result(
+            await CLI.agent_icestick(
+                config_path_str,
+                hardware_id_str,
+                control_server_str,
+                static_server_str,
+                username_str,
+                password_str,
+                heartbeat_seconds,
+                device_name_str,
+                device_path_str), "iCEstick agent finished work")
     asyncio.run(exec())
 
 
