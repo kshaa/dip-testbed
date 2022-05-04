@@ -11,7 +11,7 @@ from src.domain.existing_file_path import ExistingFilePath
 from src.engine.board.engine_upload import EngineUpload
 from src.util.sh import outcome_sh, src_relative_path
 
-FIRMWARE_UPLOAD_PATH = '../../../static/lattice_semiconductor_icestick/upload.sh'
+FIRMWARE_UPLOAD_PATH = 'static/lattice_semiconductor_icestick/upload.sh'
 SERIALIZABLE = TypeVar('SERIALIZABLE')
 
 
