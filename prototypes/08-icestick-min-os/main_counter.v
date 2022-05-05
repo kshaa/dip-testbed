@@ -16,7 +16,7 @@ module main_counter(
 	reg [7:0] r_counter = 0; 
 	reg r_flipper = 0;
 	reg r_tick = 0;
-	parameter sleep_ticks = 32'd100000000;
+	parameter sleep_ticks = 32'd12000000;
 	reg [31:0] r_ticks = 0;
 	always @(posedge CLK)
 	begin

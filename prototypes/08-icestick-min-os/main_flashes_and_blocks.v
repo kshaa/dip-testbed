@@ -8,10 +8,7 @@ module main_flashes_and_blocks(
 
 	// Buttons
 	input button_pressed,
-	input [7:0] button_index,
-
-	// Display contents
-	output [511:0] display
+	input [7:0] button_index
 );
 	// Coordinate system w/ two points controlled by buttons
 	reg r_indexes_changed = 0;
@@ -48,36 +45,9 @@ module main_flashes_and_blocks(
 			end 
 			// Trigger display change
 			r_indexes_changed <= 1;
-		end else if (display_logic_changed) begin
+		end else if (r_indexes_changed) begin
 			// If button unpressed, remember to toggle off display changes
 			r_indexes_changed <= 0;
 		end
 	end
-
-	// Design a display with some flipping bits in three corners
-	wire display_logic_changed = tick || r_indexes_changed;
-	reg [511:0] r_display = 0; // 64 bytes
-	integer display_iterator = 0;
-	always @(posedge CLK)
-	begin
-		for (display_iterator = 0; display_iterator < 64; display_iterator = display_iterator + 1)
-			if (display_logic_changed) begin
-				if (a_index == display_iterator) begin
-					r_display[display_iterator * 8 +: 8] <= 8'b00111111;
-				end else if (b_index == display_iterator) begin
-					r_display[display_iterator * 8 +: 8] <= 8'b00010101;
-				end else if (0 == display_iterator && flipper) begin
-					r_display[display_iterator * 8 +: 8] <= 8'b00110000;
-				end else if (7 == display_iterator && flipper) begin
-					r_display[display_iterator * 8 +: 8] <= 8'b00001100;
-				end else if (56 == display_iterator && flipper) begin
-					r_display[display_iterator * 8 +: 8] <= 8'b00000011;
-				end else begin
-					r_display[display_iterator * 8 +: 8] <= 8'b00000000;
-				end
-			end
-	end
-
-	// Assign outputs
-	assign display = r_display;
 endmodule

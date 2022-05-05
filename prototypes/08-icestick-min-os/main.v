@@ -4,8 +4,6 @@
 `include "main_counter.v"
 // Arbitrary logic for flashing light and moving block display 
 `include "main_flashes_and_blocks.v"
-// Arbitrary logic for copying and pasting incoming text to output
-`include "main_echo_text.v"
 
 // Define a UART reader/transmitter FPGA program
 module main(
@@ -33,7 +31,6 @@ module main(
 	wire [7:0] output_byte = switches == 0 ? counter : switches;
 
 	// Design a coordinate system w/ two points controlled by buttons
-	wire [511:0] display;
 	wire [7:0] mos_button_index;
 	wire mos_button_pressed;
 	main_flashes_and_blocks main_flashes_and_blocks_instance(
@@ -41,22 +38,7 @@ module main(
 		.flipper(flipper),
 		.tick(tick),
 		.button_pressed(mos_button_pressed),
-		.button_index(mos_button_index),
-		.display(display)
-	);
-
-	// Echo back received text
-	wire [(32 * 8) - 1:0] rx_text_bytes;
-	wire [8 - 1:0] rx_text_size;
-	wire rx_is_text_ready;
-	wire [(32 * 8) - 1:0] tx_text_bytes;
-	wire [8 - 1:0] tx_text_size;
-	main_echo_text main_echo_text_instance(
-		.rx_text_bytes(rx_text_bytes),
-		.rx_text_size(rx_text_size),
-		.rx_is_text_ready(rx_is_text_ready),
-		.tx_text_bytes(tx_text_bytes),
-		.tx_text_size(tx_text_size)
+		.button_index(mos_button_index)
 	);
 
 	// Instantiate kshaa's UART-based MinOS:
@@ -69,14 +51,8 @@ module main(
 		.T19(RX),
 		.T20(TX),
 		.leds(output_byte),
-		.display(display),
 		.switches(switches),
 		.button_index(mos_button_index),
-		.button_pressed(mos_button_pressed),
-		.rx_text_bytes(rx_text_bytes),
-		.rx_text_size(rx_text_size),
-		.rx_is_text_ready(rx_is_text_ready),
-		.tx_text_bytes(tx_text_bytes),
-		.tx_text_size(tx_text_size)
+		.button_pressed(mos_button_pressed)
 	);
 endmodule
